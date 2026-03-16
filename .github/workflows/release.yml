@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Publish
+      run: |
+        dotnet publish CubeStatsApi/CubeStatsApi.csproj \
+          -c Release \
+          -r linux-x64 \
+          --self-contained true \
+          -p:PublishSingleFile=true \
+          -p:Version=${{ steps.version.outputs.VERSION }} \
+          -o ./publish
+
+    - name: Create tarball
+      run: |
+        cd publish
+        tar -czvf ../cubestats-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz \
+          cubestats \
+          appsettings.Development.json \
+          appsettings.json \
+          wwwroot
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: cubestats-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

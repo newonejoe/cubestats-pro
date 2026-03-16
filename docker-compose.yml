@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  cubestats:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - cubestats-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  cubestats-data:
