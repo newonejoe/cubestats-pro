@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CubeStats Pro - 3x3 Cubing Data Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #14141f;
+            --surface-elevated: #1a1a2e;
+            --primary: #00d4aa;
+            --secondary: #ff6b35;
+            --tertiary: #7c3aed;
+            --text: #f0f0f5;
+            --text-secondary: #8888a0;
+            --success: #22c55e;
+            --warning: #eab308;
+            --error: #ef4444;
+            --border: #2a2a3e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(255, 107, 53, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr 1fr 1fr;
+                grid-template-rows: auto auto;
+            }
+            .timer-section {
+                grid-column: 1 / 3;
+            }
+            .analysis-section {
+                grid-column: 3;
+                grid-row: 1 / 3;
+            }
+            .history-section {
+                grid-column: 1 / 3;
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.2s ease-out;
+        }
+
+        .card:hover {
+            box-shadow: 0 0 30px rgba(0, 212, 170, 0.08);
+            border-color: rgba(0, 212, 170, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--tertiary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .logo-text span {
+            color: var(--primary);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-select {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        /* Timer Section */
+        .timer-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .timer-display {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .timer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(48px, 12vw, 96px);
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 2px;
+            transition: color 0.2s;
+        }
+
+        .timer.running {
+            color: var(--primary);
+            text-shadow: 0 0 40px rgba(0, 212, 170, 0.5);
+        }
+
+        .timer.inspection {
+            color: var(--warning);
+        }
+
+        .timer.dnf {
+            color: var(--error);
+            text-decoration: line-through;
+        }
+
+        .inspection-timer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            color: var(--warning);
+            height: 32px;
+            margin-bottom: 8px;
+        }
+
+        .scramble-display {
+            background: var(--surface-elevated);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .scramble-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .scramble-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            color: var(--primary);
+            line-height: 1.6;
+            word-spacing: 8px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            background: #00eabb;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 212, 170, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--surface-elevated);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #f87171;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .stat-item {
+            background: var(--surface-elevated);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .stat-item.best .stat-value {
+            color: var(--warning);
+        }
+
+        /* Bluetooth Section */
+        .bluetooth-section {
+            margin-top: 20px;
+        }
+
+        .bt-devices {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+
+        .bt-device {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: var(--surface-elevated);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bt-device:hover {
+            border: 1px solid var(--primary);
+        }
+
+        .bt-device-name {
+            font-weight: 500;
+        }
+
+        .bt-device-rssi {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Analysis Section */
+        .analysis-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .cfop-card {
+            background: var(--surface-elevated);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid;
+        }
+
+        .cfop-card.o-step {
+            border-color: var(--secondary);
+        }
+
+        .cfop-card.p-step {
+            border-color: var(--tertiary);
+        }
+
+        .cfop-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .cfop-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .cfop-card.o-step .cfop-title {
+            color: var(--secondary);
+        }
+
+        .cfop-card.p-step .cfop-title {
+            color: var(--tertiary);
+        }
+
+        .cfop-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .cfop-badge.good {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .cfop-badge.average {
+            background: rgba(234, 179, 8, 0.2);
+            color: var(--warning);
+        }
+
+        .cfop-badge.slow {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+
+        .cfop-metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cfop-metric:last-child {
+            border-bottom: none;
+        }
+
+        .cfop-metric-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .cfop-metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        /* History Section */
+        .history-section .card-header {
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .history-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .solves-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .solve-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--surface-elevated);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .solve-item:hover {
+            background: #222233;
+        }
+
+        .solve-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .solve-time.dnf {
+            color: var(--error);
+            text-decoration: line-through;
+        }
+
+        .solve-time.plus2 {
+            color: var(--warning);
+        }
+
+        .solve-info {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .solve-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Coach Panel */
+        .coach-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .coach-btn {
+            background: linear-gradient(135deg, var(--secondary), var(--tertiary));
+            color: white;
+            width: 100%;
+        }
+
+        /* Settings Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Penalties */
+        .penalty-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            justify-content: center;
+        }
+
+        /* Scramble Options */
+        .scramble-options {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .scramble-option {
+            padding: 8px 16px;
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .scramble-option.active {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Keyboard hint */
+        .keyboard-hint {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        kbd {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1001;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease-out;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--error);
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Coach Dashboard */
+        .coach-dashboard {
+            padding: 20px;
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .user-stat-card {
+            background: var(--surface-elevated);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .user-stat-card h4 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🎲</div>
+            <div class="logo-text">Cube<span>Stats</span> Pro</div>
+        </div>
+        <div class="header-controls">
+            <select class="user-select" id="userSelect" onchange="switchUser()">
+                <option value="1">Coach</option>
+                <option value="2" selected>User</option>
+            </select>
+            <div class="connection-status">
+                <span class="status-dot" id="connectionDot"></span>
+                <span id="connectionText">Disconnected</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <!-- Timer Section -->
+        <div class="timer-section">
+            <div class="card timer-display">
+                <div class="inspection-timer" id="inspectionTimer"></div>
+                <div class="timer" id="timer">0.00</div>
+                <div class="penalty-btns" id="penaltyBtns" style="display: none;">
+                    <button class="btn btn-danger" onclick="applyPenalty('DNF')">DNF</button>
+                    <button class="btn btn-secondary" onclick="applyPenalty('+2')">+2</button>
+                </div>
+                <div class="scramble-display">
+                    <div class="scramble-label">Scramble</div>
+                    <div class="scramble-text" id="scramble">R U R' U' F D F' D' R2 U2 R U2 R'</div>
+                </div>
+                <div class="scramble-options">
+                    <button class="scramble-option active" data-length="20">20 moves</button>
+                    <button class="scramble-option" data-length="25">25 moves</button>
+                    <button class="scramble-option" data-length="30">30 moves</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Controls</span>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-primary" id="startBtn" onclick="startSolve()">
+                        <span>▶</span> Start
+                    </button>
+                    <button class="btn btn-secondary" onclick="generateScramble()">
+                        <span>🔄</span> New Scramble
+                    </button>
+                    <button class="btn btn-secondary" onclick="openSettings()">
+                        <span>⚙</span> Settings
+                    </button>
+                </div>
+                <div class="keyboard-hint">
+                    Press <kbd>Space</kbd> to start/stop · <kbd>Enter</kbd> for new scramble
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Session Statistics</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="currentTime">--</div>
+                        <div class="stat-label">Current</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="ao5">--</div>
+                        <div class="stat-label">Ao5</div>
+                    </div>
+                    <div class="stat-item best">
+                        <div class="stat-value" id="bestTime">--</div>
+                        <div class="stat-label">Best</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="ao12">--</div>
+                        <div class="stat-label">Ao12</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="ao100">--</div>
+                        <div class="stat-label">Ao100</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="solveCount">0</div>
+                        <div class="stat-label">Solves</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Bluetooth Cube</span>
+                </div>
+                <div class="bluetooth-controls">
+                    <button class="btn btn-secondary" id="scanBtn" onclick="scanForCubes()" style="width: 100%;">
+                        <span>📡</span> Scan for Cubes
+                    </button>
+                    <div class="bt-devices" id="btDevices"></div>
+                </div>
+            </div>
+
+            <!-- Coach Section -->
+            <div class="card" id="coachPanel" style="display: none;">
+                <div class="card-header">
+                    <span class="card-title">Coach Dashboard</span>
+                </div>
+                <div class="user-stats" id="userStats">
+                    <!-- Populated by API -->
+                </div>
+                <button class="btn coach-btn" onclick="viewCoachDashboard()">
+                    <span>📊</span> Full Analysis
+                </button>
+            </div>
+        </div>
+
+        <!-- Analysis Section -->
+        <div class="analysis-section">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">CFOP Analysis</span>
+                </div>
+                <div id="analysisContent">
+                    <div class="no-data">
+                        <div class="no-data-icon">📊</div>
+                        <p>Complete solves to see CFOP analysis</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Last Solve Details</span>
+                </div>
+                <div id="lastSolveDetails">
+                    <div class="no-data">
+                        <div class="no-data-icon">🎯</div>
+                        <p>No solve data yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="history-section" style="grid-column: 1 / -1;">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Solve History</span>
+                    <div class="history-filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="session">Session</button>
+                        <button class="filter-btn" onclick="exportData()">Export</button>
+                    </div>
+                </div>
+                <div class="solves-list" id="solvesList">
+                    <div class="no-data">
+                        <p>No solves recorded yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Settings</span>
+                <button class="modal-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="setting-group">
+                <label class="setting-label">Inspection Time (seconds)</label>
+                <input type="number" class="setting-input" id="inspectionTime" value="15" min="0" max="30">
+            </div>
+            <div class="setting-group">
+                <label class="setting-label">Timer Sound</label>
+                <select class="setting-input" id="timerSound">
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()" style="width: 100%;">Save Settings</button>
+            <button class="btn btn-danger" onclick="clearAllData()" style="width: 100%; margin-top: 12px;">Clear All Data</button>
+        </div>
+    </div>
+
+    <!-- Coach Dashboard Modal -->
+    <div class="modal-overlay" id="coachModal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <span class="modal-title">Coach Dashboard - User Analysis</span>
+                <button class="modal-close" onclick="closeCoachDashboard()">&times;</button>
+            </div>
+            <div id="coachContent">
+                <!-- Populated by API -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        // ============ STATE ============
+        const API_BASE = '/api';
+        const state = {
+            currentUserId: 2,
+            currentUserRole: 'User',
+            timer: 0,
+            timerInterval: null,
+            inspectionInterval: null,
+            status: 'idle',
+            inspectionTime: 15,
+            scrambleLength: 20,
+            scramble: '',
+            solves: [],
+            currentSession: null,
+            currentSolve: null,
+            cubeConnected: false,
+            settings: {
+                inspectionTime: 15,
+                sound: true
+            }
+        };
+
+        // ============ API FUNCTIONS ============
+        async function fetchUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                return [];
+            }
+        }
+
+        async function createSession() {
+            try {
+                const response = await fetch(`${API_BASE}/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: state.currentUserId,
+                        name: `Session ${new Date().toLocaleDateString()}`
+                    })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error creating session:', error);
+                return null;
+            }
+        }
+
+        async function loadSolves() {
+            try {
+                const response = await fetch(`${API_BASE}/solves?userId=${state.currentUserId}`);
+                state.solves = await response.json();
+                updateStats();
+                updateHistory();
+                if (state.solves.length > 0) {
+                    updateAnalysis();
+                }
+            } catch (error) {
+                console.error('Error loading solves:', error);
+            }
+        }
+
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/solves/statistics?userId=${state.currentUserId}`);
+                const stats = await response.json();
+
+                document.getElementById('bestTime').textContent = formatTime(stats.bestTime);
+                document.getElementById('ao5').textContent = formatTime(stats.ao5);
+                document.getElementById('ao12').textContent = formatTime(stats.ao12);
+                document.getElementById('ao100').textContent = formatTime(stats.ao100);
+                document.getElementById('solveCount').textContent = stats.totalSolves || 0;
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        async function saveSolve(solveData) {
+            try {
+                const response = await fetch(`${API_BASE}/solves`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(solveData)
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error saving solve:', error);
+                return null;
+            }
+        }
+
+        async function analyzeSolve(time) {
+            try {
+                const response = await fetch(`${API_BASE}/analysis/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ time: time })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error analyzing solve:', error);
+                return null;
+            }
+        }
+
+        async function loadUserAnalysis() {
+            try {
+                const response = await fetch(`${API_BASE}/analysis/summary/${state.currentUserId}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading analysis:', error);
+                return null;
+            }
+        }
+
+        async function loadAllUsersAnalysis() {
+            try {
+                const users = await fetchUsers();
+                const analysis = [];
+
+                for (const user of users) {
+                    if (user.role === 'User') {
+                        const response = await fetch(`${API_BASE}/analysis/summary/${user.id}`);
+                        const stats = await response.json();
+                        analysis.push({ user, stats });
+                    }
+                }
+
+                return analysis;
+            } catch (error) {
+                console.error('Error loading all analysis:', error);
+                return [];
+            }
+        }
+
+        // ============ TIMER FUNCTIONS ============
+        function formatTime(ms) {
+            if (ms === null || ms === undefined) return '--';
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            const centiseconds = Math.floor((ms % 1000) / 10);
+            if (minutes > 0) {
+                return `${minutes}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+            }
+            return `${seconds}.${centiseconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateTimerDisplay() {
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = formatTime(state.timer);
+            timerEl.className = 'timer';
+            if (state.status === 'solving') {
+                timerEl.classList.add('running');
+            } else if (state.status === 'inspection') {
+                timerEl.classList.add('inspection');
+            }
+        }
+
+        async function startSolve() {
+            if (state.status === 'idle') {
+                // Create session if not exists
+                if (!state.currentSession) {
+                    state.currentSession = await createSession();
+                }
+
+                // Start inspection
+                state.status = 'inspection';
+                let inspectionLeft = state.inspectionTime;
+                const inspectionEl = document.getElementById('inspectionTimer');
+                inspectionEl.textContent = `Inspection: ${inspectionLeft}`;
+
+                state.inspectionInterval = setInterval(() => {
+                    inspectionLeft--;
+                    inspectionEl.textContent = `Inspection: ${inspectionLeft}`;
+                    if (inspectionLeft <= 0) {
+                        clearInterval(state.inspectionInterval);
+                        inspectionEl.textContent = 'GO!';
+                        setTimeout(() => { inspectionEl.textContent = ''; }, 500);
+                        startTimer();
+                    }
+                }, 1000);
+
+                updateTimerDisplay();
+                document.getElementById('penaltyBtns').style.display = 'none';
+            } else if (state.status === 'solving') {
+                stopTimer();
+            }
+        }
+
+        function startTimer() {
+            state.status = 'solving';
+            state.timer = Date.now();
+            state.currentSolve = {
+                startTime: new Date(state.timer).toISOString(),
+                scramble: state.scramble,
+                inspectionTime: state.inspectionTime,
+                sessionId: state.currentSession?.id
+            };
+
+            state.timerInterval = setInterval(() => {
+                state.timer = Date.now() - state.timer;
+                updateTimerDisplay();
+            }, 10);
+
+            updateTimerDisplay();
+            document.getElementById('penaltyBtns').style.display = 'none';
+        }
+
+        async function stopTimer() {
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+                state.timerInterval = null;
+            }
+            if (state.inspectionInterval) {
+                clearInterval(state.inspectionInterval);
+                state.inspectionInterval = null;
+            }
+
+            const endTime = Date.now();
+            const solveTime = endTime - state.timer;
+
+            state.status = 'idle';
+            document.getElementById('penaltyBtns').style.display = 'flex';
+
+            state.currentSolve.endTime = new Date(endTime).toISOString();
+            state.currentSolve.time = solveTime;
+            state.currentSolve.displayTime = solveTime;
+
+            document.getElementById('currentTime').textContent = formatTime(solveTime);
+
+            setTimeout(() => {
+                generateScramble();
+            }, 1000);
+        }
+
+        async function applyPenalty(penalty) {
+            if (!state.currentSolve) return;
+
+            let finalTime = state.currentSolve.time;
+            if (penalty === '+2') {
+                finalTime += 2000;
+                state.currentSolve.penalty = 1; // Plus2
+                state.currentSolve.plus2 = true;
+            } else if (penalty === 'DNF') {
+                finalTime = null;
+                state.currentSolve.penalty = 2; // DNF
+                state.currentSolve.dnf = true;
+            }
+
+            state.currentSolve.finalTime = finalTime;
+
+            // Get CFOP analysis
+            const analysis = await analyzeSolve(state.currentSolve.time);
+            if (analysis) {
+                state.currentSolve.oStepTime = analysis.oStep.time;
+                state.currentSolve.pStepTime = analysis.pStep.time;
+                state.currentSolve.crossTime = analysis.oStep.crossTime;
+                state.currentSolve.f2lPairCount = analysis.oStep.f2lPairs;
+                state.currentSolve.pllCase = analysis.pStep.pllCase;
+                state.currentSolve.pllRecognitionTime = analysis.pStep.recognitionTime;
+                state.currentSolve.oStepEfficiency = analysis.oStep.efficiency;
+                state.currentSolve.pStepEfficiency = analysis.pStep.efficiency;
+            }
+
+            state.currentSolve.sessionId = state.currentSession?.id;
+
+            // Save to API
+            await saveSolve(state.currentSolve);
+
+            // Reload data
+            await loadSolves();
+            await loadStatistics();
+
+            // Reset UI
+            document.getElementById('penaltyBtns').style.display = 'none';
+            document.getElementById('timer').textContent = formatTime(finalTime);
+            if (penalty === 'DNF') {
+                document.getElementById('timer').classList.add('dnf');
+            }
+
+            showToast(penalty === 'DNF' ? 'DNF applied!' : '+2 penalty applied!', penalty === 'DNF' ? 'error' : 'success');
+
+            state.currentSolve = null;
+            state.timer = 0;
+            setTimeout(() => {
+                document.getElementById('timer').classList.remove('dnf');
+                updateTimerDisplay();
+            }, 2000);
+        }
+
+        // ============ SCRAMBLE GENERATOR ============
+        function generateScramble() {
+            const moves = ['R', 'L', 'U', 'D', 'F', 'B'];
+            const modifiers = ['', "'", '2'];
+
+            let scrambleArray = [];
+            let lastAxis = { R: -1, L: -1, U: -1, D: -1, F: -1, B: -1 };
+
+            for (let i = 0; i < state.scrambleLength; i++) {
+                let move, axis;
+                let attempts = 0;
+
+                do {
+                    move = moves[Math.floor(Math.random() * moves.length)];
+                    axis = moves.indexOf(move.replace(/[2']/g, ''));
+                    attempts++;
+                } while (axis === lastAxis[move.replace(/[2']/g, '')] && attempts < 10);
+
+                const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+                scrambleArray.push(move + modifier);
+                lastAxis[move.replace(/[2']/g, '')] = axis;
+            }
+
+            state.scramble = scrambleArray.join(' ');
+            document.getElementById('scramble').textContent = state.scramble;
+        }
+
+        // ============ STATISTICS ============
+        function updateStats() {
+            // Stats are loaded from API
+            loadStatistics();
+        }
+
+        // ============ HISTORY ============
+        function updateHistory() {
+            const list = document.getElementById('solvesList');
+
+            if (!state.solves || state.solves.length === 0) {
+                list.innerHTML = '<div class="no-data"><p>No solves recorded yet</p></div>';
+                return;
+            }
+
+            list.innerHTML = state.solves.slice().reverse().map((solve, index) => {
+                const time = solve.finalTime != null ? formatTime(solve.finalTime) : 'DNF';
+                const date = new Date(solve.startTime).toLocaleTimeString();
+                const isDNF = solve.penalty === 2;
+                const isPlus2 = solve.penalty === 1;
+
+                return `
+                    <div class="solve-item" onclick="viewSolve(${state.solves.length - 1 - index})">
+                        <span class="solve-time ${isDNF ? 'dnf' : ''} ${isPlus2 && !isDNF ? 'plus2' : ''}">${time}</span>
+                        <div class="solve-info">
+                            <span class="solve-date">${date}</span>
+                            <span>${solve.moveCount || solve.scramble?.split(' ').length || 0} moves</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function viewSolve(index) {
+            const solve = state.solves[index];
+            if (!solve) return;
+
+            const details = document.getElementById('lastSolveDetails');
+            const time = solve.finalTime != null ? formatTime(solve.finalTime) : 'DNF';
+
+            details.innerHTML = `
+                <div class="cfop-metric">
+                    <span class="cfop-metric-label">Time</span>
+                    <span class="cfop-metric-value" style="color: var(--primary);">${time}</span>
+                </div>
+                <div class="cfop-metric">
+                    <span class="cfop-metric-label">Scramble</span>
+                    <span class="cfop-metric-value">${solve.scramble || 'N/A'}</span>
+                </div>
+                <div class="cfop-metric">
+                    <span class="cfop-metric-label">Penalty</span>
+                    <span class="cfop-metric-value">${solve.penalty === 2 ? 'DNF' : solve.penalty === 1 ? '+2' : 'None'}</span>
+                </div>
+                <div class="cfop-metric">
+                    <span class="cfop-metric-label">Date</span>
+                    <span class="cfop-metric-value">${new Date(solve.startTime).toLocaleString()}</span>
+                </div>
+            `;
+        }
+
+        // ============ CFOP ANALYSIS ============
+        function updateAnalysis() {
+            if (!state.solves || state.solves.length === 0) {
+                document.getElementById('analysisContent').innerHTML = `
+                    <div class="no-data">
+                        <div class="no-data-icon">📊</div>
+                        <p>Complete solves to see CFOP analysis</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const lastSolve = state.solves[state.solves.length - 1];
+            if (!lastSolve) return;
+
+            const oStepTime = lastSolve.oStepTime || Math.floor((lastSolve.finalTime || lastSolve.time || 0) * 0.25);
+            const pStepTime = lastSolve.pStepTime || Math.floor((lastSolve.finalTime || lastSolve.time || 0) * 0.20);
+
+            document.getElementById('analysisContent').innerHTML = `
+                <div class="cfop-card o-step">
+                    <div class="cfop-header">
+                        <span class="cfop-title">🔶 O-Step (Orientation)</span>
+                        <span class="cfop-badge ${lastSolve.oStepEfficiency || 'average'}">${(lastSolve.oStepEfficiency || 'average').toUpperCase()}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label">Total O-Step Time</span>
+                        <span class="cfop-metric-value">${formatTime(oStepTime)}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label">Cross Solution</span>
+                        <span class="cfop-metric-value">${formatTime(lastSolve.crossTime || Math.floor(oStepTime * 0.4))}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label">F2L Pairs Inserted</span>
+                        <span class="cfop-metric-value">${lastSolve.f2lPairCount || 4}</span>
+                    </div>
+                </div>
+
+                <div class="cfop-card p-step">
+                    <div class="cfop-header">
+                        <span class="cfop-title">🔷 P-Step (Permutation)</span>
+                        <span class="cfop-badge ${lastSolve.pStepEfficiency || 'average'}">${(lastSolve.pStepEfficiency || 'average').toUpperCase()}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label">Total P-Step Time</span>
+                        <span class="cfop-metric-value">${formatTime(pStepTime)}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label">PLL Case</span>
+                        <span class="cfop-metric-value">${lastSolve.pllCase || 'N/A'}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label">Recognition Time</span>
+                        <span class="cfop-metric-value">${formatTime(lastSolve.pllRecognitionTime || Math.floor(pStepTime * 0.3))}</span>
+                    </div>
+                </div>
+            `;
+
+            viewSolve(state.solves.length - 1);
+        }
+
+        // ============ USER MANAGEMENT ============
+        async function switchUser() {
+            const userId = parseInt(document.getElementById('userSelect').value);
+            state.currentUserId = userId;
+
+            // Check if coach
+            const users = await fetchUsers();
+            const user = users.find(u => u.id === userId);
+            state.currentUserRole = user?.role || 'User';
+
+            // Show/hide coach panel
+            document.getElementById('coachPanel').style.display =
+                (state.currentUserRole === 'Coach' || state.currentUserRole === 'Admin') ? 'block' : 'none';
+
+            // Reload data
+            state.currentSession = null;
+            await loadSolves();
+            generateScramble();
+            updateTimerDisplay();
+        }
+
+        async function viewCoachDashboard() {
+            document.getElementById('coachModal').classList.add('active');
+            const content = document.getElementById('coachContent');
+            content.innerHTML = '<div class="loading"></div> Loading...';
+
+            const allAnalysis = await loadAllUsersAnalysis();
+
+            content.innerHTML = allAnalysis.map(({ user, stats }) => `
+                <div class="user-stat-card" style="margin-bottom: 16px;">
+                    <h3>${user.username}</h3>
+                    <div class="user-stats">
+                        <div>
+                            <h4>Total Solves</h4>
+                            <div class="stat-value">${stats.totalSolves || 0}</div>
+                        </div>
+                        <div>
+                            <h4>Best Time</h4>
+                            <div class="stat-value">${formatTime(stats.oStepAnalysis?.averageTime)}</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-secondary);">
+                        O-Step Avg: ${formatTime(stats.oStepAnalysis?.averageTime)} |
+                        P-Step Avg: ${formatTime(stats.pStepAnalysis?.averageTime)}
+                    </p>
+                </div>
+            `).join('');
+
+            if (allAnalysis.length === 0) {
+                content.innerHTML = '<div class="no-data"><p>No user data available</p></div>';
+            }
+        }
+
+        function closeCoachDashboard() {
+            document.getElementById('coachModal').classList.remove('active');
+        }
+
+        // ============ BLUETOOTH ============
+        async function scanForCubes() {
+            const scanBtn = document.getElementById('scanBtn');
+            const devicesList = document.getElementById('btDevices');
+
+            if (!navigator.bluetooth) {
+                showToast('Web Bluetooth not supported', 'error');
+                return;
+            }
+
+            scanBtn.innerHTML = '<span class="recording">📡</span> Scanning...';
+            scanBtn.disabled = true;
+
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] }],
+                    optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+                });
+
+                state.cubeConnected = true;
+                document.getElementById('connectionDot').classList.add('connected');
+                document.getElementById('connectionText').textContent = device.name || 'Connected';
+                showToast('Cube connected!', 'success');
+
+                devicesList.innerHTML = `
+                    <div class="bt-device" onclick="disconnectCube()">
+                        <span class="bt-device-name">${device.name || 'Cube'}</span>
+                        <span class="bt-device-rssi">Connected ✓</span>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Bluetooth error:', error);
+                showToast('Could not connect to cube', 'error');
+            }
+
+            scanBtn.innerHTML = '<span>📡</span> Scan for Cubes';
+            scanBtn.disabled = false;
+        }
+
+        function disconnectCube() {
+            state.cubeConnected = false;
+            document.getElementById('connectionDot').classList.remove('connected');
+            document.getElementById('connectionText').textContent = 'Disconnected';
+            document.getElementById('btDevices').innerHTML = '';
+            showToast('Cube disconnected', 'success');
+        }
+
+        // ============ SETTINGS ============
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            document.getElementById('inspectionTime').value = state.settings.inspectionTime;
+            document.getElementById('timerSound').value = state.settings.sound ? 'on' : 'off';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function saveSettings() {
+            state.settings.inspectionTime = parseInt(document.getElementById('inspectionTime').value);
+            state.settings.sound = document.getElementById('timerSound').value === 'on';
+            state.inspectionTime = state.settings.inspectionTime;
+            localStorage.setItem('cubestats_settings', JSON.stringify(state.settings));
+            closeSettings();
+            showToast('Settings saved!', 'success');
+        }
+
+        async function clearAllData() {
+            if (confirm('Are you sure you want to clear all solve data?')) {
+                // In production, this would call an API to delete data
+                state.solves = [];
+                localStorage.removeItem('cubestats_solves');
+                updateStats();
+                updateHistory();
+                document.getElementById('analysisContent').innerHTML = `
+                    <div class="no-data">
+                        <div class="no-data-icon">📊</div>
+                        <p>Complete solves to see CFOP analysis</p>
+                    </div>
+                `;
+                document.getElementById('lastSolveDetails').innerHTML = `
+                    <div class="no-data">
+                        <div class="no-data-icon">🎯</div>
+                        <p>No solve data yet</p>
+                    </div>
+                `;
+                closeSettings();
+                showToast('All data cleared', 'success');
+            }
+        }
+
+        // ============ UTILITIES ============
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toast.className = `toast ${type} show`;
+            toastMessage.textContent = message;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function exportData() {
+            if (state.solves.length === 0) {
+                showToast('No data to export', 'error');
+                return;
+            }
+
+            const headers = 'Date,Time,Penalty,Scramble,O-Step,P-Step\n';
+            const rows = state.solves.map(s =>
+                `${new Date(s.startTime).toISOString()},${s.finalTime != null ? s.finalTime / 1000 : 'DNF'},${s.penalty || 'None'},"${s.scramble || ''}",${s.oStepTime || ''},${s.pStepTime || ''}`
+            ).join('\n');
+
+            const content = headers + rows;
+            const blob = new Blob([content], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cubestats_export.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast(`Exported ${state.solves.length} solves`, 'success');
+        }
+
+        // ============ EVENT LISTENERS ============
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                startSolve();
+            } else if (e.code === 'Enter' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                generateScramble();
+            }
+        });
+
+        document.querySelectorAll('.scramble-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.scramble-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.scrambleLength = parseInt(btn.dataset.length);
+                generateScramble();
+            });
+        });
+
+        document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        document.getElementById('settingsModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeSettings();
+        });
+
+        document.getElementById('coachModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeCoachDashboard();
+        });
+
+        // ============ INITIALIZATION ============
+        async function init() {
+            const savedSettings = localStorage.getItem('cubestats_settings');
+            if (savedSettings) {
+                state.settings = JSON.parse(savedSettings);
+                state.inspectionTime = state.settings.inspectionTime;
+            }
+
+            // Check user role and show coach panel if needed
+            await switchUser();
+
+            await loadSolves();
+            generateScramble();
+            updateTimerDisplay();
+        }
+
+        init();
+    </script>
+</body>
+</html>
