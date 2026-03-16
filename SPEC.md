@@ -20,7 +20,7 @@
 ### Layout Structure
 
 **Main Sections:**
-1. **Header** - App title, connection status, settings toggle
+1. **Header** - App title, connection status, language selector, settings toggle
 2. **Timer Display** - Large centered timer with scramble display
 3. **Control Panel** - Start/Stop, inspection time, scramble type
 4. **Session Stats** - Recent solve times, average, best
@@ -70,12 +70,15 @@
 
 **Virtual Cube Display:**
 - 3D CSS-rendered Rubik's cube (6 faces, 9 stickers each)
+- **Enhanced size**: 280px cube size (increased from 180px)
+- **Improved rendering**: Higher resolution stickers (72px), better gap precision, enhanced 3D perspective (800px)
 - Standard colors: White (U), Yellow (D), Red (R), Orange (L), Blue (F), Green (B)
 - Mouse drag to rotate view (orbit controls)
 - Scroll wheel to zoom in/out
 - Reset button to restore solved state
 - Animates scramble moves in sequence
 - Click on face to highlight that face
+- Smooth CSS transitions and transform animations
 
 **Timer Display:**
 - Large digital display (MM:SS.ms)
@@ -84,7 +87,8 @@
 
 **Scramble Display:**
 - Current scramble in standard notation
-- Scramble length selector (20, 25, 30 moves)
+- Scramble type selector: **WCA** (standard), **PLL** (last layer), **OLL** (first layer)
+- Scramble length selector (20, 25, 30 moves for WCA)
 - **Virtual Cube Preview**: 3D interactive cube visualization showing scramble state
 
 **Cube Connection Panel:**
@@ -108,6 +112,12 @@
 - Click to view details
 - Export to CSV
 
+**Internationalization (i18n):**
+- Language selector in header
+- Supported languages: English (default), Chinese (中文), Japanese (日本語)
+- All UI text translatable
+- Persisted language preference in localStorage
+
 ---
 
 ## Functionality Specification
@@ -122,7 +132,11 @@
 - DNF/+2 penalty support
 
 **2. Scramble Generation:**
-- Random state scrambles
+- Random state scrambles (WCA standard)
+- **Scramble Types**:
+  - **WCA**: Standard random state scrambles (20/25/30 moves)
+  - **PLL**: Permutation of Last Layer scrambles (21 unique cases)
+  - **OLL**: Orientation of Last Layer scrambles (57 unique cases)
 - Standard notation output (R, R', R2, etc.)
 - Scramble preview
 - Virtual cube updates to show scramble state in real-time

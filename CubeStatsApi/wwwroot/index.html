@@ -170,6 +170,17 @@
             cursor: pointer;
         }
 
+        .lang-select {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            min-width: 90px;
+        }
+
         .connection-status {
             display: flex;
             align-items: center;
@@ -242,9 +253,9 @@
         }
 
         .virtual-cube {
-            width: 180px;
-            height: 180px;
-            perspective: 600px;
+            width: 280px;
+            height: 280px;
+            perspective: 800px;
             cursor: grab;
         }
 
@@ -262,29 +273,30 @@
 
         .cube-face {
             position: absolute;
-            width: 54px;
-            height: 54px;
+            width: 72px;
+            height: 72px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(3, 1fr);
-            gap: 2px;
+            gap: 3px;
             transform-style: preserve-3d;
         }
 
         .sticker {
             width: 100%;
             height: 100%;
-            border-radius: 4px;
+            border-radius: 6px;
             transition: background-color 0.2s;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
         }
 
         /* Face positions */
-        .face-U { transform: rotateX(90deg) translateZ(27px); }
-        .face-D { transform: rotateX(-90deg) translateZ(27px); }
-        .face-R { transform: rotateY(90deg) translateZ(27px); }
-        .face-L { transform: rotateY(-90deg) translateZ(27px); }
-        .face-F { transform: translateZ(27px); }
-        .face-B { transform: rotateY(180deg) translateZ(27px); }
+        .face-U { transform: rotateX(90deg) translateZ(36px); }
+        .face-D { transform: rotateX(-90deg) translateZ(36px); }
+        .face-R { transform: rotateY(90deg) translateZ(36px); }
+        .face-L { transform: rotateY(-90deg) translateZ(36px); }
+        .face-F { transform: translateZ(36px); }
+        .face-B { transform: rotateY(180deg) translateZ(36px); }
 
         /* Cube colors */
         .sticker.white { background: #ffffff; }
@@ -762,6 +774,41 @@
             color: var(--primary);
         }
 
+        .scramble-type-options {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .scramble-type-btn {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 16px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .scramble-type-btn:hover {
+            border-color: var(--tertiary);
+            color: var(--text);
+        }
+
+        .scramble-type-btn.active {
+            background: var(--tertiary);
+            border-color: var(--tertiary);
+            color: var(--text);
+        }
+
+        .scramble-hint {
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 8px 0;
+        }
+
         /* Keyboard hint */
         .keyboard-hint {
             text-align: center;
@@ -857,13 +904,18 @@
             <div class="logo-text">Cube<span>Stats</span> Pro</div>
         </div>
         <div class="header-controls">
+            <select class="lang-select" id="langSelect" onchange="changeLanguage()">
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ja">日本語</option>
+            </select>
             <select class="user-select" id="userSelect" onchange="switchUser()">
                 <option value="1">Coach</option>
                 <option value="2" selected>User</option>
             </select>
             <div class="connection-status">
                 <span class="status-dot" id="connectionDot"></span>
-                <span id="connectionText">Disconnected</span>
+                <span id="connectionText" data-i18n="disconnected">Disconnected</span>
             </div>
         </div>
     </header>
@@ -906,10 +958,21 @@
                     <div class="scramble-label">Scramble</div>
                     <div class="scramble-text" id="scramble">R U R' U' F D F' D' R2 U2 R U2 R'</div>
                 </div>
-                <div class="scramble-options">
-                    <button class="scramble-option active" data-length="20">20 moves</button>
-                    <button class="scramble-option" data-length="25">25 moves</button>
-                    <button class="scramble-option" data-length="30">30 moves</button>
+                <div class="scramble-type-options">
+                    <button class="scramble-type-btn active" data-type="wca" onclick="setScrambleType('wca')">WCA</button>
+                    <button class="scramble-type-btn" data-type="pll" onclick="setScrambleType('pll')">PLL</button>
+                    <button class="scramble-type-btn" data-type="oll" onclick="setScrambleType('oll')">OLL</button>
+                </div>
+                <div class="scramble-options" id="wcaOptions">
+                    <button class="scramble-option active" data-length="20">20</button>
+                    <button class="scramble-option" data-length="25">25</button>
+                    <button class="scramble-option" data-length="30">30</button>
+                </div>
+                <div class="scramble-options" id="pllOptions" style="display: none;">
+                    <span class="scramble-hint">21 cases</span>
+                </div>
+                <div class="scramble-options" id="ollOptions" style="display: none;">
+                    <span class="scramble-hint">57 cases</span>
                 </div>
             </div>
 
@@ -1080,6 +1143,146 @@
     </div>
 
     <script>
+        // ============ INTERNATIONALIZATION ============
+        const translations = {
+            en: {
+                disconnected: 'Disconnected',
+                connected: 'Connected',
+                scanning: 'Scanning...',
+                start: 'Start',
+                newScramble: 'New Scramble',
+                settings: 'Settings',
+                scramble: 'Scramble',
+                timer: 'Timer',
+                inspection: 'Inspection',
+                solve: 'Solve',
+                ao5: 'Ao5',
+                ao12: 'Ao12',
+                ao100: 'Ao100',
+                best: 'Best',
+                average: 'Average',
+                moves: 'moves',
+                oStep: 'O-Step',
+                pStep: 'P-Step',
+                crossTime: 'Cross Time',
+                f2lPairs: 'F2L Pairs',
+                pllCase: 'PLL Case',
+                recognitionTime: 'Recognition',
+                good: 'Good',
+                average: 'Average',
+                slow: 'Slow',
+                dnf: 'DNF',
+                plus2: '+2',
+                history: 'History',
+                export: 'Export',
+                delete: 'Delete',
+                confirmDelete: 'Confirm Delete',
+                cancel: 'Cancel',
+                save: 'Save',
+                inspectionTime: 'Inspection Time',
+                soundEnabled: 'Sound Enabled',
+                pressSpace: 'Press Space to start/stop',
+                pressEnter: 'Press Enter for new scramble'
+            },
+            zh: {
+                disconnected: '未连接',
+                connected: '已连接',
+                scanning: '扫描中...',
+                start: '开始',
+                newScramble: '新打乱',
+                settings: '设置',
+                scramble: '打乱',
+                timer: '计时器',
+                inspection: '观察',
+                solve: '还原',
+                ao5: '5次平均',
+                ao12: '12次平均',
+                ao100: '100次平均',
+                best: '最佳',
+                average: '平均',
+                moves: '步',
+                oStep: 'O步',
+                pStep: 'P步',
+                crossTime: '十字时间',
+                f2lPairs: 'F2L对',
+                pllCase: 'PLL情况',
+                recognitionTime: '识别时间',
+                good: '优秀',
+                average: '一般',
+                slow: '较慢',
+                dnf: 'DNF',
+                plus2: '+2',
+                history: '历史',
+                export: '导出',
+                delete: '删除',
+                confirmDelete: '确认删除',
+                cancel: '取消',
+                save: '保存',
+                inspectionTime: '观察时间',
+                soundEnabled: '开启声音',
+                pressSpace: '按空格键开始/停止',
+                pressEnter: '按回车键获取新打乱'
+            },
+            ja: {
+                disconnected: '未接続',
+                connected: '接続済み',
+                scanning: 'スキャン中...',
+                start: 'スタート',
+                newScramble: ' нов скрембл',
+                settings: '設定',
+                scramble: 'スクランブル',
+                timer: 'タイマー',
+                inspection: 'インスペクション',
+                solve: '解法',
+                ao5: 'ao5',
+                ao12: 'ao12',
+                ao100: 'ao100',
+                best: 'ベスト',
+                average: '平均',
+                moves: '手',
+                oStep: 'Oステップ',
+                pStep: 'Pステップ',
+                crossTime: 'クロスタイム',
+                f2lPairs: 'F2Lペア',
+                pllCase: 'PLLケース',
+                recognitionTime: '認識時間',
+                good: '良い',
+                average: '普通',
+                slow: '遅い',
+                dnf: 'DNF',
+                plus2: '+2',
+                history: '履歴',
+                export: 'エクスポート',
+                delete: '削除',
+                confirmDelete: '削除確認',
+                cancel: 'キャンセル',
+                save: '保存',
+                inspectionTime: 'インスペクション時間',
+                soundEnabled: 'サウンド有効',
+                pressSpace: 'スペースでスタート/停止',
+                pressEnter: 'Enterで新しいスクランブル'
+            }
+        };
+
+        let currentLang = localStorage.getItem('language') || 'en';
+
+        function t(key) {
+            return translations[currentLang]?.[key] || translations.en[key] || key;
+        }
+
+        function changeLanguage() {
+            currentLang = document.getElementById('langSelect').value;
+            localStorage.setItem('language', currentLang);
+            updateUITexts();
+        }
+
+        function updateUITexts() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.textContent = t(key);
+            });
+        }
+
         // ============ STATE ============
         const API_BASE = '/api';
         const state = {
@@ -1091,6 +1294,7 @@
             status: 'idle',
             inspectionTime: 15,
             scrambleLength: 20,
+            scrambleType: 'wca',
             scramble: '',
             solves: [],
             currentSession: null,
@@ -1647,29 +1851,67 @@
         }
 
         // ============ SCRAMBLE GENERATOR ============
+        // PLL scrambles (21 unique cases)
+        const pllScrambles = [
+            'Ua', 'Ub', 'H', 'Z', 'Aa', 'Ab', 'E', 'T', 'Jb', 'Ja', 'F', 'V', 'Y', 'Na', 'Nb',
+            'Ra', 'Rb', 'Ga', 'Gb', 'Gc', 'Gd'
+        ];
+
+        // OLL scrambles (57 unique cases - simplified subset for demo)
+        const ollScrambles = [
+            'R U R\' U R U2 R\'', 'R U2 R\' U\' R U\' R\'', 'R\' U\' R U\' R\' U2 R',
+            'R U R\' U\' R\' F R2 U\' R\' U\' R', 'R U2 R2 U\' R2 U\' R2 U2 R',
+            'R U R\' U R U2 R\' F R U R\' U\'', 'M\' U R\' U\' R U\' R\' U2 R',
+            'R U R\' U R\' F R2 U\' R\' U R', 'R\' F R2 B\' R2 U R\' U\' R2',
+            'F R U\' R\' U\' R U R\' F\''
+        ];
+
+        function setScrambleType(type) {
+            state.scrambleType = type;
+            document.querySelectorAll('.scramble-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+            document.getElementById('wcaOptions').style.display = type === 'wca' ? 'flex' : 'none';
+            document.getElementById('pllOptions').style.display = type === 'pll' ? 'flex' : 'none';
+            document.getElementById('ollOptions').style.display = type === 'oll' ? 'flex' : 'none';
+            generateScramble();
+        }
+
         function generateScramble() {
-            const moves = ['R', 'L', 'U', 'D', 'F', 'B'];
-            const modifiers = ['', "'", '2'];
+            if (state.scrambleType === 'pll') {
+                // Random PLL case
+                const pll = pllScrambles[Math.floor(Math.random() * pllScrambles.length)];
+                state.scramble = pll;
+            } else if (state.scrambleType === 'oll') {
+                // Random OLL case
+                const oll = ollScrambles[Math.floor(Math.random() * ollScrambles.length)];
+                state.scramble = oll;
+            } else {
+                // WCA standard scramble
+                const moves = ['R', 'L', 'U', 'D', 'F', 'B'];
+                const modifiers = ['', "'", '2'];
 
-            let scrambleArray = [];
-            let lastAxis = { R: -1, L: -1, U: -1, D: -1, F: -1, B: -1 };
+                let scrambleArray = [];
+                let lastAxis = { R: -1, L: -1, U: -1, D: -1, F: -1, B: -1 };
 
-            for (let i = 0; i < state.scrambleLength; i++) {
-                let move, axis;
-                let attempts = 0;
+                for (let i = 0; i < state.scrambleLength; i++) {
+                    let move, axis;
+                    let attempts = 0;
 
-                do {
-                    move = moves[Math.floor(Math.random() * moves.length)];
-                    axis = moves.indexOf(move.replace(/[2']/g, ''));
-                    attempts++;
-                } while (axis === lastAxis[move.replace(/[2']/g, '')] && attempts < 10);
+                    do {
+                        move = moves[Math.floor(Math.random() * moves.length)];
+                        axis = moves.indexOf(move.replace(/[2']/g, ''));
+                        attempts++;
+                    } while (axis === lastAxis[move.replace(/[2']/g, '')] && attempts < 10);
 
-                const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
-                scrambleArray.push(move + modifier);
-                lastAxis[move.replace(/[2']/g, '')] = axis;
+                    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+                    scrambleArray.push(move + modifier);
+                    lastAxis[move.replace(/[2']/g, '')] = axis;
+                }
+
+                state.scramble = scrambleArray.join(' ');
             }
 
-            state.scramble = scrambleArray.join(' ');
             document.getElementById('scramble').textContent = state.scramble;
             applyScrambleToCube(state.scramble);
         }
@@ -2020,6 +2262,13 @@
                 state.inspectionTime = state.settings.inspectionTime;
             }
 
+            // Set language from localStorage
+            const savedLang = localStorage.getItem('language');
+            if (savedLang) {
+                currentLang = savedLang;
+                document.getElementById('langSelect').value = savedLang;
+            }
+
             // Check user role and show coach panel if needed
             await switchUser();
 
@@ -2027,6 +2276,7 @@
             generateScramble();
             updateTimerDisplay();
             initCube();
+            updateUITexts();
         }
 
         init();
