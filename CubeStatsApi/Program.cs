@@ -1,20 +1,15 @@
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using CubeStatsApi.Data;
+using CubeStatsApi.Routes;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateSlimBuilder(args);
 
 // Set explicit web root path to wwwroot folder
 builder.WebHost.UseWebRoot("wwwroot");
 
-// Add services to the container
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Configure SQLite database
+// Configure SQLite connection
 var connectionString = "Data Source=cubestats.db";
-builder.Services.AddDbContext<CubeDbContext>(options =>
-    options.UseSqlite(connectionString));
+builder.Services.AddSingleton(sp => new SqliteConnection(connectionString));
 
 // Configure CORS for development
 builder.Services.AddCors(options =>
@@ -27,14 +22,13 @@ builder.Services.AddCors(options =>
     });
 });
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+// Configure JSON serialization with AOT-compatible context
+builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    options.SerializerOptions.TypeInfoResolverChain.Add(CubeStatsApi.JsonContext.Default);
+});
+
+var app = builder.Build();
 
 // Enable CORS
 app.UseCors();
@@ -46,14 +40,17 @@ options.DefaultFileNames.Add("index.html");
 app.UseDefaultFiles(options);
 app.UseStaticFiles();
 
-// Map controllers
-app.MapControllers();
-
 // Initialize database
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<CubeDbContext>();
-    context.Database.EnsureCreated();
+    var conn = scope.ServiceProvider.GetRequiredService<SqliteConnection>();
+    DatabaseExtensions.InitializeDatabase(conn);
 }
+
+// Map API routes
+app.MapUsersRoutes();
+app.MapSessionsRoutes();
+app.MapSolvesRoutes();
+app.MapAnalysisRoutes();
 
 app.Run();

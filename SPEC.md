@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Project Name**: CubeStats Pro
-- **Tech Stack**: ASP.NET Core 8.0 Web API + SQLite + Vanilla JS Frontend
+- **Tech Stack**: ASP.NET Core 10.0 Web API + SQLite + Vanilla JS Frontend + AOT Compilation
 - **Reference Repo**: https://github.com/cs0x7f/cstimer
 - **Type**: Web Application with Bluetooth Cube Integration
 - **Core Functionality**: 
@@ -201,3 +201,18 @@
 - Web Bluetooth API for cube connection
 - localStorage for persistence
 - CSS Grid/Flexbox for layout
+
+---
+
+## Technical Requirements
+
+- **.NET Version**: .NET 10.0
+- **Compilation**: AOT (Ahead-of-Time) compilation for native performance
+- **Runtime**: Self-contained single-file deployment
+- **Target Platform**: Linux x64
+
+### AOT Configuration
+
+- PublishAot enabled for native compilation
+- Trimming enabled to reduce binary size
+- Invariant globalization mode for smaller footprint
