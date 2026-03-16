@@ -253,10 +253,12 @@
         }
 
         .virtual-cube {
-            width: 280px;
-            height: 280px;
-            perspective: 800px;
+            width: 560px;
+            height: 560px;
+            perspective: 1600px;
             cursor: grab;
+            position: relative;
+            transform-style: preserve-3d;
         }
 
         .virtual-cube:active {
@@ -264,39 +266,44 @@
         }
 
         .cube-scene {
-            width: 100%;
-            height: 100%;
-            position: relative;
+            width: 432px;
+            height: 432px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            margin-left: -216px;
+            margin-top: -216px;
             transform-style: preserve-3d;
             transition: transform 0.3s ease;
+            transform: rotateX(-25deg) rotateY(-45deg);
         }
 
         .cube-face {
             position: absolute;
-            width: 72px;
-            height: 72px;
+            width: 144px;
+            height: 144px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(3, 1fr);
-            gap: 3px;
+            gap: 6px;
             transform-style: preserve-3d;
         }
 
         .sticker {
             width: 100%;
             height: 100%;
-            border-radius: 6px;
+            border-radius: 12px;
             transition: background-color 0.2s;
-            box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
         }
 
         /* Face positions */
-        .face-U { transform: rotateX(90deg) translateZ(36px); }
-        .face-D { transform: rotateX(-90deg) translateZ(36px); }
-        .face-R { transform: rotateY(90deg) translateZ(36px); }
-        .face-L { transform: rotateY(-90deg) translateZ(36px); }
-        .face-F { transform: translateZ(36px); }
-        .face-B { transform: rotateY(180deg) translateZ(36px); }
+        .face-U { transform: rotateX(90deg) translateZ(72px); }
+        .face-D { transform: rotateX(-90deg) translateZ(72px); }
+        .face-R { transform: rotateY(90deg) translateZ(72px); }
+        .face-L { transform: rotateY(-90deg) translateZ(72px); }
+        .face-F { transform: translateZ(72px); }
+        .face-B { transform: rotateY(180deg) translateZ(72px); }
 
         /* Cube colors */
         .sticker.white { background: #ffffff; }
@@ -483,12 +490,20 @@
             border-left: 4px solid;
         }
 
-        .cfop-card.o-step {
-            border-color: var(--secondary);
+        .cfop-card.cross-step {
+            border-color: #22c55e;
         }
 
-        .cfop-card.p-step {
-            border-color: var(--tertiary);
+        .cfop-card.f2l-step {
+            border-color: #eab308;
+        }
+
+        .cfop-card.oll-step {
+            border-color: #f97316;
+        }
+
+        .cfop-card.pll-step {
+            border-color: #3b82f6;
         }
 
         .cfop-header {
@@ -503,12 +518,20 @@
             font-size: 16px;
         }
 
-        .cfop-card.o-step .cfop-title {
-            color: var(--secondary);
+        .cfop-card.cross-step .cfop-title {
+            color: #22c55e;
         }
 
-        .cfop-card.p-step .cfop-title {
-            color: var(--tertiary);
+        .cfop-card.f2l-step .cfop-title {
+            color: #eab308;
+        }
+
+        .cfop-card.oll-step .cfop-title {
+            color: #f97316;
+        }
+
+        .cfop-card.pll-step .cfop-title {
+            color: #3b82f6;
         }
 
         .cfop-badge {
@@ -553,6 +576,21 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 13px;
             font-weight: 600;
+        }
+
+        .cfop-algorithm {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .cfop-algorithm-text {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: var(--primary);
+            margin-top: 6px;
+            word-spacing: 4px;
         }
 
         .no-data {
@@ -955,18 +993,26 @@
                 </div>
 
                 <div class="scramble-display">
-                    <div class="scramble-label">Scramble</div>
+                    <div class="scramble-label" data-i18n="scramble">Scramble</div>
                     <div class="scramble-text" id="scramble">R U R' U' F D F' D' R2 U2 R U2 R'</div>
                 </div>
                 <div class="scramble-type-options">
                     <button class="scramble-type-btn active" data-type="wca" onclick="setScrambleType('wca')">WCA</button>
-                    <button class="scramble-type-btn" data-type="pll" onclick="setScrambleType('pll')">PLL</button>
+                    <button class="scramble-type-btn" data-type="cross" onclick="setScrambleType('cross')">Cross</button>
+                    <button class="scramble-type-btn" data-type="f2l" onclick="setScrambleType('f2l')">F2L</button>
                     <button class="scramble-type-btn" data-type="oll" onclick="setScrambleType('oll')">OLL</button>
+                    <button class="scramble-type-btn" data-type="pll" onclick="setScrambleType('pll')">PLL</button>
                 </div>
                 <div class="scramble-options" id="wcaOptions">
                     <button class="scramble-option active" data-length="20">20</button>
                     <button class="scramble-option" data-length="25">25</button>
                     <button class="scramble-option" data-length="30">30</button>
+                </div>
+                <div class="scramble-options" id="crossOptions" style="display: none;">
+                    <span class="scramble-hint">4 moves</span>
+                </div>
+                <div class="scramble-options" id="f2lOptions" style="display: none;">
+                    <span class="scramble-hint">8 moves</span>
                 </div>
                 <div class="scramble-options" id="pllOptions" style="display: none;">
                     <span class="scramble-hint">21 cases</span>
@@ -978,63 +1024,63 @@
 
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">Controls</span>
+                    <span class="card-title" data-i18n="controls">Controls</span>
                 </div>
                 <div class="controls">
                     <button class="btn btn-primary" id="startBtn" onclick="startSolve()">
-                        <span>▶</span> Start
+                        <span>▶</span> <span class="i18n" data-i18n="start">Start</span>
                     </button>
                     <button class="btn btn-secondary" onclick="generateScramble()">
-                        <span>🔄</span> New Scramble
+                        <span>🔄</span> <span class="i18n" data-i18n="newScramble">New Scramble</span>
                     </button>
                     <button class="btn btn-secondary" onclick="openSettings()">
-                        <span>⚙</span> Settings
+                        <span>⚙</span> <span class="i18n" data-i18n="settings">Settings</span>
                     </button>
                 </div>
                 <div class="keyboard-hint">
-                    Press <kbd>Space</kbd> to start/stop · <kbd>Enter</kbd> for new scramble
+                    <span class="i18n" data-i18n="pressSpace">Press</span> <kbd>Space</kbd> <span class="i18n" data-i18n="pressSpace2">to start/stop</span> · <kbd>Enter</kbd> <span class="i18n" data-i18n="pressEnter">for new scramble</span>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">Session Statistics</span>
+                    <span class="card-title" data-i18n="sessionStats">Session Statistics</span>
                 </div>
                 <div class="stats-grid">
                     <div class="stat-item">
                         <div class="stat-value" id="currentTime">--</div>
-                        <div class="stat-label">Current</div>
+                        <div class="stat-label" data-i18n="current">Current</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="ao5">--</div>
-                        <div class="stat-label">Ao5</div>
+                        <div class="stat-label" data-i18n="ao5">Ao5</div>
                     </div>
                     <div class="stat-item best">
                         <div class="stat-value" id="bestTime">--</div>
-                        <div class="stat-label">Best</div>
+                        <div class="stat-label" data-i18n="best">Best</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="ao12">--</div>
-                        <div class="stat-label">Ao12</div>
+                        <div class="stat-label" data-i18n="ao12">Ao12</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="ao100">--</div>
-                        <div class="stat-label">Ao100</div>
+                        <div class="stat-label" data-i18n="ao100">Ao100</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="solveCount">0</div>
-                        <div class="stat-label">Solves</div>
+                        <div class="stat-label" data-i18n="solves">Solves</div>
                     </div>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">Bluetooth Cube</span>
+                    <span class="card-title" data-i18n="bluetoothCube">Bluetooth Cube</span>
                 </div>
                 <div class="bluetooth-controls">
                     <button class="btn btn-secondary" id="scanBtn" onclick="scanForCubes()" style="width: 100%;">
-                        <span>📡</span> Scan for Cubes
+                        <span>📡</span> <span data-i18n="scanForCubes">Scan for Cubes</span>
                     </button>
                     <div class="bt-devices" id="btDevices"></div>
                 </div>
@@ -1043,7 +1089,7 @@
             <!-- Coach Section -->
             <div class="card" id="coachPanel" style="display: none;">
                 <div class="card-header">
-                    <span class="card-title">Coach Dashboard</span>
+                    <span class="card-title" data-i18n="coachDashboard">Coach Dashboard</span>
                 </div>
                 <div class="user-stats" id="userStats">
                     <!-- Populated by API -->
@@ -1058,7 +1104,7 @@
         <div class="analysis-section">
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">CFOP Analysis</span>
+                    <span class="card-title" data-i18n="cfopAnalysis">CFOP Analysis</span>
                 </div>
                 <div id="analysisContent">
                     <div class="no-data">
@@ -1070,7 +1116,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">Last Solve Details</span>
+                    <span class="card-title" data-i18n="lastSolveDetails">Last Solve Details</span>
                 </div>
                 <div id="lastSolveDetails">
                     <div class="no-data">
@@ -1085,7 +1131,7 @@
         <div class="history-section" style="grid-column: 1 / -1;">
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">Solve History</span>
+                    <span class="card-title" data-i18n="solveHistory">Solve History</span>
                     <div class="history-filters">
                         <button class="filter-btn active" data-filter="all">All</button>
                         <button class="filter-btn" data-filter="session">Session</button>
@@ -1109,11 +1155,11 @@
                 <button class="modal-close" onclick="closeSettings()">&times;</button>
             </div>
             <div class="setting-group">
-                <label class="setting-label">Inspection Time (seconds)</label>
+                <label class="setting-label" data-i18n="inspectionSec">Inspection Time (seconds)</label>
                 <input type="number" class="setting-input" id="inspectionTime" value="15" min="0" max="30">
             </div>
             <div class="setting-group">
-                <label class="setting-label">Timer Sound</label>
+                <label class="setting-label" data-i18n="timerSound">Timer Sound</label>
                 <select class="setting-input" id="timerSound">
                     <option value="on">On</option>
                     <option value="off">Off</option>
@@ -1161,13 +1207,22 @@
                 ao100: 'Ao100',
                 best: 'Best',
                 average: 'Average',
+                current: 'Current',
                 moves: 'moves',
-                oStep: 'O-Step',
-                pStep: 'P-Step',
+                cross: 'Cross',
+                f2l: 'F2L',
+                oll: 'OLL',
+                pll: 'PLL',
                 crossTime: 'Cross Time',
+                f2lTime: 'F2L Time',
                 f2lPairs: 'F2L Pairs',
+                ollTime: 'OLL Time',
+                ollCase: 'OLL Case',
+                ollRecognition: 'OLL Recognition',
+                pllTime: 'PLL Time',
                 pllCase: 'PLL Case',
                 recognitionTime: 'Recognition',
+                algorithm: 'Algorithm',
                 good: 'Good',
                 average: 'Average',
                 slow: 'Slow',
@@ -1181,8 +1236,30 @@
                 save: 'Save',
                 inspectionTime: 'Inspection Time',
                 soundEnabled: 'Sound Enabled',
-                pressSpace: 'Press Space to start/stop',
-                pressEnter: 'Press Enter for new scramble'
+                pressSpace: 'Press',
+                pressSpace2: 'to start/stop',
+                pressEnter: 'for new scramble',
+                controls: 'Controls',
+                sessionStats: 'Session Statistics',
+                bluetoothCube: 'Bluetooth Cube',
+                coachDashboard: 'Coach Dashboard',
+                cfopAnalysis: 'CFOP Analysis',
+                lastSolveDetails: 'Last Solve Details',
+                solveHistory: 'Solve History',
+                scanForCubes: 'Scan for Cubes',
+                inspectionSec: 'Inspection Time (seconds)',
+                timerSound: 'Timer Sound',
+                time: 'Time',
+                scramble: 'Scramble',
+                penalty: 'Penalty',
+                date: 'Date',
+                solves: 'Solves',
+                totalOStepTime: 'Total O-Step Time',
+                crossSolution: 'Cross Solution',
+                f2lPairsInserted: 'F2L Pairs Inserted',
+                totalPStepTime: 'Total P-Step Time',
+                pllCase: 'PLL Case',
+                recognitionTime: 'Recognition Time'
             },
             zh: {
                 disconnected: '未连接',
@@ -1200,13 +1277,22 @@
                 ao100: '100次平均',
                 best: '最佳',
                 average: '平均',
+                current: '当前',
                 moves: '步',
-                oStep: 'O步',
-                pStep: 'P步',
+                cross: '十字',
+                f2l: 'F2L',
+                oll: 'OLL',
+                pll: 'PLL',
                 crossTime: '十字时间',
+                f2lTime: 'F2L时间',
                 f2lPairs: 'F2L对',
+                ollTime: 'OLL时间',
+                ollCase: 'OLL情况',
+                ollRecognition: 'OLL识别',
+                pllTime: 'PLL时间',
                 pllCase: 'PLL情况',
                 recognitionTime: '识别时间',
+                algorithm: '算法',
                 good: '优秀',
                 average: '一般',
                 slow: '较慢',
@@ -1220,15 +1306,37 @@
                 save: '保存',
                 inspectionTime: '观察时间',
                 soundEnabled: '开启声音',
-                pressSpace: '按空格键开始/停止',
-                pressEnter: '按回车键获取新打乱'
+                pressSpace: '按',
+                pressSpace2: '空格键开始/停止',
+                pressEnter: '获取新打乱',
+                controls: '控制',
+                sessionStats: '统计',
+                bluetoothCube: '蓝牙魔方',
+                coachDashboard: '教练面板',
+                cfopAnalysis: 'CFOP分析',
+                lastSolveDetails: '上次还原详情',
+                solveHistory: '历史记录',
+                scanForCubes: '扫描魔方',
+                inspectionSec: '观察时间（秒）',
+                timerSound: '计时器声音',
+                time: '时间',
+                scramble: '打乱',
+                penalty: '罚时',
+                date: '日期',
+                solves: '还原次数',
+                totalOStepTime: 'O步总时间',
+                crossSolution: '十字解法',
+                f2lPairsInserted: 'F2L对插入',
+                totalPStepTime: 'P步总时间',
+                pllCase: 'PLL情况',
+                recognitionTime: '识别时间'
             },
             ja: {
                 disconnected: '未接続',
                 connected: '接続済み',
                 scanning: 'スキャン中...',
                 start: 'スタート',
-                newScramble: ' нов скрембл',
+                newScramble: '新しいスクランブル',
                 settings: '設定',
                 scramble: 'スクランブル',
                 timer: 'タイマー',
@@ -1239,13 +1347,22 @@
                 ao100: 'ao100',
                 best: 'ベスト',
                 average: '平均',
+                current: '現在',
                 moves: '手',
-                oStep: 'Oステップ',
-                pStep: 'Pステップ',
+                cross: 'クロス',
+                f2l: 'F2L',
+                oll: 'OLL',
+                pll: 'PLL',
                 crossTime: 'クロスタイム',
+                f2lTime: 'F2Lタイム',
                 f2lPairs: 'F2Lペア',
+                ollTime: 'OLLタイム',
+                ollCase: 'OLLケース',
+                ollRecognition: 'OLL認識',
+                pllTime: 'PLLタイム',
                 pllCase: 'PLLケース',
                 recognitionTime: '認識時間',
+                algorithm: 'アルゴリズム',
                 good: '良い',
                 average: '普通',
                 slow: '遅い',
@@ -1259,8 +1376,30 @@
                 save: '保存',
                 inspectionTime: 'インスペクション時間',
                 soundEnabled: 'サウンド有効',
-                pressSpace: 'スペースでスタート/停止',
-                pressEnter: 'Enterで新しいスクランブル'
+                pressSpace: 'プレス',
+                pressSpace2: 'スペースでスタート/停止',
+                pressEnter: '新しいスクランブル',
+                controls: 'コントロール',
+                sessionStats: '統計',
+                bluetoothCube: 'Bluetoothキューーブ',
+                coachDashboard: 'コーチダッシュボード',
+                cfopAnalysis: 'CFOP分析',
+                lastSolveDetails: '前回解法詳細',
+                solveHistory: '解法履歴',
+                scanForCubes: 'キューブをスキャン',
+                inspectionSec: 'インスペクション時間（秒）',
+                timerSound: 'タイマーサウンド',
+                time: '時間',
+                scramble: 'スクランブル',
+                penalty: 'ペナルティ',
+                date: '日付',
+                solves: '解法数',
+                totalOStepTime: 'Oステップ合計時間',
+                crossSolution: 'クロスソリューション',
+                f2lPairsInserted: 'F2Lペア挿入',
+                totalPStepTime: 'Pステップ合計時間',
+                pllCase: 'PLLケース',
+                recognitionTime: '認識時間'
             }
         };
 
@@ -1814,14 +1953,20 @@
             // Get CFOP analysis
             const analysis = await analyzeSolve(state.currentSolve.time);
             if (analysis) {
-                state.currentSolve.oStepTime = analysis.oStep.time;
-                state.currentSolve.pStepTime = analysis.pStep.time;
-                state.currentSolve.crossTime = analysis.oStep.crossTime;
-                state.currentSolve.f2lPairCount = analysis.oStep.f2lPairs;
-                state.currentSolve.pllCase = analysis.pStep.pllCase;
-                state.currentSolve.pllRecognitionTime = analysis.pStep.recognitionTime;
-                state.currentSolve.oStepEfficiency = analysis.oStep.efficiency;
-                state.currentSolve.pStepEfficiency = analysis.pStep.efficiency;
+                state.currentSolve.crossTime = analysis.cross.time;
+                state.currentSolve.crossEfficiency = analysis.cross.efficiency;
+                state.currentSolve.f2lTime = analysis.f2l.time;
+                state.currentSolve.f2lEfficiency = analysis.f2l.efficiency;
+                state.currentSolve.ollTime = analysis.oll.time;
+                state.currentSolve.ollCase = analysis.oll.caseName;
+                state.currentSolve.ollAlgorithm = analysis.oll.algorithm;
+                state.currentSolve.ollRecognitionTime = analysis.oll.recognitionTime;
+                state.currentSolve.ollEfficiency = analysis.oll.efficiency;
+                state.currentSolve.pllTime = analysis.pll.time;
+                state.currentSolve.pllCase = analysis.pll.caseName;
+                state.currentSolve.pllAlgorithm = analysis.pll.algorithm;
+                state.currentSolve.pllRecognitionTime = analysis.pll.recognitionTime;
+                state.currentSolve.pllEfficiency = analysis.pll.efficiency;
             }
 
             state.currentSolve.sessionId = state.currentSession?.id;
@@ -1851,6 +1996,32 @@
         }
 
         // ============ SCRAMBLE GENERATOR ============
+        // Cross scrambles - 4 move setups for cross practice (R, L, U, D moves only)
+        const crossScrambles = [
+            'R U R\'', 'R U2 R\'', 'R\' D R', 'R\' D2 R',
+            'L U L\'', 'L U2 L\'', 'L\' D L', 'L\' D2 L',
+            'U R U\' R\'', 'U R2 U\' R\'', 'U\' R\' U R',
+            'U L U\' L\'', 'U L2 U\' L\'', 'U\' L\' U L',
+            'D R D\' R\'', 'D R2 D\' R\'', 'D\' R\' D R',
+            'D L D\' L\'', 'D L2 D\' L\'', 'D\' L\' D L',
+            'R U R\' U\'', 'R U\' R\'', 'R\' D R', 'R D\' R\'',
+            'L U L\' U\'', 'L U\' L\'', 'L\' D L', 'L D\' L\'',
+            'R2 U R\' U\' R', 'R\' U2 R U R\'', 'U R2 U\' R2 U\' R2',
+            'L2 U L\' U\' L', 'L\' U2 L U L\'', 'U L2 U\' L2 U\' L2'
+        ];
+
+        // F2L scrambles - 8 move setups for F2L practice (random F2L state with solved LL)
+        const f2lScrambles = [
+            'R U R\' U\' R U2 R\'', 'R U2 R\' U\' R U\' R\'', 'R\' U\' R U\' R\' U2 R',
+            'R U R\' U R U2 R\' U\' R U R\'', 'R U\' R\' U R U R\'',
+            'L U L\' U\' L U2 L\'', 'L U2 L\' U\' L U\' L\'', 'L\' U\' L U\' L\' U2 L',
+            'L U L\' U L U2 L\' U\' L U L\'', 'L U\' L\' U L U L\'',
+            'R U R\' U R U\' R\'', 'R U\' R\' U\' R U R\'',
+            'L U L\' U L U\' L\'', 'L U\' L\' U\' L U L\'',
+            'R U2 R\' U R U2 R\'', 'R\' U2 R U\' R\' U2 R',
+            'L U2 L\' U L U2 L\'', 'L\' U2 L U\' L\' U2 L'
+        ];
+
         // PLL scrambles (21 unique cases)
         const pllScrambles = [
             'Ua', 'Ub', 'H', 'Z', 'Aa', 'Ab', 'E', 'T', 'Jb', 'Ja', 'F', 'V', 'Y', 'Na', 'Nb',
@@ -1872,13 +2043,23 @@
                 btn.classList.toggle('active', btn.dataset.type === type);
             });
             document.getElementById('wcaOptions').style.display = type === 'wca' ? 'flex' : 'none';
+            document.getElementById('crossOptions').style.display = type === 'cross' ? 'flex' : 'none';
+            document.getElementById('f2lOptions').style.display = type === 'f2l' ? 'flex' : 'none';
             document.getElementById('pllOptions').style.display = type === 'pll' ? 'flex' : 'none';
             document.getElementById('ollOptions').style.display = type === 'oll' ? 'flex' : 'none';
             generateScramble();
         }
 
         function generateScramble() {
-            if (state.scrambleType === 'pll') {
+            if (state.scrambleType === 'cross') {
+                // Random Cross case - 4 move setups
+                const cross = crossScrambles[Math.floor(Math.random() * crossScrambles.length)];
+                state.scramble = cross;
+            } else if (state.scrambleType === 'f2l') {
+                // Random F2L case - 8 move setups
+                const f2l = f2lScrambles[Math.floor(Math.random() * f2lScrambles.length)];
+                state.scramble = f2l;
+            } else if (state.scrambleType === 'pll') {
                 // Random PLL case
                 const pll = pllScrambles[Math.floor(Math.random() * pllScrambles.length)];
                 state.scramble = pll;
@@ -1958,19 +2139,19 @@
 
             details.innerHTML = `
                 <div class="cfop-metric">
-                    <span class="cfop-metric-label">Time</span>
+                    <span class="cfop-metric-label" data-i18n="time">Time</span>
                     <span class="cfop-metric-value" style="color: var(--primary);">${time}</span>
                 </div>
                 <div class="cfop-metric">
-                    <span class="cfop-metric-label">Scramble</span>
+                    <span class="cfop-metric-label" data-i18n="scramble">Scramble</span>
                     <span class="cfop-metric-value">${solve.scramble || 'N/A'}</span>
                 </div>
                 <div class="cfop-metric">
-                    <span class="cfop-metric-label">Penalty</span>
+                    <span class="cfop-metric-label" data-i18n="penalty">Penalty</span>
                     <span class="cfop-metric-value">${solve.penalty === 2 ? 'DNF' : solve.penalty === 1 ? '+2' : 'None'}</span>
                 </div>
                 <div class="cfop-metric">
-                    <span class="cfop-metric-label">Date</span>
+                    <span class="cfop-metric-label" data-i18n="date">Date</span>
                     <span class="cfop-metric-value">${new Date(solve.startTime).toLocaleString()}</span>
                 </div>
             `;
@@ -1991,45 +2172,71 @@
             const lastSolve = state.solves[state.solves.length - 1];
             if (!lastSolve) return;
 
-            const oStepTime = lastSolve.oStepTime || Math.floor((lastSolve.finalTime || lastSolve.time || 0) * 0.25);
-            const pStepTime = lastSolve.pStepTime || Math.floor((lastSolve.finalTime || lastSolve.time || 0) * 0.20);
+            // Calculate times based on percentages: Cross (12%), F2L (45%), OLL (18%), PLL (25%)
+            const totalTime = lastSolve.finalTime || lastSolve.time || 0;
+            const crossTime = lastSolve.crossTime || Math.floor(totalTime * 0.12);
+            const f2lTime = lastSolve.f2lTime || Math.floor(totalTime * 0.45);
+            const ollTime = lastSolve.ollTime || Math.floor(totalTime * 0.18);
+            const pllTime = lastSolve.pllTime || Math.floor(totalTime * 0.25);
 
             document.getElementById('analysisContent').innerHTML = `
-                <div class="cfop-card o-step">
+                <div class="cfop-card cross-step">
                     <div class="cfop-header">
-                        <span class="cfop-title">🔶 O-Step (Orientation)</span>
-                        <span class="cfop-badge ${lastSolve.oStepEfficiency || 'average'}">${(lastSolve.oStepEfficiency || 'average').toUpperCase()}</span>
+                        <span class="cfop-title">🟢 Cross</span>
+                        <span class="cfop-badge ${lastSolve.crossEfficiency || 'average'}">${(lastSolve.crossEfficiency || 'average').toUpperCase()}</span>
                     </div>
                     <div class="cfop-metric">
-                        <span class="cfop-metric-label">Total O-Step Time</span>
-                        <span class="cfop-metric-value">${formatTime(oStepTime)}</span>
-                    </div>
-                    <div class="cfop-metric">
-                        <span class="cfop-metric-label">Cross Solution</span>
-                        <span class="cfop-metric-value">${formatTime(lastSolve.crossTime || Math.floor(oStepTime * 0.4))}</span>
-                    </div>
-                    <div class="cfop-metric">
-                        <span class="cfop-metric-label">F2L Pairs Inserted</span>
-                        <span class="cfop-metric-value">${lastSolve.f2lPairCount || 4}</span>
+                        <span class="cfop-metric-label" data-i18n="crossTime">Cross Time</span>
+                        <span class="cfop-metric-value">${formatTime(crossTime)}</span>
                     </div>
                 </div>
 
-                <div class="cfop-card p-step">
+                <div class="cfop-card f2l-step">
                     <div class="cfop-header">
-                        <span class="cfop-title">🔷 P-Step (Permutation)</span>
-                        <span class="cfop-badge ${lastSolve.pStepEfficiency || 'average'}">${(lastSolve.pStepEfficiency || 'average').toUpperCase()}</span>
+                        <span class="cfop-title">🟡 F2L</span>
+                        <span class="cfop-badge ${lastSolve.f2lEfficiency || 'average'}">${(lastSolve.f2lEfficiency || 'average').toUpperCase()}</span>
                     </div>
                     <div class="cfop-metric">
-                        <span class="cfop-metric-label">Total P-Step Time</span>
-                        <span class="cfop-metric-value">${formatTime(pStepTime)}</span>
+                        <span class="cfop-metric-label" data-i18n="f2lTime">F2L Time</span>
+                        <span class="cfop-metric-value">${formatTime(f2lTime)}</span>
+                    </div>
+                </div>
+
+                <div class="cfop-card oll-step">
+                    <div class="cfop-header">
+                        <span class="cfop-title">🟠 OLL</span>
+                        <span class="cfop-badge ${lastSolve.ollEfficiency || 'average'}">${(lastSolve.ollEfficiency || 'average').toUpperCase()}</span>
                     </div>
                     <div class="cfop-metric">
-                        <span class="cfop-metric-label">PLL Case</span>
+                        <span class="cfop-metric-label" data-i18n="ollTime">OLL Time</span>
+                        <span class="cfop-metric-value">${formatTime(ollTime)}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label" data-i18n="ollCase">OLL Case</span>
+                        <span class="cfop-metric-value">${lastSolve.ollCase || 'N/A'}</span>
+                    </div>
+                    <div class="cfop-algorithm">
+                        <span class="cfop-metric-label" data-i18n="algorithm">Algorithm</span>
+                        <span class="cfop-algorithm-text">${lastSolve.ollAlgorithm || 'N/A'}</span>
+                    </div>
+                </div>
+
+                <div class="cfop-card pll-step">
+                    <div class="cfop-header">
+                        <span class="cfop-title">🔵 PLL</span>
+                        <span class="cfop-badge ${lastSolve.pllEfficiency || 'average'}">${(lastSolve.pllEfficiency || 'average').toUpperCase()}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label" data-i18n="pllTime">PLL Time</span>
+                        <span class="cfop-metric-value">${formatTime(pllTime)}</span>
+                    </div>
+                    <div class="cfop-metric">
+                        <span class="cfop-metric-label" data-i18n="pllCase">PLL Case</span>
                         <span class="cfop-metric-value">${lastSolve.pllCase || 'N/A'}</span>
                     </div>
-                    <div class="cfop-metric">
-                        <span class="cfop-metric-label">Recognition Time</span>
-                        <span class="cfop-metric-value">${formatTime(lastSolve.pllRecognitionTime || Math.floor(pStepTime * 0.3))}</span>
+                    <div class="cfop-algorithm">
+                        <span class="cfop-metric-label" data-i18n="algorithm">Algorithm</span>
+                        <span class="cfop-algorithm-text">${lastSolve.pllAlgorithm || 'N/A'}</span>
                     </div>
                 </div>
             `;
@@ -2129,7 +2336,7 @@
                 showToast('Could not connect to cube', 'error');
             }
 
-            scanBtn.innerHTML = '<span>📡</span> Scan for Cubes';
+            scanBtn.innerHTML = '<span>📡</span> <span data-i18n="scanForCubes">Scan for Cubes</span>';
             scanBtn.disabled = false;
         }
 
@@ -2268,6 +2475,7 @@
                 currentLang = savedLang;
                 document.getElementById('langSelect').value = savedLang;
             }
+            updateUITexts();
 
             // Check user role and show coach panel if needed
             await switchUser();

@@ -48,23 +48,80 @@ public static class AnalysisRoutes
                 return Results.BadRequest("Valid solve time is required");
 
             var time = request.Time.Value;
-            var oStepTime = (long)(time * 0.25);
-            var pStepTime = (long)(time * 0.20);
 
-            string oStepEfficiency, pStepEfficiency;
-            if (time < 30000) { oStepEfficiency = "good"; pStepEfficiency = "good"; }
-            else if (time < 60000) { oStepEfficiency = "average"; pStepEfficiency = "average"; }
-            else { oStepEfficiency = "slow"; pStepEfficiency = "slow"; }
+            // CFOP breakdown: Cross (~12%), F2L (~45%), OLL (~18%), PLL (~25%)
+            var crossTime = (long)(time * 0.12);
+            var f2lTime = (long)(time * 0.45);
+            var ollTime = (long)(time * 0.18);
+            var pllTime = (long)(time * 0.25);
 
-            var crossTime = (long)(oStepTime * 0.4);
-            var pllCases = new[] { "Ua", "Ub", "H", "Z", "Aa", "Ab", "E", "T", "Jb", "Ja", "F", "V", "Y", "Na", "Nb" };
-            var pllCase = pllCases[new Random().Next(pllCases.Length)];
-            var recognitionTime = (long)(pStepTime * 0.3);
+            // Efficiency ratings based on time
+            string crossEfficiency = time < 15000 ? "good" : time < 30000 ? "average" : "slow";
+            string f2lEfficiency = time < 25000 ? "good" : time < 50000 ? "average" : "slow";
+            string ollEfficiency = time < 5000 ? "good" : time < 10000 ? "average" : "slow";
+            string pllEfficiency = time < 5000 ? "good" : time < 10000 ? "average" : "slow";
+
+            // OLL cases with scramble algorithms
+            var ollData = new Dictionary<string, (string name, string algorithm)>
+            {
+                { "Sune", ("Sune", "R U R' U R U2 R'") },
+                { "Antisune", ("Antisune", "R' U' R U' R' U2 R") },
+                { "H", ("H", "R U R' U R U' R'") },
+                { "Pi", ("Pi", "R U2 R2 U' R2 U' R2 U2 R") },
+                { "T", ("T", "R U R' U' R' F R2 U' R' U' R") },
+                { "L", ("L", "L' U' L U' R' U2 R U R' U2 R") },
+                { "U", ("U", "R U' R U R U R U' R' U' R2") },
+                { "AS", ("AS", "R' U' R U' R' U R' F R2 U' R'") },
+                { "E", ("E", "R U R' U R U' R' U' R' F R F'") },
+                { "F", ("F", "R U R' U R U2 R' U' R U' R'") },
+                { "G", ("G", "R2 U R' U R U2 R' U M'") },
+                { "Na", ("Na", "R U R' U R U2 R' F' R U R' U' R' F R2") },
+                { "N", ("N", "R' U R U' R' F' R U R' U' R' F R2 U' R'") },
+                { "Ra", ("Ra", "R U' R U' R U R' U R2 F' R U R U' R'") },
+                { "Rb", ("Rb", "R' U R' U' R' U R' U R2 F' R U R' U' R") }
+            };
+            var ollKeys = ollData.Keys.ToArray();
+            var ollKey = ollKeys[new Random().Next(ollKeys.Length)];
+            var ollCase = ollData[ollKey];
+
+            // PLL cases with scramble algorithms (21 cases)
+            var pllData = new Dictionary<string, (string name, string algorithm)>
+            {
+                { "Ua", ("Ua", "R U' R U R U R U' R' U' R2") },
+                { "Ub", ("Ub", "R' U R' U' R' U' R' U R U R2") },
+                { "H", ("H", "M2 U M2 U2 M2 U M2") },
+                { "Z", ("Z", "M2 U M2 U M' U2 M2 U2 M'") },
+                { "Aa", ("Aa", "R' F R2 U' R' U R U R' U' R2 F' R") },
+                { "Ab", ("Ab", "R U' R2 U R U' R' U' R U R2") },
+                { "E", ("E", "R U R' U R' F R2 U' R' U' R U R' F'") },
+                { "T", ("T", "R U R' U' R' F R2 U' R' U' R U R' U' R") },
+                { "Jb", ("Jb", "R' U R' U' R2 U' R U R U' R") },
+                { "Ja", ("Ja", "R U R' F' R U R' U' R' F R2 U' R'") },
+                { "F", ("F", "R U R' U R U2 R' U' R U' R2 F' R U R' U' R'") },
+                { "V", ("V", "R' U R' U' R B' R' U' R U R B R2 U'") },
+                { "Y", ("Y", "R U R' U' R' F R2 U' R' U' R U R' F'") },
+                { "Na", ("Na", "R U' R U R U R U' R' U' R2 F' R U R' U' R'") },
+                { "Nb", ("Nb", "R' U' R' U' R' U R' U R U R2 B' R' U' R U R B R") },
+                { "Ra", ("Ra", "R U R' U' R U R' U' R' F R2 U' R' U R U' R' F'") },
+                { "Rb", ("Rb", "R' U' R U R' U' R U' R2 B' R' U R U' R B R'") },
+                { "Ga", ("Ga", "R2 U R' U R' U' R U' R2 F' R U R' U' R'") },
+                { "Gb", ("Gb", "R' U' R U R' U R R2 U' R U R' U' R") },
+                { "Gc", ("Gc", "R2 U' R U' R U R' U R2 F R U R' U' R'") },
+                { "Gd", ("Gd", "R U R' U' R' U R R2 U' R' U' R U R") }
+            };
+            var pllKeys = pllData.Keys.ToArray();
+            var pllKey = pllKeys[new Random().Next(pllKeys.Length)];
+            var pllCase = pllData[pllKey];
+
+            var pllRecognitionTime = (long)(pllTime * 0.3);
+            var ollRecognitionTime = (long)(ollTime * 0.25);
 
             return Results.Ok(new
             {
-                oStep = new { time = oStepTime, crossTime = crossTime, f2lPairs = 4, efficiency = oStepEfficiency },
-                pStep = new { time = pStepTime, pllCase = pllCase, recognitionTime = recognitionTime, efficiency = pStepEfficiency }
+                cross = new { time = crossTime, efficiency = crossEfficiency },
+                f2l = new { time = f2lTime, efficiency = f2lEfficiency },
+                oll = new { time = ollTime, caseName = ollCase.name, algorithm = ollCase.algorithm, recognitionTime = ollRecognitionTime, efficiency = ollEfficiency },
+                pll = new { time = pllTime, caseName = pllCase.name, algorithm = pllCase.algorithm, recognitionTime = pllRecognitionTime, efficiency = pllEfficiency }
             });
         });
     }
