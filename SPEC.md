@@ -64,8 +64,18 @@
 - Timer: pulsing glow when running
 - Smooth transitions: 200ms ease-out
 - Glassmorphism panels: `backdrop-filter: blur(10px)`
+- Virtual cube: smooth 3D rotation animations (0.3s ease)
 
 ### Components
+
+**Virtual Cube Display:**
+- 3D CSS-rendered Rubik's cube (6 faces, 9 stickers each)
+- Standard colors: White (U), Yellow (D), Red (R), Orange (L), Blue (F), Green (B)
+- Mouse drag to rotate view (orbit controls)
+- Scroll wheel to zoom in/out
+- Reset button to restore solved state
+- Animates scramble moves in sequence
+- Click on face to highlight that face
 
 **Timer Display:**
 - Large digital display (MM:SS.ms)
@@ -75,6 +85,7 @@
 **Scramble Display:**
 - Current scramble in standard notation
 - Scramble length selector (20, 25, 30 moves)
+- **Virtual Cube Preview**: 3D interactive cube visualization showing scramble state
 
 **Cube Connection Panel:**
 - Scan button for bluetooth devices
@@ -114,6 +125,7 @@
 - Random state scrambles
 - Standard notation output (R, R', R2, etc.)
 - Scramble preview
+- Virtual cube updates to show scramble state in real-time
 
 **3. Bluetooth Cube Integration:**
 - Scan for BLE cubes (Giiker, Xiaomi, etc.)
@@ -176,6 +188,9 @@
 8. ✓ Data can be exported to CSV
 9. ✓ Responsive on mobile/tablet/desktop
 10. ✓ Keyboard shortcuts work (spacebar)
+11. ✓ Virtual cube displays 3D cube state
+12. ✓ Virtual cube animates scramble sequence
+13. ✓ Virtual cube is interactive (rotatable view)
 
 ---
 

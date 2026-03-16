@@ -233,6 +233,79 @@
             margin-bottom: 8px;
         }
 
+        /* Virtual Cube */
+        .virtual-cube-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .virtual-cube {
+            width: 180px;
+            height: 180px;
+            perspective: 600px;
+            cursor: grab;
+        }
+
+        .virtual-cube:active {
+            cursor: grabbing;
+        }
+
+        .cube-scene {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+
+        .cube-face {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 2px;
+            transform-style: preserve-3d;
+        }
+
+        .sticker {
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        /* Face positions */
+        .face-U { transform: rotateX(90deg) translateZ(27px); }
+        .face-D { transform: rotateX(-90deg) translateZ(27px); }
+        .face-R { transform: rotateY(90deg) translateZ(27px); }
+        .face-L { transform: rotateY(-90deg) translateZ(27px); }
+        .face-F { transform: translateZ(27px); }
+        .face-B { transform: rotateY(180deg) translateZ(27px); }
+
+        /* Cube colors */
+        .sticker.white { background: #ffffff; }
+        .sticker.yellow { background: #ffd500; }
+        .sticker.red { background: #b71234; }
+        .sticker.orange { background: #ff5800; }
+        .sticker.blue { background: #0046ad; }
+        .sticker.green { background: #009b48; }
+        .sticker.black { background: #1a1a1a; }
+
+        .cube-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .cube-controls .btn {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
         .scramble-display {
             background: var(--surface-elevated);
             border-radius: 12px;
@@ -805,6 +878,30 @@
                     <button class="btn btn-danger" onclick="applyPenalty('DNF')">DNF</button>
                     <button class="btn btn-secondary" onclick="applyPenalty('+2')">+2</button>
                 </div>
+                <div class="virtual-cube-container">
+                    <div class="virtual-cube" id="virtualCube">
+                        <div class="cube-scene" id="cubeScene">
+                            <!-- Front face (F) - Green -->
+                            <div class="cube-face face-F" data-face="F"></div>
+                            <!-- Back face (B) - Blue -->
+                            <div class="cube-face face-B" data-face="B"></div>
+                            <!-- Right face (R) - Red -->
+                            <div class="cube-face face-R" data-face="R"></div>
+                            <!-- Left face (L) - Orange -->
+                            <div class="cube-face face-L" data-face="L"></div>
+                            <!-- Up face (U) - White -->
+                            <div class="cube-face face-U" data-face="U"></div>
+                            <!-- Down face (D) - Yellow -->
+                            <div class="cube-face face-D" data-face="D"></div>
+                        </div>
+                    </div>
+                    <div class="cube-controls">
+                        <button class="btn btn-secondary" onclick="resetCube()">Reset</button>
+                        <button class="btn btn-secondary" onclick="rotateCubeView(-90, 0)">Left</button>
+                        <button class="btn btn-secondary" onclick="rotateCubeView(90, 0)">Right</button>
+                    </div>
+                </div>
+
                 <div class="scramble-display">
                     <div class="scramble-label">Scramble</div>
                     <div class="scramble-text" id="scramble">R U R' U' F D F' D' R2 U2 R U2 R'</div>
@@ -1002,8 +1099,282 @@
             settings: {
                 inspectionTime: 15,
                 sound: true
-            }
+            },
+            cubeState: {
+                U: Array(9).fill('white'),
+                D: Array(9).fill('yellow'),
+                R: Array(9).fill('red'),
+                L: Array(9).fill('orange'),
+                F: Array(9).fill('green'),
+                B: Array(9).fill('blue')
+            },
+            cubeRotation: { x: -25, y: -45 }
         };
+
+        // ============ VIRTUAL CUBE ============
+        function initCube() {
+            const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
+            const colors = { U: 'white', D: 'yellow', R: 'red', L: 'orange', F: 'green', B: 'blue' };
+
+            faces.forEach(face => {
+                const faceEl = document.querySelector(`.face-${face}`);
+                if (faceEl) {
+                    faceEl.innerHTML = '';
+                    for (let i = 0; i < 9; i++) {
+                        const sticker = document.createElement('div');
+                        sticker.className = `sticker ${colors[face]}`;
+                        sticker.dataset.index = i;
+                        faceEl.appendChild(sticker);
+                    }
+                }
+            });
+            updateCubeView();
+            setupCubeInteraction();
+        }
+
+        function setupCubeInteraction() {
+            const cubeEl = document.getElementById('virtualCube');
+            let isDragging = false;
+            let startX, startY;
+            let rotX = state.cubeRotation.x;
+            let rotY = state.cubeRotation.y;
+
+            cubeEl.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                cubeEl.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                rotY += deltaX * 0.5;
+                rotX -= deltaY * 0.5;
+                rotX = Math.max(-90, Math.min(90, rotX));
+                startX = e.clientX;
+                startY = e.clientY;
+                state.cubeRotation = { x: rotX, y: rotY };
+                updateCubeView();
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                cubeEl.style.cursor = 'grab';
+            });
+
+            // Touch support
+            cubeEl.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.touches[0].clientX - startX;
+                const deltaY = e.touches[0].clientY - startY;
+                rotY += deltaX * 0.5;
+                rotX -= deltaY * 0.5;
+                rotX = Math.max(-90, Math.min(90, rotX));
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                state.cubeRotation = { x: rotX, y: rotY };
+                updateCubeView();
+            });
+
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+
+        function updateCubeView() {
+            const scene = document.getElementById('cubeScene');
+            if (scene) {
+                scene.style.transform = `rotateX(${state.cubeRotation.x}deg) rotateY(${state.cubeRotation.y}deg)`;
+            }
+        }
+
+        function rotateCubeView(deltaX, deltaY) {
+            state.cubeRotation.x = Math.max(-90, Math.min(90, state.cubeRotation.x + deltaY));
+            state.cubeRotation.y += deltaX;
+            updateCubeView();
+        }
+
+        function resetCube() {
+            const colors = { U: 'white', D: 'yellow', R: 'red', L: 'orange', F: 'green', B: 'blue' };
+            state.cubeState = {
+                U: Array(9).fill('white'),
+                D: Array(9).fill('yellow'),
+                R: Array(9).fill('red'),
+                L: Array(9).fill('orange'),
+                F: Array(9).fill('green'),
+                B: Array(9).fill('blue')
+            };
+            renderCube();
+        }
+
+        function applyScrambleToCube(scramble) {
+            resetCube();
+            if (!scramble) return;
+
+            const moves = scramble.split(' ');
+            moves.forEach(move => {
+                const face = move[0];
+                const modifier = move.slice(1);
+                applyMove(face, modifier);
+            });
+            renderCube();
+        }
+
+        function applyMove(face, modifier) {
+            const s = state.cubeState;
+            let temp;
+
+            switch(face) {
+                case 'R':
+                    temp = [s.F[2], s.F[5], s.F[8]];
+                    if (modifier === "'") {
+                        [s.F[2], s.F[5], s.F[8]] = [s.U[2], s.U[5], s.U[8]];
+                        [s.U[2], s.U[5], s.U[8]] = [s.B[6], s.B[3], s.B[0]];
+                        [s.B[6], s.B[3], s.B[0]] = [s.D[2], s.D[5], s.D[8]];
+                        [s.D[2], s.D[5], s.D[8]] = temp;
+                    } else if (modifier === '2') {
+                        [s.F[2], s.F[5], s.F[8], s.U[2], s.U[5], s.U[8], s.B[6], s.B[3], s.B[0], s.D[2], s.D[5], s.D[8]] =
+                        [s.U[2], s.U[5], s.U[8], s.B[6], s.B[3], s.B[0], s.D[2], s.D[5], s.D[8], s.F[2], s.F[5], s.F[8]];
+                    } else {
+                        [s.F[2], s.F[5], s.F[8]] = [s.D[2], s.D[5], s.D[8]];
+                        [s.D[2], s.D[5], s.D[8]] = [s.B[6], s.B[3], s.B[0]];
+                        [s.B[6], s.B[3], s.B[0]] = [s.U[2], s.U[5], s.U[8]];
+                        [s.U[2], s.U[5], s.U[8]] = temp;
+                    }
+                    rotateFaceClockwise(s.R, modifier);
+                    break;
+                case 'L':
+                    temp = [s.F[0], s.F[3], s.F[6]];
+                    if (modifier === "'") {
+                        [s.F[0], s.F[3], s.F[6]] = [s.U[0], s.U[3], s.U[6]];
+                        [s.U[0], s.U[3], s.U[6]] = [s.B[8], s.B[5], s.B[2]];
+                        [s.B[8], s.B[5], s.B[2]] = [s.D[0], s.D[3], s.D[6]];
+                        [s.D[0], s.D[3], s.D[6]] = temp;
+                    } else if (modifier === '2') {
+                        [s.F[0], s.F[3], s.F[6], s.U[0], s.U[3], s.U[6], s.B[8], s.B[5], s.B[2], s.D[0], s.D[3], s.D[6]] =
+                        [s.U[0], s.U[3], s.U[6], s.B[8], s.B[5], s.B[2], s.D[0], s.D[3], s.D[6], s.F[0], s.F[3], s.F[6]];
+                    } else {
+                        [s.F[0], s.F[3], s.F[6]] = [s.D[0], s.D[3], s.D[6]];
+                        [s.D[0], s.D[3], s.D[6]] = [s.B[8], s.B[5], s.B[2]];
+                        [s.B[8], s.B[5], s.B[2]] = [s.U[0], s.U[3], s.U[6]];
+                        [s.U[0], s.U[3], s.U[6]] = temp;
+                    }
+                    rotateFaceClockwise(s.L, modifier);
+                    break;
+                case 'U':
+                    temp = [s.F[0], s.F[1], s.F[2]];
+                    if (modifier === "'") {
+                        [s.F[0], s.F[1], s.F[2]] = [s.L[0], s.L[1], s.L[2]];
+                        [s.L[0], s.L[1], s.L[2]] = [s.B[0], s.B[1], s.B[2]];
+                        [s.B[0], s.B[1], s.B[2]] = [s.R[0], s.R[1], s.R[2]];
+                        [s.R[0], s.R[1], s.R[2]] = temp;
+                    } else if (modifier === '2') {
+                        [s.F[0], s.F[1], s.F[2], s.L[0], s.L[1], s.L[2], s.B[0], s.B[1], s.B[2], s.R[0], s.R[1], s.R[2]] =
+                        [s.B[0], s.B[1], s.B[2], s.R[0], s.R[1], s.R[2], s.F[0], s.F[1], s.F[2], s.L[0], s.L[1], s.L[2]];
+                    } else {
+                        [s.F[0], s.F[1], s.F[2]] = [s.R[0], s.R[1], s.R[2]];
+                        [s.R[0], s.R[1], s.R[2]] = [s.B[0], s.B[1], s.B[2]];
+                        [s.B[0], s.B[1], s.B[2]] = [s.L[0], s.L[1], s.L[2]];
+                        [s.L[0], s.L[1], s.L[2]] = temp;
+                    }
+                    rotateFaceClockwise(s.U, modifier);
+                    break;
+                case 'D':
+                    temp = [s.F[6], s.F[7], s.F[8]];
+                    if (modifier === "'") {
+                        [s.F[6], s.F[7], s.F[8]] = [s.R[6], s.R[7], s.R[8]];
+                        [s.R[6], s.R[7], s.R[8]] = [s.B[6], s.B[7], s.B[8]];
+                        [s.B[6], s.B[7], s.B[8]] = [s.L[6], s.L[7], s.L[8]];
+                        [s.L[6], s.L[7], s.L[8]] = temp;
+                    } else if (modifier === '2') {
+                        [s.F[6], s.F[7], s.F[8], s.R[6], s.R[7], s.R[8], s.B[6], s.B[7], s.B[8], s.L[6], s.L[7], s.L[8]] =
+                        [s.B[6], s.B[7], s.B[8], s.L[6], s.L[7], s.L[8], s.F[6], s.F[7], s.F[8], s.R[6], s.R[7], s.R[8]];
+                    } else {
+                        [s.F[6], s.F[7], s.F[8]] = [s.L[6], s.L[7], s.L[8]];
+                        [s.L[6], s.L[7], s.L[8]] = [s.B[6], s.B[7], s.B[8]];
+                        [s.B[6], s.B[7], s.B[8]] = [s.R[6], s.R[7], s.R[8]];
+                        [s.R[6], s.R[7], s.R[8]] = temp;
+                    }
+                    rotateFaceClockwise(s.D, modifier);
+                    break;
+                case 'F':
+                    temp = [s.U[6], s.U[7], s.U[8]];
+                    if (modifier === "'") {
+                        [s.U[6], s.U[7], s.U[8]] = [s.L[8], s.L[5], s.L[2]];
+                        [s.L[2], s.L[5], s.L[8]] = [s.D[0], s.D[1], s.D[2]];
+                        [s.D[0], s.D[1], s.D[2]] = [s.R[6], s.R[3], s.R[0]];
+                        [s.R[0], s.R[3], s.R[6]] = temp;
+                    } else if (modifier === '2') {
+                        [s.U[6], s.U[7], s.U[8], s.L[2], s.L[5], s.L[8], s.D[0], s.D[1], s.D[2], s.R[0], s.R[3], s.R[6]] =
+                        [s.D[0], s.D[1], s.D[2], s.R[0], s.R[3], s.R[6], s.U[6], s.U[7], s.U[8], s.L[2], s.L[5], s.L[8]];
+                    } else {
+                        [s.U[6], s.U[7], s.U[8]] = [s.R[0], s.R[3], s.R[6]];
+                        [s.R[0], s.R[3], s.R[6]] = [s.D[2], s.D[1], s.D[0]];
+                        [s.D[0], s.D[1], s.D[2]] = [s.L[8], s.L[5], s.L[2]];
+                        [s.L[2], s.L[5], s.L[8]] = [temp[2], temp[1], temp[0]];
+                    }
+                    rotateFaceClockwise(s.F, modifier);
+                    break;
+                case 'B':
+                    temp = [s.U[0], s.U[1], s.U[2]];
+                    if (modifier === "'") {
+                        [s.U[0], s.U[1], s.U[2]] = [s.R[2], s.R[5], s.R[8]];
+                        [s.R[2], s.R[5], s.R[8]] = [s.D[8], s.D[7], s.D[6]];
+                        [s.D[6], s.D[7], s.D[8]] = [s.L[0], s.L[3], s.L[6]];
+                        [s.L[0], s.L[3], s.L[6]] = temp;
+                    } else if (modifier === '2') {
+                        [s.U[0], s.U[1], s.U[2], s.R[2], s.R[5], s.R[8], s.D[6], s.D[7], s.D[8], s.L[0], s.L[3], s.L[6]] =
+                        [s.D[6], s.D[7], s.D[8], s.L[0], s.L[3], s.L[6], s.U[0], s.U[1], s.U[2], s.R[2], s.R[5], s.R[8]];
+                    } else {
+                        [s.U[0], s.U[1], s.U[2]] = [s.L[6], s.L[3], s.L[0]];
+                        [s.L[0], s.L[3], s.L[6]] = [s.D[8], s.D[7], s.D[6]];
+                        [s.D[6], s.D[7], s.D[8]] = [s.R[8], s.R[5], s.R[2]];
+                        [s.R[2], s.R[5], s.R[8]] = temp;
+                    }
+                    rotateFaceClockwise(s.B, modifier);
+                    break;
+            }
+        }
+
+        function rotateFaceClockwise(face, modifier) {
+            if (modifier === "'") {
+                const temp = [face[0], face[1], face[2], face[3], face[4], face[5], face[6], face[7], face[8]];
+                face[0] = temp[6]; face[1] = temp[3]; face[2] = temp[0];
+                face[3] = temp[7]; face[4] = temp[4]; face[5] = temp[1];
+                face[6] = temp[8]; face[7] = temp[5]; face[8] = temp[2];
+            } else if (modifier === '2') {
+                const temp = [...face];
+                face[0] = temp[4]; face[1] = temp[7]; face[2] = temp[6];
+                face[3] = temp[1]; face[4] = temp[0]; face[5] = temp[3];
+                face[6] = temp[2]; face[7] = temp[5]; face[8] = temp[8];
+            } else if (modifier === '' || !modifier) {
+                const temp = [face[0], face[1], face[2], face[3], face[4], face[5], face[6], face[7], face[8]];
+                face[0] = temp[2]; face[1] = temp[5]; face[2] = temp[8];
+                face[3] = temp[1]; face[4] = temp[4]; face[5] = temp[7];
+                face[6] = temp[0]; face[7] = temp[3]; face[8] = temp[6];
+            }
+        }
+
+        function renderCube() {
+            const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
+            faces.forEach(face => {
+                const faceEl = document.querySelector(`.face-${face}`);
+                if (faceEl) {
+                    const stickers = faceEl.querySelectorAll('.sticker');
+                    stickers.forEach((sticker, i) => {
+                        sticker.className = `sticker ${state.cubeState[face][i]}`;
+                    });
+                }
+            });
+        }
 
         // ============ API FUNCTIONS ============
         async function fetchUsers() {
@@ -1300,6 +1671,7 @@
 
             state.scramble = scrambleArray.join(' ');
             document.getElementById('scramble').textContent = state.scramble;
+            applyScrambleToCube(state.scramble);
         }
 
         // ============ STATISTICS ============
@@ -1654,6 +2026,7 @@
             await loadSolves();
             generateScramble();
             updateTimerDisplay();
+            initCube();
         }
 
         init();

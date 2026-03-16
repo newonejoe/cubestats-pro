@@ -3,6 +3,9 @@ using CubeStatsApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Set explicit web root path to wwwroot folder
+builder.WebHost.UseWebRoot("wwwroot");
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
