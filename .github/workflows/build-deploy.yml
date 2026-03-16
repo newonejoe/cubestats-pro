@@ -56,14 +56,12 @@ jobs:
         name: ${{ env.APP_NAME }}
         path: ./publish
 
-  deploy:
+  deploy-azure:
     needs: publish
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://${{ vars.App_Url }}
-
     steps:
     - name: Download artifact
       uses: actions/download-artifact@v4
@@ -71,32 +69,8 @@ jobs:
         name: ${{ env.APP_NAME }}
 
     - name: Deploy to Azure Web App
-      if: vars.AZURE_WEBAPP_PUBLISH_PROFILE != ''
       uses: azure/webapps-deploy@v3
       with:
         app-name: ${{ vars.AZURE_WEBAPP_NAME }}
         publish-profile: ${{ vars.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: .
-
-    - name: Deploy to VPS via SSH
-      if: vars.VPS_HOST != ''
-      uses: appleboy/ssh-action@v1
-      with:
-        host: ${{ vars.VPS_HOST }}
-        username: ${{ vars.VPS_USER }}
-        key: ${{ vars.VPS_KEY }}
-        script: |
-          cd /var/www/${{ env.APP_NAME }}
-          mkdir -p backup
-          mv cubestats cubestats.backup 2>/dev/null || true
-          mv wwwroot wwwroot.backup 2>/dev/null || true
-          upload_artifact () { while read -r line; do
-            if [[ "$line" =~ ^(.+):(.+)$ ]]; then
-              mkdir -p "$(dirname "${BASH_REMATCH[1]}")"
-              echo "${BASH_REMATCH[2]}" > "${BASH_REMATCH[1]}"
-            fi
-          done < <(cat << 'ARTIFACT'
-${{ hashFiles('./publish/*') }}
-ARTIFACT
-          ); }
-          echo "Deployment completed"
