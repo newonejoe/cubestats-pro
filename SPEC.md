@@ -373,12 +373,19 @@ Index 4 is always the center piece of each face.
 ## Technical Requirements
 
 - **.NET Version**: .NET 10.0
-- **Compilation**: AOT (Ahead-of-Time) compilation for native performance
+- **Compilation**: Self-contained single-file deployment (AOT disabled for compatibility)
 - **Runtime**: Self-contained single-file deployment
 - **Target Platform**: Linux x64
 
-### AOT Configuration
+### Build Configuration
 
-- PublishAot enabled for native compilation
-- Trimming enabled to reduce binary size
-- Invariant globalization mode for smaller footprint
+- Self-contained: true
+- PublishSingleFile: true
+- RuntimeIdentifier: linux-x64
+- Executable: `cubestats` (~50MB)
+- Static files served from `wwwroot/` folder
+
+### Deployment
+
+- **.NET API**: Deploy to Linux server or Azure Web App
+- **Static Frontend**: GitHub Pages deployment from `wwwroot/` content

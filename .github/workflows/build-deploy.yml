@@ -7,7 +7,7 @@ on:
     branches: [master, main]
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x'
   APP_NAME: cubestats
 
 jobs:
@@ -28,9 +28,6 @@ jobs:
 
     - name: Build
       run: dotnet build CubeStatsApi/CubeStatsApi.csproj -c Release --no-restore
-
-    - name: Test
-      run: dotnet test CubeStatsApi/CubeStatsApi.csproj --no-build --verbosity quiet || true
 
   publish:
     needs: build
@@ -74,3 +71,29 @@ jobs:
         app-name: ${{ vars.AZURE_WEBAPP_NAME }}
         publish-profile: ${{ vars.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: .
+
+  deploy-gh-pages:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Build static files
+      run: |
+        dotnet build CubeStatsApi/CubeStatsApi.csproj -c Release --no-restore
+        cp -r CubeStatsApi/wwwroot ./dist
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
