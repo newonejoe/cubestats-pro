@@ -87,6 +87,9 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
+    - name: Restore dependencies
+      run: dotnet restore CubeStatsApi/CubeStatsApi.csproj
+
     - name: Build static files
       run: |
         dotnet build CubeStatsApi/CubeStatsApi.csproj -c Release --no-restore
