@@ -15,9 +15,9 @@
     <Description>3x3 Cubing Data Analysis Application</Description>
 
     <!-- AOT Compilation Settings -->
-    <PublishAot>true</PublishAot>
+    <PublishAot>false</PublishAot>
     <TrimmerDefaultAssemblies>System.*;Microsoft.*</TrimmerDefaultAssemblies>
-    <EnableAotCompilation>true</EnableAotCompilation>
+    <EnableAotCompilation>false</EnableAotCompilation>
 
     <!-- Optimization Settings -->
     <OptimizationPreference>Speed</OptimizationPreference>

@@ -69,16 +69,43 @@
 ### Components
 
 **Virtual Cube Display:**
-- 3D CSS-rendered Rubik's cube (6 faces, 9 stickers each)
-- **Enhanced size**: 280px cube size (increased from 180px)
-- **Improved rendering**: Higher resolution stickers (72px), better gap precision, enhanced 3D perspective (800px)
-- Standard colors: White (U), Yellow (D), Red (R), Orange (L), Blue (F), Green (B)
-- Mouse drag to rotate view (orbit controls)
-- Scroll wheel to zoom in/out
+
+Both views are displayed simultaneously side by side or stacked:
+
+*Flat View (Scramble Target Display):*
+- Displays the cube state after applying the current scramble
+- Shows the target configuration the user needs to solve
+- Unfolded cube net layout (3 rows: Empty-U-Empty, L-F-R-B, Empty-D-Empty)
+- Standard WCA colors: White (U), Yellow (D), Green (F), Blue (B), Red (R), Orange (L)
+- Updates automatically when new scramble is generated
+- Always shows solved state initially, then shows scramble target when generated
+- Table-based rendering with 9 stickers per face
+
+*3D View (Bluetooth Real-time Status):*
+- Three.js powered 3D Rubik's cube
+- Reflects the current state of the physical Bluetooth cube
+- Always starts from solved/reset state when cube is connected or when a new solve begins
+- Updates in real-time as moves are detected from the Bluetooth cube
+- Used during solving to show actual cube state
+
+*3D Rendering Specifications:*
+- Three.js WebGL rendering
+- 3x3x3 cubie structure with black core and colored stickers
+- Semi-transparent black core (opacity: 0.15) to see internal structure
+- Gap between cubies: 1.12 units
+- Camera position: (0, 0, 6) - perpendicular to white-green edge
+- Cube rotation: X-axis 45° to show white and green faces equally
+- View aligned along white-green edge (the edge connecting white and green faces)
+- Sticker colors: White (top), Yellow (bottom), Green (front), Blue (back), Red (right), Orange (left)
+- WebGL canvas: 400x400 pixels
+
+*Shared Specifications:*
+- Flat view: Table-based rendering (6 faces, 9 stickers each)
+- 3D view: Three.js WebGL rendering
+- Standard colors: White (U), Yellow (D), Red (R), Orange (L), Green (F), Blue (B)
 - Reset button to restore solved state
 - Animates scramble moves in sequence
-- Click on face to highlight that face
-- Smooth CSS transitions and transform animations
+- Toggle button to switch between viewing flat-only or 3D-only (but both are visible by default)
 
 **Timer Display:**
 - Large digital display (MM:SS.ms)
@@ -89,7 +116,7 @@
 - Current scramble in standard notation
 - Scramble type selector: **WCA** (standard), **PLL** (last layer), **OLL** (first layer)
 - Scramble length selector (20, 25, 30 moves for WCA)
-- **Virtual Cube Preview**: 3D interactive cube visualization showing scramble state
+- **Flat View Cube Preview**: Shows the scramble target state (applied scramble to solved cube)
 
 **Cube Connection Panel:**
 - Scan button for bluetooth devices
@@ -204,7 +231,7 @@
 10. ✓ Keyboard shortcuts work (spacebar)
 11. ✓ Virtual cube displays 3D cube state
 12. ✓ Virtual cube animates scramble sequence
-13. ✓ Virtual cube is interactive (rotatable view)
+13.  Virtual cube is interactive (fixed view)
 
 ---
 
@@ -215,6 +242,131 @@
 - Web Bluetooth API for cube connection
 - localStorage for persistence
 - CSS Grid/Flexbox for layout
+
+---
+
+## 3x3 Cube Structure
+
+### Piece Types
+
+A standard 3x3 Rubik's Cube has **54 stickers** across **26 visible pieces**:
+
+| Piece Type | Count | Description |
+|------------|-------|-------------|
+| Center | 6 | 1 per face, defines face color, doesn't move relative to other centers |
+| Corner | 8 | 3 colors each, located at cube corners |
+| Edge | 12 | 2 colors each, between corners |
+
+**Note**: The "center" pieces (with 1 sticker each) are fixed relative to each other - they don't change position during cube rotations.
+
+---
+
+### Standard Color Scheme (WCA)
+
+| Face | Color | Position |
+|------|-------|----------|
+| U (Up) | White | Top |
+| D (Down) | Yellow | Bottom (opposite White) |
+| F (Front) | Green | Front |
+| B (Back) | Blue | Back (opposite Green) |
+| R (Right) | Red | Right side |
+| L (Left) | Orange | Left side (opposite Red) |
+
+**Opposite Face Pairs:**
+- White ↔ Yellow
+- Red ↔ Orange
+- Green ↔ Blue
+
+---
+
+### Face Positions (Bird's Eye View)
+
+When viewing the cube from above with White on top and Green in front:
+
+```
+           +---+---+---+
+           | W | W | W |  ← Up (White)
+           +---+---+---+
+    +------+------+------+------+------+
+    | O    | G    | R    | B    |      |  ← Left-Front-Right-Back
+    +------+------+------+------+------+
+           | Y | Y | Y |  ← Down (Yellow)
+           +---+---+---+
+```
+
+**3D View Reference:**
+- **U (White)**: Top face
+- **D (Yellow)**: Bottom face
+- **F (Green)**: Front face (toward viewer)
+- **B (Blue)**: Back face
+- **R (Red)**: Right face
+- **L (Orange)**: Left face
+
+---
+
+### Corner Pieces (8 total)
+
+Each corner has 3 colors. Standard solved state positions:
+
+| Position | Colors | Adjacent Faces |
+|----------|--------|----------------|
+| URF | White-Green-Right | U + F + R |
+| UFL | White-Green-Orange | U + F + L |
+| ULB | White-Blue-Orange | U + B + L |
+| UBR | White-Blue-Red | U + B + R |
+| DFR | Yellow-Green-Right | D + F + R |
+| DLF | Yellow-Green-Orange | D + F + L |
+| DBL | Yellow-Blue-Orange | D + B + L |
+| DRB | Yellow-Blue-Red | D + B + R |
+
+---
+
+### Edge Pieces (12 total)
+
+Each edge has 2 colors. Standard solved state positions:
+
+| Position | Colors | Adjacent Faces |
+|----------|--------|----------------|
+| UF | White-Green | U + F |
+| UL | White-Blue | U + L |
+| UB | White-Blue | U + B |
+| UR | White-Red | U + R |
+| FR | Green-Red | F + R |
+| FL | Green-Orange | F + L |
+| BL | Blue-Orange | B + L |
+| BR | Blue-Red | B + R |
+| DF | Yellow-Green | D + F |
+| DL | Yellow-Orange | D + L |
+| DB | Yellow-Blue | D + B |
+| DR | Yellow-Red | D + R |
+
+---
+
+### Cube State Representation
+
+In code, the cube state is represented as 6 arrays of 9 stickers each:
+
+```
+cubeState = {
+    U: ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white', 'white'],
+    D: ['yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow'],
+    F: ['green', 'green', 'green', 'green', 'green', 'green', 'green', 'green', 'green'],
+    B: ['blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue'],
+    R: ['red', 'red', 'red', 'red', 'red', 'red', 'red', 'red', 'red'],
+    L: ['orange', 'orange', 'orange', 'orange', 'orange', 'orange', 'orange', 'orange', 'orange']
+}
+```
+
+**Sticker Index Mapping (0-8):**
+```
+0 | 1 | 2
+---------
+3 | 4 | 5
+---------
+6 | 7 | 8
+```
+
+Index 4 is always the center piece of each face.
 
 ---
 

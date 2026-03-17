@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --bg: #0a0a0f;
@@ -211,6 +212,11 @@
         .timer-display {
             text-align: center;
             padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
         }
 
         .timer {
@@ -225,6 +231,17 @@
         .timer.running {
             color: var(--primary);
             text-shadow: 0 0 40px rgba(0, 212, 170, 0.5);
+        }
+
+        .timer.ready {
+            color: #eab308;
+            text-shadow: 0 0 40px rgba(234, 179, 8, 0.5);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .timer.inspection {
@@ -244,75 +261,152 @@
             margin-bottom: 8px;
         }
 
-        /* Virtual Cube */
-        .virtual-cube-container {
+        /* Table-based Cube Display (cstimer style) */
+        .touchcube {
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .touchcube td {
+            width: 33.33%;
+            height: 33.33%;
+            padding: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .touchcube td.white { background: #ffffff; }
+        .touchcube td.yellow { background: #ffd500; }
+        .touchcube td.red { background: #b71234; }
+        .touchcube td.orange { background: #ff5800; }
+        .touchcube td.green { background: #009b48; }
+        .touchcube td.blue { background: #0046ad; }
+
+        /* Cube face labels */
+        .face-label {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+
+        #cubeDisplay {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Flat view - unfolded cube net */
+        #cubeDisplay .cube-row {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+
+        #cubeDisplay .cube-cell {
+            width: 90px;
+            height: 90px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 20px;
+            justify-content: center;
         }
 
-        .virtual-cube {
-            width: 560px;
-            height: 560px;
-            perspective: 1600px;
-            cursor: grab;
+        #cubeDisplay .cube-cell:empty {
+            visibility: hidden;
+        }
+
+        #cubeDisplay .touchcube {
+            width: 90px;
+            height: 90px;
+            font-size: 14px;
+        }
+
+        /* 3D Real Cube View - Bird's Eye Perspective */
+        #cubeDisplay.cube-3d {
+            perspective: 800px;
+            width: 280px;
+            height: 280px;
+            margin: 20px auto;
+        }
+
+        /* 3D cube container - Bird's eye view */
+        .cube-3d-container {
+            display: block;
             position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto;
             transform-style: preserve-3d;
+            transform: rotateX(-55deg) rotateY(-15deg);
         }
 
-        .virtual-cube:active {
-            cursor: grabbing;
-        }
-
-        .cube-scene {
-            width: 432px;
-            height: 432px;
+        .cube-3d-container .touchcube {
             position: absolute;
-            left: 50%;
             top: 50%;
-            margin-left: -216px;
-            margin-top: -216px;
-            transform-style: preserve-3d;
-            transition: transform 0.3s ease;
-            transform: rotateX(-25deg) rotateY(-45deg);
+            left: 50%;
+            width: 180px;
+            height: 180px;
+            margin: -90px 0 0 -90px;
+            font-size: 14px;
+            backface-visibility: hidden;
+            transform-origin: center center;
         }
 
-        .cube-face {
-            position: absolute;
-            width: 144px;
-            height: 144px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 6px;
-            transform-style: preserve-3d;
+        .cube-3d-container .touchcube td {
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 8px;
+            background-clip: content-box;
         }
 
-        .sticker {
-            width: 100%;
-            height: 100%;
-            border-radius: 12px;
-            transition: background-color 0.2s;
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+        /* 3D cube faces - fixed physical positions */
+        /* U: White - top face */
+        .cube-3d-container .touchcube[data-face="U"] {
+            transform: rotateX(90deg) translateZ(90px);
         }
 
-        /* Face positions */
-        .face-U { transform: rotateX(90deg) translateZ(72px); }
-        .face-D { transform: rotateX(-90deg) translateZ(72px); }
-        .face-R { transform: rotateY(90deg) translateZ(72px); }
-        .face-L { transform: rotateY(-90deg) translateZ(72px); }
-        .face-F { transform: translateZ(72px); }
-        .face-B { transform: rotateY(180deg) translateZ(72px); }
+        /* D: Yellow - bottom face */
+        .cube-3d-container .touchcube[data-face="D"] {
+            transform: rotateX(-90deg) translateZ(90px);
+        }
 
-        /* Cube colors */
-        .sticker.white { background: #ffffff; }
-        .sticker.yellow { background: #ffd500; }
-        .sticker.red { background: #b71234; }
-        .sticker.orange { background: #ff5800; }
-        .sticker.blue { background: #0046ad; }
-        .sticker.green { background: #009b48; }
-        .sticker.black { background: #1a1a1a; }
+        /* F: Green - front face */
+        .cube-3d-container .touchcube[data-face="F"] {
+            transform: translateZ(90px);
+        }
+
+        /* B: Blue - back face */
+        .cube-3d-container .touchcube[data-face="B"] {
+            transform: rotateY(180deg) translateZ(90px);
+        }
+
+        /* R: Red - right face */
+        .cube-3d-container .touchcube[data-face="R"] {
+            transform: rotateY(-90deg) translateZ(90px);
+        }
+
+        /* L: Orange - left face */
+        .cube-3d-container .touchcube[data-face="L"] {
+            transform: rotateY(90deg) translateZ(90px);
+        }
+
+        /* Hide flat view when 3D is active */
+        #cubeViewBtn {
+            display: block;
+            margin: 10px auto;
+        }
+
+        #cubeContainer.hidden-flat #cubeFlatContainer {
+            display: none;
+        }
+
+        #cubeContainer.hidden-3d #cube3DContainer {
+            display: none;
+        }
+        .flat-sticker.orange { background: #ff5800; }
+        .flat-sticker.green { background: #009b48; }
+        .flat-sticker.blue { background: #0046ad; }
 
         .cube-controls {
             display: flex;
@@ -968,28 +1062,101 @@
                     <button class="btn btn-danger" onclick="applyPenalty('DNF')">DNF</button>
                     <button class="btn btn-secondary" onclick="applyPenalty('+2')">+2</button>
                 </div>
-                <div class="virtual-cube-container">
-                    <div class="virtual-cube" id="virtualCube">
-                        <div class="cube-scene" id="cubeScene">
-                            <!-- Front face (F) - Green -->
-                            <div class="cube-face face-F" data-face="F"></div>
-                            <!-- Back face (B) - Blue -->
-                            <div class="cube-face face-B" data-face="B"></div>
-                            <!-- Right face (R) - Red -->
-                            <div class="cube-face face-R" data-face="R"></div>
-                            <!-- Left face (L) - Orange -->
-                            <div class="cube-face face-L" data-face="L"></div>
-                            <!-- Up face (U) - White -->
-                            <div class="cube-face face-U" data-face="U"></div>
-                            <!-- Down face (D) - Yellow -->
-                            <div class="cube-face face-D" data-face="D"></div>
+
+                <!-- Cube Display Container - Both Views -->
+                <div id="cubeContainer" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                    <!-- Flat View (Scramble Target) -->
+                    <div id="cubeFlatContainer" style="text-align: center;">
+                        <div class="face-label" style="margin-bottom: 8px; color: var(--text-secondary);">Scramble Target</div>
+                        <div id="cubeDisplay">
+                            <!-- Row 1: Empty, U, Empty, Empty -->
+                            <div class="cube-row">
+                                <div class="cube-cell"></div>
+                                <div class="cube-cell">
+                                    <div class="face-label">U</div>
+                                    <table class="touchcube" data-face="U">
+                                        <tbody>
+                                            <tr><td id="U0"></td><td id="U1"></td><td id="U2"></td></tr>
+                                            <tr><td id="U3"></td><td id="U4"></td><td id="U5"></td></tr>
+                                            <tr><td id="U6"></td><td id="U7"></td><td id="U8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell"></div>
+                                <div class="cube-cell"></div>
+                            </div>
+                            <!-- Row 2: L, F, R, B -->
+                            <div class="cube-row">
+                                <div class="cube-cell">
+                                    <div class="face-label">L</div>
+                                    <table class="touchcube" data-face="L">
+                                        <tbody>
+                                            <tr><td id="L0"></td><td id="L1"></td><td id="L2"></td></tr>
+                                            <tr><td id="L3"></td><td id="L4"></td><td id="L5"></td></tr>
+                                            <tr><td id="L6"></td><td id="L7"></td><td id="L8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell">
+                                    <div class="face-label">F</div>
+                                    <table class="touchcube" data-face="F">
+                                        <tbody>
+                                            <tr><td id="F0"></td><td id="F1"></td><td id="F2"></td></tr>
+                                            <tr><td id="F3"></td><td id="F4"></td><td id="F5"></td></tr>
+                                            <tr><td id="F6"></td><td id="F7"></td><td id="F8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell">
+                                    <div class="face-label">R</div>
+                                    <table class="touchcube" data-face="R">
+                                        <tbody>
+                                            <tr><td id="R0"></td><td id="R1"></td><td id="R2"></td></tr>
+                                            <tr><td id="R3"></td><td id="R4"></td><td id="R5"></td></tr>
+                                            <tr><td id="R6"></td><td id="R7"></td><td id="R8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell">
+                                    <div class="face-label">B</div>
+                                    <table class="touchcube" data-face="B">
+                                        <tbody>
+                                            <tr><td id="B0"></td><td id="B1"></td><td id="B2"></td></tr>
+                                            <tr><td id="B3"></td><td id="B4"></td><td id="B5"></td></tr>
+                                            <tr><td id="B6"></td><td id="B7"></td><td id="B8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- Row 3: Empty, D, Empty, Empty -->
+                            <div class="cube-row">
+                                <div class="cube-cell"></div>
+                                <div class="cube-cell">
+                                    <div class="face-label">D</div>
+                                    <table class="touchcube" data-face="D">
+                                        <tbody>
+                                            <tr><td id="D0"></td><td id="D1"></td><td id="D2"></td></tr>
+                                            <tr><td id="D3"></td><td id="D4"></td><td id="D5"></td></tr>
+                                            <tr><td id="D6"></td><td id="D7"></td><td id="D8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell"></div>
+                                <div class="cube-cell"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="cube-controls">
-                        <button class="btn btn-secondary" onclick="resetCube()">Reset</button>
-                        <button class="btn btn-secondary" onclick="rotateCubeView(-90, 0)">Left</button>
-                        <button class="btn btn-secondary" onclick="rotateCubeView(90, 0)">Right</button>
+
+                    <!-- 3D View (Bluetooth Status) - Three.js -->
+                    <div id="cube3DContainer" style="text-align: center;">
+                        <div class="face-label" style="margin-bottom: 8px; color: var(--text-secondary);">Bluetooth Status</div>
+                        <canvas id="threeJsCanvas" width="400" height="400" style="border-radius: 8px;"></canvas>
                     </div>
+                </div>
+
+                <!-- Cube View Toggle -->
+                <div style="display: flex; justify-content: center; gap: 8px; margin-top: 8px;">
+                    <button class="btn btn-secondary" id="cubeViewBtn" onclick="toggleCubeView()">Hide Flat View</button>
                 </div>
 
                 <div class="scramble-display">
@@ -1226,6 +1393,7 @@
                 good: 'Good',
                 average: 'Average',
                 slow: 'Slow',
+                ready: 'Ready - Make a move!',
                 dnf: 'DNF',
                 plus2: '+2',
                 history: 'History',
@@ -1296,6 +1464,7 @@
                 good: '优秀',
                 average: '一般',
                 slow: '较慢',
+                ready: '准备 - 动手！',
                 dnf: 'DNF',
                 plus2: '+2',
                 history: '历史',
@@ -1366,6 +1535,7 @@
                 good: '良い',
                 average: '普通',
                 slow: '遅い',
+                ready: '準備 -  menempelo!',
                 dnf: 'DNF',
                 plus2: '+2',
                 history: '履歴',
@@ -1451,28 +1621,196 @@
                 F: Array(9).fill('green'),
                 B: Array(9).fill('blue')
             },
+            btCubeState: null, // Bluetooth cube state (starts solved)
             cubeRotation: { x: -25, y: -45 }
         };
 
         // ============ VIRTUAL CUBE ============
-        function initCube() {
-            const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
-            const colors = { U: 'white', D: 'yellow', R: 'red', L: 'orange', F: 'green', B: 'blue' };
+        // Three.js variables
+        let threeScene, threeCamera, threeRenderer, threeCube;
+        let cubeGroup;
 
-            faces.forEach(face => {
-                const faceEl = document.querySelector(`.face-${face}`);
-                if (faceEl) {
-                    faceEl.innerHTML = '';
-                    for (let i = 0; i < 9; i++) {
-                        const sticker = document.createElement('div');
-                        sticker.className = `sticker ${colors[face]}`;
-                        sticker.dataset.index = i;
-                        faceEl.appendChild(sticker);
+        function initThreeJs() {
+            const canvas = document.getElementById('threeJsCanvas');
+            if (!canvas) return;
+
+            // Scene
+            threeScene = new THREE.Scene();
+            threeScene.background = new THREE.Color(0x14141f);
+
+            // Camera
+            threeCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+            // Camera looking at white-green edge center - see both equally
+            threeCamera.position.set(0, 0, 6);
+            threeCamera.lookAt(0, 0, 0);
+
+            // Renderer
+            threeRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            threeRenderer.setSize(400, 400);
+            threeRenderer.setPixelRatio(window.devicePixelRatio);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            threeScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            threeScene.add(directionalLight);
+
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight2.position.set(-5, -5, -5);
+            threeScene.add(directionalLight2);
+
+            // Create cube group
+            cubeGroup = new THREE.Group();
+            threeScene.add(cubeGroup);
+
+            // Build the cube
+            buildThreeJsCube();
+
+            // Start render loop
+            animateThreeJs();
+        }
+
+        function buildThreeJsCube() {
+            // Clear existing
+            while(cubeGroup.children.length > 0) {
+                cubeGroup.remove(cubeGroup.children[0]);
+            }
+
+            // Color mapping
+            const colors = {
+                white: 0xffffff,
+                yellow: 0xffd500,
+                red: 0xb71234,
+                orange: 0xff5800,
+                green: 0x009b48,
+                blue: 0x0046ad,
+                black: 0x111111
+            };
+
+            // Kimi spec: GAP=0.05, ISO view: 25,-30
+            const cubieSize = 0.95;
+            const gap = 1.12; // gap at corners to see other faces
+
+            // Create 27 cubies (3x3x3)
+            for (let x = -1; x <= 1; x++) {
+                for (let y = -1; y <= 1; y++) {
+                    for (let z = -1; z <= 1; z++) {
+                        const cubie = createCubie(x, y, z, cubieSize, colors);
+                        cubie.position.set(x * gap, y * gap, z * gap);
+                        cubeGroup.add(cubie);
                     }
                 }
+            }
+
+            // Tilt to show corner between top (white) and front (green)
+            // Position cube so white-green edge is at center
+            // White on top (y=1), Green in front (z=1), edge at x=0
+            cubeGroup.position.y = 0;
+            cubeGroup.rotation.x = Math.PI / 4; // 45 degrees X axis
+            cubeGroup.rotation.y = 0;
+            cubeGroup.rotation.z = 0;
+        }
+
+        function createCubie(x, y, z, size, colors) {
+            const group = new THREE.Group();
+
+            // Black core - more transparent to see through
+            const geometry = new THREE.BoxGeometry(size, size, size);
+            const material = new THREE.MeshLambertMaterial({
+                color: colors.black,
+                transparent: true,
+                opacity: 0.15
             });
+            const cubie = new THREE.Mesh(geometry, material);
+            group.add(cubie);
+
+            // Sticker settings
+            const stickerSize = size * 0.85;
+            const stickerOffset = size / 2 + 0.01;
+
+            // Right face (x = 1) - Red - opaque
+            if (x === 1) {
+                const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.red });
+                const sticker = new THREE.Mesh(stickerGeo, stickerMat);
+                sticker.position.set(stickerOffset, 0, 0);
+                sticker.rotation.y = Math.PI / 2;
+                group.add(sticker);
+            }
+
+            // Left face (x = -1) - Orange - opaque
+            if (x === -1) {
+                const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.orange });
+                const sticker = new THREE.Mesh(stickerGeo, stickerMat);
+                sticker.position.set(-stickerOffset, 0, 0);
+                sticker.rotation.y = -Math.PI / 2;
+                group.add(sticker);
+            }
+
+            // Up face (y = 1) - White - opaque
+            if (y === 1) {
+                const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.white });
+                const sticker = new THREE.Mesh(stickerGeo, stickerMat);
+                sticker.position.set(0, stickerOffset, 0);
+                sticker.rotation.x = -Math.PI / 2;
+                group.add(sticker);
+            }
+
+            // Down face (y = -1) - Yellow - opaque
+            if (y === -1) {
+                const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.yellow });
+                const sticker = new THREE.Mesh(stickerGeo, stickerMat);
+                sticker.position.set(0, -stickerOffset, 0);
+                sticker.rotation.x = Math.PI / 2;
+                group.add(sticker);
+            }
+
+            // Front face (z = 1) - Green - opaque
+            if (z === 1) {
+                const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.green });
+                const sticker = new THREE.Mesh(stickerGeo, stickerMat);
+                sticker.position.set(0, 0, stickerOffset);
+                group.add(sticker);
+            }
+
+            // Back face (z = -1) - Blue - opaque
+            if (z === -1) {
+                const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.blue });
+                const sticker = new THREE.Mesh(stickerGeo, stickerMat);
+                sticker.position.set(0, 0, -stickerOffset);
+                sticker.rotation.y = Math.PI;
+                group.add(sticker);
+            }
+
+            return group;
+        }
+
+        function animateThreeJs() {
+            requestAnimationFrame(animateThreeJs);
+            if (threeRenderer && threeScene && threeCamera) {
+                threeRenderer.render(threeScene, threeCamera);
+            }
+        }
+
+        function initCube() {
+            // Initialize Bluetooth cube state to solved
+            state.btCubeState = {
+                U: Array(9).fill('white'),
+                D: Array(9).fill('yellow'),
+                R: Array(9).fill('red'),
+                L: Array(9).fill('orange'),
+                F: Array(9).fill('green'),
+                B: Array(9).fill('blue')
+            };
             updateCubeView();
-            setupCubeInteraction();
+            initThreeJs();
         }
 
         function setupCubeInteraction() {
@@ -1532,21 +1870,8 @@
             });
         }
 
-        function updateCubeView() {
-            const scene = document.getElementById('cubeScene');
-            if (scene) {
-                scene.style.transform = `rotateX(${state.cubeRotation.x}deg) rotateY(${state.cubeRotation.y}deg)`;
-            }
-        }
-
-        function rotateCubeView(deltaX, deltaY) {
-            state.cubeRotation.x = Math.max(-90, Math.min(90, state.cubeRotation.x + deltaY));
-            state.cubeRotation.y += deltaX;
-            updateCubeView();
-        }
-
         function resetCube() {
-            const colors = { U: 'white', D: 'yellow', R: 'red', L: 'orange', F: 'green', B: 'blue' };
+            // Reset flat view (scramble target) - solved state
             state.cubeState = {
                 U: Array(9).fill('white'),
                 D: Array(9).fill('yellow'),
@@ -1555,11 +1880,35 @@
                 F: Array(9).fill('green'),
                 B: Array(9).fill('blue')
             };
-            renderCube();
+            // Reset 3D view (Bluetooth status) - always starts solved
+            state.btCubeState = JSON.parse(JSON.stringify(state.cubeState));
+            updateCubeView();
+        }
+
+        function resetBtCube() {
+            // Reset only the Bluetooth 3D cube to solved state
+            state.btCubeState = {
+                U: Array(9).fill('white'),
+                D: Array(9).fill('yellow'),
+                R: Array(9).fill('red'),
+                L: Array(9).fill('orange'),
+                F: Array(9).fill('green'),
+                B: Array(9).fill('blue')
+            };
+            updateCubeView();
         }
 
         function applyScrambleToCube(scramble) {
-            resetCube();
+            // Reset flat view to solved state first
+            state.cubeState = {
+                U: Array(9).fill('white'),
+                D: Array(9).fill('yellow'),
+                R: Array(9).fill('red'),
+                L: Array(9).fill('orange'),
+                F: Array(9).fill('green'),
+                B: Array(9).fill('blue')
+            };
+            // Apply scramble to flat view only (scramble target)
             if (!scramble) return;
 
             const moves = scramble.split(' ');
@@ -1568,155 +1917,437 @@
                 const modifier = move.slice(1);
                 applyMove(face, modifier);
             });
-            renderCube();
+            if (!validateCube()) {
+                console.error('Cube state invalid after scramble:', state.cubeState);
+            }
+            updateCubeView();
         }
 
         function applyMove(face, modifier) {
             const s = state.cubeState;
-            let temp;
 
+            // Helper to reverse an array
+            const reverse = arr => [arr[2], arr[1], arr[0]];
+            const reverse3 = arr => [arr[2], arr[1], arr[0]];
+
+            // All moves from the perspective of looking at the face
             switch(face) {
                 case 'R':
-                    temp = [s.F[2], s.F[5], s.F[8]];
+                    // R face: right columns of U, F, D, B
+                    // R clockwise: U right column -> F right column -> D right column -> B left column (reversed)
                     if (modifier === "'") {
-                        [s.F[2], s.F[5], s.F[8]] = [s.U[2], s.U[5], s.U[8]];
-                        [s.U[2], s.U[5], s.U[8]] = [s.B[6], s.B[3], s.B[0]];
-                        [s.B[6], s.B[3], s.B[0]] = [s.D[2], s.D[5], s.D[8]];
-                        [s.D[2], s.D[5], s.D[8]] = temp;
-                    } else if (modifier === '2') {
-                        [s.F[2], s.F[5], s.F[8], s.U[2], s.U[5], s.U[8], s.B[6], s.B[3], s.B[0], s.D[2], s.D[5], s.D[8]] =
-                        [s.U[2], s.U[5], s.U[8], s.B[6], s.B[3], s.B[0], s.D[2], s.D[5], s.D[8], s.F[2], s.F[5], s.F[8]];
-                    } else {
+                        // R' - counter-clockwise
+                        const temp = [s.U[2], s.U[5], s.U[8]];
+                        [s.U[2], s.U[5], s.U[8]] = [s.F[2], s.F[5], s.F[8]];
                         [s.F[2], s.F[5], s.F[8]] = [s.D[2], s.D[5], s.D[8]];
-                        [s.D[2], s.D[5], s.D[8]] = [s.B[6], s.B[3], s.B[0]];
-                        [s.B[6], s.B[3], s.B[0]] = [s.U[2], s.U[5], s.U[8]];
-                        [s.U[2], s.U[5], s.U[8]] = temp;
+                        [s.D[2], s.D[5], s.D[8]] = reverse([s.B[6], s.B[3], s.B[0]]);
+                        [s.B[6], s.B[3], s.B[0]] = reverse(temp);
+                    } else if (modifier === '2') {
+                        // R2 - 180 degrees
+                        const temp = [s.U[2], s.U[5], s.U[8]];
+                        [s.U[2], s.U[5], s.U[8]] = reverse([s.B[6], s.B[3], s.B[0]]);
+                        [s.B[6], s.B[3], s.B[0]] = reverse(temp);
+                        const tempF = [s.F[2], s.F[5], s.F[8]];
+                        [s.F[2], s.F[5], s.F[8]] = [s.D[2], s.D[5], s.D[8]];
+                        [s.D[2], s.D[5], s.D[8]] = tempF;
+                    } else {
+                        // R - clockwise
+                        const temp = [s.U[2], s.U[5], s.U[8]];
+                        [s.U[2], s.U[5], s.U[8]] = reverse([s.B[6], s.B[3], s.B[0]]);
+                        [s.B[6], s.B[3], s.B[0]] = reverse([s.D[2], s.D[5], s.D[8]]);
+                        [s.D[2], s.D[5], s.D[8]] = [s.F[2], s.F[5], s.F[8]];
+                        [s.F[2], s.F[5], s.F[8]] = temp;
                     }
-                    rotateFaceClockwise(s.R, modifier);
+                    rotateFace(s.R, modifier);
                     break;
                 case 'L':
-                    temp = [s.F[0], s.F[3], s.F[6]];
+                    // L clockwise: U left column -> B right column (reversed) -> D left column -> F left column
                     if (modifier === "'") {
-                        [s.F[0], s.F[3], s.F[6]] = [s.U[0], s.U[3], s.U[6]];
-                        [s.U[0], s.U[3], s.U[6]] = [s.B[8], s.B[5], s.B[2]];
-                        [s.B[8], s.B[5], s.B[2]] = [s.D[0], s.D[3], s.D[6]];
-                        [s.D[0], s.D[3], s.D[6]] = temp;
-                    } else if (modifier === '2') {
-                        [s.F[0], s.F[3], s.F[6], s.U[0], s.U[3], s.U[6], s.B[8], s.B[5], s.B[2], s.D[0], s.D[3], s.D[6]] =
-                        [s.U[0], s.U[3], s.U[6], s.B[8], s.B[5], s.B[2], s.D[0], s.D[3], s.D[6], s.F[0], s.F[3], s.F[6]];
-                    } else {
+                        const temp = [s.U[0], s.U[3], s.U[6]];
+                        [s.U[0], s.U[3], s.U[6]] = [s.F[0], s.F[3], s.F[6]];
                         [s.F[0], s.F[3], s.F[6]] = [s.D[0], s.D[3], s.D[6]];
-                        [s.D[0], s.D[3], s.D[6]] = [s.B[8], s.B[5], s.B[2]];
-                        [s.B[8], s.B[5], s.B[2]] = [s.U[0], s.U[3], s.U[6]];
-                        [s.U[0], s.U[3], s.U[6]] = temp;
+                        [s.D[0], s.D[3], s.D[6]] = reverse([s.B[8], s.B[5], s.B[2]]);
+                        [s.B[8], s.B[5], s.B[2]] = reverse(temp);
+                    } else if (modifier === '2') {
+                        const temp = [s.U[0], s.U[3], s.U[6]];
+                        [s.U[0], s.U[3], s.U[6]] = reverse([s.B[8], s.B[5], s.B[2]]);
+                        [s.B[8], s.B[5], s.B[2]] = reverse(temp);
+                        const tempF = [s.F[0], s.F[3], s.F[6]];
+                        [s.F[0], s.F[3], s.F[6]] = [s.D[0], s.D[3], s.D[6]];
+                        [s.D[0], s.D[3], s.D[6]] = tempF;
+                    } else {
+                        const temp = [s.U[0], s.U[3], s.U[6]];
+                        [s.U[0], s.U[3], s.U[6]] = reverse([s.B[8], s.B[5], s.B[2]]);
+                        [s.B[8], s.B[5], s.B[2]] = reverse([s.D[0], s.D[3], s.D[6]]);
+                        [s.D[0], s.D[3], s.D[6]] = [s.F[0], s.F[3], s.F[6]];
+                        [s.F[0], s.F[3], s.F[6]] = temp;
                     }
-                    rotateFaceClockwise(s.L, modifier);
+                    rotateFace(s.L, modifier);
                     break;
                 case 'U':
-                    temp = [s.F[0], s.F[1], s.F[2]];
+                    // U clockwise: F top row -> R top row -> B top row -> L top row
                     if (modifier === "'") {
+                        const temp = [s.F[0], s.F[1], s.F[2]];
                         [s.F[0], s.F[1], s.F[2]] = [s.L[0], s.L[1], s.L[2]];
                         [s.L[0], s.L[1], s.L[2]] = [s.B[0], s.B[1], s.B[2]];
                         [s.B[0], s.B[1], s.B[2]] = [s.R[0], s.R[1], s.R[2]];
                         [s.R[0], s.R[1], s.R[2]] = temp;
                     } else if (modifier === '2') {
-                        [s.F[0], s.F[1], s.F[2], s.L[0], s.L[1], s.L[2], s.B[0], s.B[1], s.B[2], s.R[0], s.R[1], s.R[2]] =
-                        [s.B[0], s.B[1], s.B[2], s.R[0], s.R[1], s.R[2], s.F[0], s.F[1], s.F[2], s.L[0], s.L[1], s.L[2]];
+                        const temp = [s.F[0], s.F[1], s.F[2]];
+                        [s.F[0], s.F[1], s.F[2]] = [s.B[0], s.B[1], s.B[2]];
+                        [s.B[0], s.B[1], s.B[2]] = temp;
+                        const tempR = [s.R[0], s.R[1], s.R[2]];
+                        [s.R[0], s.R[1], s.R[2]] = [s.L[0], s.L[1], s.L[2]];
+                        [s.L[0], s.L[1], s.L[2]] = tempR;
                     } else {
+                        const temp = [s.F[0], s.F[1], s.F[2]];
                         [s.F[0], s.F[1], s.F[2]] = [s.R[0], s.R[1], s.R[2]];
                         [s.R[0], s.R[1], s.R[2]] = [s.B[0], s.B[1], s.B[2]];
                         [s.B[0], s.B[1], s.B[2]] = [s.L[0], s.L[1], s.L[2]];
                         [s.L[0], s.L[1], s.L[2]] = temp;
                     }
-                    rotateFaceClockwise(s.U, modifier);
+                    rotateFace(s.U, modifier);
                     break;
                 case 'D':
-                    temp = [s.F[6], s.F[7], s.F[8]];
+                    // D clockwise: F bottom row -> L bottom row -> B bottom row -> R bottom row
                     if (modifier === "'") {
+                        const temp = [s.F[6], s.F[7], s.F[8]];
                         [s.F[6], s.F[7], s.F[8]] = [s.R[6], s.R[7], s.R[8]];
                         [s.R[6], s.R[7], s.R[8]] = [s.B[6], s.B[7], s.B[8]];
                         [s.B[6], s.B[7], s.B[8]] = [s.L[6], s.L[7], s.L[8]];
                         [s.L[6], s.L[7], s.L[8]] = temp;
                     } else if (modifier === '2') {
-                        [s.F[6], s.F[7], s.F[8], s.R[6], s.R[7], s.R[8], s.B[6], s.B[7], s.B[8], s.L[6], s.L[7], s.L[8]] =
-                        [s.B[6], s.B[7], s.B[8], s.L[6], s.L[7], s.L[8], s.F[6], s.F[7], s.F[8], s.R[6], s.R[7], s.R[8]];
+                        const temp = [s.F[6], s.F[7], s.F[8]];
+                        [s.F[6], s.F[7], s.F[8]] = [s.B[6], s.B[7], s.B[8]];
+                        [s.B[6], s.B[7], s.B[8]] = temp;
+                        const tempR = [s.R[6], s.R[7], s.R[8]];
+                        [s.R[6], s.R[7], s.R[8]] = [s.L[6], s.L[7], s.L[8]];
+                        [s.L[6], s.L[7], s.L[8]] = tempR;
                     } else {
+                        const temp = [s.F[6], s.F[7], s.F[8]];
                         [s.F[6], s.F[7], s.F[8]] = [s.L[6], s.L[7], s.L[8]];
                         [s.L[6], s.L[7], s.L[8]] = [s.B[6], s.B[7], s.B[8]];
                         [s.B[6], s.B[7], s.B[8]] = [s.R[6], s.R[7], s.R[8]];
                         [s.R[6], s.R[7], s.R[8]] = temp;
                     }
-                    rotateFaceClockwise(s.D, modifier);
+                    rotateFace(s.D, modifier);
                     break;
                 case 'F':
-                    temp = [s.U[6], s.U[7], s.U[8]];
+                    // F clockwise: U bottom row -> R left column (reversed) -> D top row -> L right column (reversed)
                     if (modifier === "'") {
-                        [s.U[6], s.U[7], s.U[8]] = [s.L[8], s.L[5], s.L[2]];
-                        [s.L[2], s.L[5], s.L[8]] = [s.D[0], s.D[1], s.D[2]];
-                        [s.D[0], s.D[1], s.D[2]] = [s.R[6], s.R[3], s.R[0]];
-                        [s.R[0], s.R[3], s.R[6]] = temp;
-                    } else if (modifier === '2') {
-                        [s.U[6], s.U[7], s.U[8], s.L[2], s.L[5], s.L[8], s.D[0], s.D[1], s.D[2], s.R[0], s.R[3], s.R[6]] =
-                        [s.D[0], s.D[1], s.D[2], s.R[0], s.R[3], s.R[6], s.U[6], s.U[7], s.U[8], s.L[2], s.L[5], s.L[8]];
-                    } else {
-                        [s.U[6], s.U[7], s.U[8]] = [s.R[0], s.R[3], s.R[6]];
+                        const temp = [s.U[6], s.U[7], s.U[8]];
+                        [s.U[6], s.U[7], s.U[8]] = reverse([s.R[0], s.R[3], s.R[6]]);
                         [s.R[0], s.R[3], s.R[6]] = [s.D[2], s.D[1], s.D[0]];
-                        [s.D[0], s.D[1], s.D[2]] = [s.L[8], s.L[5], s.L[2]];
-                        [s.L[2], s.L[5], s.L[8]] = [temp[2], temp[1], temp[0]];
+                        [s.D[0], s.D[1], s.D[2]] = reverse([s.L[8], s.L[5], s.L[2]]);
+                        [s.L[2], s.L[5], s.L[8]] = reverse(temp);
+                    } else if (modifier === '2') {
+                        const temp = [s.U[6], s.U[7], s.U[8]];
+                        [s.U[6], s.U[7], s.U[8]] = [s.D[0], s.D[1], s.D[2]];
+                        [s.D[0], s.D[1], s.D[2]] = temp;
+                        const tempR = [s.R[0], s.R[3], s.R[6]];
+                        [s.R[0], s.R[3], s.R[6]] = reverse([s.L[8], s.L[5], s.L[2]]);
+                        [s.L[2], s.L[5], s.L[8]] = reverse(tempR);
+                    } else {
+                        const temp = [s.U[6], s.U[7], s.U[8]];
+                        [s.U[6], s.U[7], s.U[8]] = reverse([s.L[2], s.L[5], s.L[8]]);
+                        [s.L[2], s.L[5], s.L[8]] = reverse([s.D[2], s.D[1], s.D[0]]);
+                        [s.D[0], s.D[1], s.D[2]] = [s.R[0], s.R[3], s.R[6]];
+                        [s.R[0], s.R[3], s.R[6]] = temp;
                     }
-                    rotateFaceClockwise(s.F, modifier);
+                    rotateFace(s.F, modifier);
                     break;
                 case 'B':
-                    temp = [s.U[0], s.U[1], s.U[2]];
+                    // B clockwise: U top row -> L left column (reversed) -> D bottom row -> R right column (reversed)
                     if (modifier === "'") {
+                        const temp = [s.U[0], s.U[1], s.U[2]];
                         [s.U[0], s.U[1], s.U[2]] = [s.R[2], s.R[5], s.R[8]];
-                        [s.R[2], s.R[5], s.R[8]] = [s.D[8], s.D[7], s.D[6]];
+                        [s.R[2], s.R[5], s.R[8]] = reverse([s.D[8], s.D[7], s.D[6]]);
                         [s.D[6], s.D[7], s.D[8]] = [s.L[0], s.L[3], s.L[6]];
-                        [s.L[0], s.L[3], s.L[6]] = temp;
+                        [s.L[0], s.L[3], s.L[6]] = reverse(temp);
                     } else if (modifier === '2') {
-                        [s.U[0], s.U[1], s.U[2], s.R[2], s.R[5], s.R[8], s.D[6], s.D[7], s.D[8], s.L[0], s.L[3], s.L[6]] =
-                        [s.D[6], s.D[7], s.D[8], s.L[0], s.L[3], s.L[6], s.U[0], s.U[1], s.U[2], s.R[2], s.R[5], s.R[8]];
+                        const temp = [s.U[0], s.U[1], s.U[2]];
+                        [s.U[0], s.U[1], s.U[2]] = [s.D[6], s.D[7], s.D[8]];
+                        [s.D[6], s.D[7], s.D[8]] = temp;
+                        const tempR = [s.R[2], s.R[5], s.R[8]];
+                        [s.R[2], s.R[5], s.R[8]] = reverse([s.L[6], s.L[3], s.L[0]]);
+                        [s.L[0], s.L[3], s.L[6]] = reverse(tempR);
                     } else {
-                        [s.U[0], s.U[1], s.U[2]] = [s.L[6], s.L[3], s.L[0]];
+                        const temp = [s.U[0], s.U[1], s.U[2]];
+                        [s.U[0], s.U[1], s.U[2]] = reverse([s.L[0], s.L[3], s.L[6]]);
                         [s.L[0], s.L[3], s.L[6]] = [s.D[8], s.D[7], s.D[6]];
-                        [s.D[6], s.D[7], s.D[8]] = [s.R[8], s.R[5], s.R[2]];
+                        [s.D[6], s.D[7], s.D[8]] = reverse([s.R[8], s.R[5], s.R[2]]);
                         [s.R[2], s.R[5], s.R[8]] = temp;
                     }
-                    rotateFaceClockwise(s.B, modifier);
+                    rotateFace(s.B, modifier);
                     break;
             }
         }
 
-        function rotateFaceClockwise(face, modifier) {
+        function rotateFace(face, modifier) {
             if (modifier === "'") {
+                // Counter-clockwise: rotate 270 degrees or 90 degrees CCW
                 const temp = [face[0], face[1], face[2], face[3], face[4], face[5], face[6], face[7], face[8]];
                 face[0] = temp[6]; face[1] = temp[3]; face[2] = temp[0];
                 face[3] = temp[7]; face[4] = temp[4]; face[5] = temp[1];
                 face[6] = temp[8]; face[7] = temp[5]; face[8] = temp[2];
             } else if (modifier === '2') {
-                const temp = [...face];
-                face[0] = temp[4]; face[1] = temp[7]; face[2] = temp[6];
-                face[3] = temp[1]; face[4] = temp[0]; face[5] = temp[3];
-                face[6] = temp[2]; face[7] = temp[5]; face[8] = temp[8];
-            } else if (modifier === '' || !modifier) {
+                // 180 degrees
                 const temp = [face[0], face[1], face[2], face[3], face[4], face[5], face[6], face[7], face[8]];
-                face[0] = temp[2]; face[1] = temp[5]; face[2] = temp[8];
-                face[3] = temp[1]; face[4] = temp[4]; face[5] = temp[7];
-                face[6] = temp[0]; face[7] = temp[3]; face[8] = temp[6];
+                face[0] = temp[8]; face[1] = temp[7]; face[2] = temp[6];
+                face[3] = temp[5]; face[4] = temp[4]; face[5] = temp[3];
+                face[6] = temp[2]; face[7] = temp[1]; face[8] = temp[0];
+            } else {
+                // Clockwise
+                const temp = [face[0], face[1], face[2], face[3], face[4], face[5], face[6], face[7], face[8]];
+                face[0] = temp[6]; face[1] = temp[3]; face[2] = temp[0];
+                face[3] = temp[7]; face[4] = temp[4]; face[5] = temp[1];
+                face[6] = temp[8]; face[7] = temp[5]; face[8] = temp[2];
             }
         }
 
-        function renderCube() {
-            const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
-            faces.forEach(face => {
-                const faceEl = document.querySelector(`.face-${face}`);
-                if (faceEl) {
-                    const stickers = faceEl.querySelectorAll('.sticker');
-                    stickers.forEach((sticker, i) => {
-                        sticker.className = `sticker ${state.cubeState[face][i]}`;
-                    });
+        // Cube view mode (flat or 3d)
+        let cubeViewMode = 'both';
+
+        function validateCube() {
+            const s = state.cubeState;
+            const colors = ['white', 'yellow', 'green', 'blue', 'red', 'orange'];
+            const counts = {};
+            colors.forEach(c => counts[c] = 0);
+
+            // Count all stickers
+            Object.values(s).forEach(face => {
+                face.forEach(color => {
+                    if (counts[color] !== undefined) {
+                        counts[color]++;
+                    }
+                });
+            });
+
+            // Check if each color has exactly 9 stickers
+            let valid = true;
+            colors.forEach(c => {
+                if (counts[c] !== 9) {
+                    console.error(`Invalid: ${c} has ${counts[c]} stickers (expected 9)`);
+                    valid = false;
                 }
             });
+            return valid;
+        }
+
+        function toggleCubeView() {
+            const cubeContainer = document.getElementById('cubeContainer');
+            const btn = document.getElementById('cubeViewBtn');
+
+            if (cubeViewMode === 'both') {
+                cubeViewMode = 'flat';
+                cubeContainer.classList.add('hidden-3d');
+                btn.textContent = 'Show 3D View';
+            } else if (cubeViewMode === 'flat') {
+                cubeViewMode = '3d';
+                cubeContainer.classList.remove('hidden-3d');
+                cubeContainer.classList.add('hidden-flat');
+                btn.textContent = 'Show Both';
+            } else {
+                cubeViewMode = 'both';
+                cubeContainer.classList.remove('hidden-flat', 'hidden-3d');
+                btn.textContent = 'Hide Flat View';
+            }
+            // Save preference
+            localStorage.setItem('cubeViewMode', cubeViewMode);
+        }
+
+        function initCubeView() {
+            const savedMode = localStorage.getItem('cubeViewMode');
+            if (savedMode) {
+                cubeViewMode = savedMode;
+            }
+            // Apply saved mode
+            const cubeContainer = document.getElementById('cubeContainer');
+            const btn = document.getElementById('cubeViewBtn');
+            if (cubeViewMode === 'flat') {
+                cubeContainer.classList.add('hidden-3d');
+                btn.textContent = 'Show 3D View';
+            } else if (cubeViewMode === '3d') {
+                cubeContainer.classList.add('hidden-flat');
+                btn.textContent = 'Show Both';
+            } else {
+                btn.textContent = 'Hide Flat View';
+            }
+        }
+
+        function updateCubeView() {
+            // Update all 6 faces of both views
+            const faces = ['U', 'L', 'F', 'R', 'B', 'D'];
+            faces.forEach(face => {
+                for (let i = 0; i < 9; i++) {
+                    // Update flat view (scramble target) from cubeState
+                    const cell = document.getElementById(face + i);
+                    if (cell) {
+                        cell.className = state.cubeState[face][i];
+                    }
+                    // Update 3D view (Bluetooth status) from btCubeState
+                    const cell3d = document.getElementById(face + '3d' + i);
+                    if (cell3d && state.btCubeState) {
+                        cell3d.className = state.btCubeState[face][i];
+                    }
+                }
+            });
+        }
+
+        function updateBtCubeView(move) {
+            // Apply a single move to the Bluetooth 3D cube state
+            if (!state.btCubeState) {
+                resetBtCube();
+            }
+            applyBtMove(move.face, move.modifier);
+            updateCubeView();
+        }
+
+        function applyBtMove(face, modifier) {
+            // Apply move to btCubeState (same logic as applyMove but for Bluetooth state)
+            const s = state.btCubeState;
+            const reverse = arr => [arr[2], arr[1], arr[0]];
+
+            switch(face) {
+                case 'R':
+                    if (modifier === "'") {
+                        const temp = [s.U[2], s.U[5], s.U[8]];
+                        [s.U[2], s.U[5], s.U[8]] = [s.F[2], s.F[5], s.F[8]];
+                        [s.F[2], s.F[5], s.F[8]] = [s.D[2], s.D[5], s.D[8]];
+                        [s.D[2], s.D[5], s.D[8]] = reverse([s.B[6], s.B[3], s.B[0]]);
+                        [s.B[6], s.B[3], s.B[0]] = reverse(temp);
+                    } else if (modifier === '2') {
+                        const temp = [s.U[2], s.U[5], s.U[8]];
+                        [s.U[2], s.U[5], s.U[8]] = reverse([s.B[6], s.B[3], s.B[0]]);
+                        [s.B[6], s.B[3], s.B[0]] = reverse(temp);
+                        const tempF = [s.F[2], s.F[5], s.F[8]];
+                        [s.F[2], s.F[5], s.F[8]] = [s.D[2], s.D[5], s.D[8]];
+                        [s.D[2], s.D[5], s.D[8]] = tempF;
+                    } else {
+                        const temp = [s.U[2], s.U[5], s.U[8]];
+                        [s.U[2], s.U[5], s.U[8]] = reverse([s.B[6], s.B[3], s.B[0]]);
+                        [s.B[6], s.B[3], s.B[0]] = reverse([s.D[2], s.D[5], s.D[8]]);
+                        [s.D[2], s.D[5], s.D[8]] = [s.F[2], s.F[5], s.F[8]];
+                        [s.F[2], s.F[5], s.F[8]] = temp;
+                    }
+                    rotateFace(s.R, modifier);
+                    break;
+                case 'L':
+                    if (modifier === "'") {
+                        const temp = [s.U[0], s.U[3], s.U[6]];
+                        [s.U[0], s.U[3], s.U[6]] = [s.F[0], s.F[3], s.F[6]];
+                        [s.F[0], s.F[3], s.F[6]] = [s.D[0], s.D[3], s.D[6]];
+                        [s.D[0], s.D[3], s.D[6]] = reverse([s.B[8], s.B[5], s.B[2]]);
+                        [s.B[8], s.B[5], s.B[2]] = reverse(temp);
+                    } else if (modifier === '2') {
+                        const temp = [s.U[0], s.U[3], s.U[6]];
+                        [s.U[0], s.U[3], s.U[6]] = reverse([s.B[8], s.B[5], s.B[2]]);
+                        [s.B[8], s.B[5], s.B[2]] = reverse(temp);
+                        const tempF = [s.F[0], s.F[3], s.F[6]];
+                        [s.F[0], s.F[3], s.F[6]] = [s.D[0], s.D[3], s.D[6]];
+                        [s.D[0], s.D[3], s.D[6]] = tempF;
+                    } else {
+                        const temp = [s.U[0], s.U[3], s.U[6]];
+                        [s.U[0], s.U[3], s.U[6]] = reverse([s.B[8], s.B[5], s.B[2]]);
+                        [s.B[8], s.B[5], s.B[2]] = reverse([s.D[0], s.D[3], s.D[6]]);
+                        [s.D[0], s.D[3], s.D[6]] = [s.F[0], s.F[3], s.F[6]];
+                        [s.F[0], s.F[3], s.F[6]] = temp;
+                    }
+                    rotateFace(s.L, modifier);
+                    break;
+                case 'U':
+                    if (modifier === "'") {
+                        const temp = [s.F[0], s.F[1], s.F[2]];
+                        [s.F[0], s.F[1], s.F[2]] = [s.L[0], s.L[1], s.L[2]];
+                        [s.L[0], s.L[1], s.L[2]] = [s.B[0], s.B[1], s.B[2]];
+                        [s.B[0], s.B[1], s.B[2]] = [s.R[0], s.R[1], s.R[2]];
+                        [s.R[0], s.R[1], s.R[2]] = temp;
+                    } else if (modifier === '2') {
+                        const temp = [s.F[0], s.F[1], s.F[2]];
+                        [s.F[0], s.F[1], s.F[2]] = [s.B[0], s.B[1], s.B[2]];
+                        [s.B[0], s.B[1], s.B[2]] = temp;
+                        const tempR = [s.R[0], s.R[1], s.R[2]];
+                        [s.R[0], s.R[1], s.R[2]] = [s.L[0], s.L[1], s.L[2]];
+                        [s.L[0], s.L[1], s.L[2]] = tempR;
+                    } else {
+                        const temp = [s.F[0], s.F[1], s.F[2]];
+                        [s.F[0], s.F[1], s.F[2]] = [s.R[0], s.R[1], s.R[2]];
+                        [s.R[0], s.R[1], s.R[2]] = [s.B[0], s.B[1], s.B[2]];
+                        [s.B[0], s.B[1], s.B[2]] = [s.L[0], s.L[1], s.L[2]];
+                        [s.L[0], s.L[1], s.L[2]] = temp;
+                    }
+                    rotateFace(s.U, modifier);
+                    break;
+                case 'D':
+                    if (modifier === "'") {
+                        const temp = [s.F[6], s.F[7], s.F[8]];
+                        [s.F[6], s.F[7], s.F[8]] = [s.R[6], s.R[7], s.R[8]];
+                        [s.R[6], s.R[7], s.R[8]] = [s.B[6], s.B[7], s.B[8]];
+                        [s.B[6], s.B[7], s.B[8]] = [s.L[6], s.L[7], s.L[8]];
+                        [s.L[6], s.L[7], s.L[8]] = temp;
+                    } else if (modifier === '2') {
+                        const temp = [s.F[6], s.F[7], s.F[8]];
+                        [s.F[6], s.F[7], s.F[8]] = [s.B[6], s.B[7], s.B[8]];
+                        [s.B[6], s.B[7], s.B[8]] = temp;
+                        const tempR = [s.R[6], s.R[7], s.R[8]];
+                        [s.R[6], s.R[7], s.R[8]] = [s.L[6], s.L[7], s.L[8]];
+                        [s.L[6], s.L[7], s.L[8]] = tempR;
+                    } else {
+                        const temp = [s.F[6], s.F[7], s.F[8]];
+                        [s.F[6], s.F[7], s.F[8]] = [s.L[6], s.L[7], s.L[8]];
+                        [s.L[6], s.L[7], s.L[8]] = [s.B[6], s.B[7], s.B[8]];
+                        [s.B[6], s.B[7], s.B[8]] = [s.R[6], s.R[7], s.R[8]];
+                        [s.R[6], s.R[7], s.R[8]] = temp;
+                    }
+                    rotateFace(s.D, modifier);
+                    break;
+                case 'F':
+                    if (modifier === "'") {
+                        const temp = [s.U[6], s.U[7], s.U[8]];
+                        [s.U[6], s.U[7], s.U[8]] = reverse([s.R[0], s.R[3], s.R[6]]);
+                        [s.R[0], s.R[3], s.R[6]] = [s.D[2], s.D[1], s.D[0]];
+                        [s.D[0], s.D[1], s.D[2]] = reverse([s.L[8], s.L[5], s.L[2]]);
+                        [s.L[2], s.L[5], s.L[8]] = reverse(temp);
+                    } else if (modifier === '2') {
+                        const temp = [s.U[6], s.U[7], s.U[8]];
+                        [s.U[6], s.U[7], s.U[8]] = [s.D[0], s.D[1], s.D[2]];
+                        [s.D[0], s.D[1], s.D[2]] = temp;
+                        const tempR = [s.R[0], s.R[3], s.R[6]];
+                        [s.R[0], s.R[3], s.R[6]] = reverse([s.L[8], s.L[5], s.L[2]]);
+                        [s.L[2], s.L[5], s.L[8]] = reverse(tempR);
+                    } else {
+                        const temp = [s.U[6], s.U[7], s.U[8]];
+                        [s.U[6], s.U[7], s.U[8]] = reverse([s.L[2], s.L[5], s.L[8]]);
+                        [s.L[2], s.L[5], s.L[8]] = reverse([s.D[2], s.D[1], s.D[0]]);
+                        [s.D[0], s.D[1], s.D[2]] = [s.R[0], s.R[3], s.R[6]];
+                        [s.R[0], s.R[3], s.R[6]] = temp;
+                    }
+                    rotateFace(s.F, modifier);
+                    break;
+                case 'B':
+                    if (modifier === "'") {
+                        const temp = [s.U[0], s.U[1], s.U[2]];
+                        [s.U[0], s.U[1], s.U[2]] = [s.R[2], s.R[5], s.R[8]];
+                        [s.R[2], s.R[5], s.R[8]] = reverse([s.D[8], s.D[7], s.D[6]]);
+                        [s.D[6], s.D[7], s.D[8]] = [s.L[0], s.L[3], s.L[6]];
+                        [s.L[0], s.L[3], s.L[6]] = reverse(temp);
+                    } else if (modifier === '2') {
+                        const temp = [s.U[0], s.U[1], s.U[2]];
+                        [s.U[0], s.U[1], s.U[2]] = [s.D[6], s.D[7], s.D[8]];
+                        [s.D[6], s.D[7], s.D[8]] = temp;
+                        const tempR = [s.R[2], s.R[5], s.R[8]];
+                        [s.R[2], s.R[5], s.R[8]] = reverse([s.L[6], s.L[3], s.L[0]]);
+                        [s.L[0], s.L[3], s.L[6]] = reverse(tempR);
+                    } else {
+                        const temp = [s.U[0], s.U[1], s.U[2]];
+                        [s.U[0], s.U[1], s.U[2]] = reverse([s.L[0], s.L[3], s.L[6]]);
+                        [s.L[0], s.L[3], s.L[6]] = [s.D[8], s.D[7], s.D[6]];
+                        [s.D[6], s.D[7], s.D[8]] = reverse([s.R[8], s.R[5], s.R[2]]);
+                        [s.R[2], s.R[5], s.R[8]] = temp;
+                    }
+                    rotateFace(s.B, modifier);
+                    break;
+            }
         }
 
         // ============ API FUNCTIONS ============
@@ -1876,8 +2507,18 @@
                     if (inspectionLeft <= 0) {
                         clearInterval(state.inspectionInterval);
                         inspectionEl.textContent = 'GO!';
-                        setTimeout(() => { inspectionEl.textContent = ''; }, 500);
-                        startTimer();
+                        setTimeout(() => {
+                            inspectionEl.textContent = '';
+                            // Set status to ready - cube moves will start timer
+                            state.status = 'ready';
+                            document.getElementById('timer').classList.add('ready');
+                            // Auto-start after 1 second if no cube connected
+                            setTimeout(() => {
+                                if (state.status === 'ready') {
+                                    startTimer();
+                                }
+                            }, 1000);
+                        }, 500);
                     }
                 }, 1000);
 
@@ -2302,12 +2943,52 @@
         }
 
         // ============ BLUETOOTH ============
+        // Cube models configuration (matching cstimer)
+        const cubeModels = {
+            'Giiker': {
+                prefix: 'Giiker',
+                service: '0000aadb-0000-1000-8000-00805f9b34fb',
+                characteristic: '0000aadc-0000-1000-8000-00805f9b34fb',
+                type: 'giiker'
+            },
+            'Mi Smart': {
+                prefix: 'Mi Smart',
+                service: '0000aadb-0000-1000-8000-00805f9b34fb',
+                characteristic: '0000aadc-0000-1000-8000-00805f9b34fb',
+                type: 'giiker'
+            },
+            'GAN': {
+                prefix: 'GAN',
+                service: '0000aadb-0000-1000-8000-00805f9b34fb',
+                characteristic: '0000aadc-0000-1000-8000-00805f9b34fb',
+                type: 'gan'
+            },
+            'GoCube': {
+                prefix: 'GoCube',
+                service: '0000fff0-0000-1000-8000-00805f9b34fb',
+                characteristic: '0000fff1-0000-1000-8000-00805f9b34fb',
+                type: 'gocube'
+            },
+            'Rubik': {
+                prefix: 'Rubik',
+                service: '0000aadb-0000-1000-8000-00805f9b34fb',
+                characteristic: '0000aadc-0000-1000-8000-00805f9b34fb',
+                type: 'rubiks'
+            }
+        };
+
+        let bluetoothDevice = null;
+        let gattServer = null;
+        let cubeCharacteristic = null;
+        let cubeModel = null;
+        let lastCubeState = null;
+        let cubeMoveBuffer = [];
+
         async function scanForCubes() {
             const scanBtn = document.getElementById('scanBtn');
-            const devicesList = document.getElementById('btDevices');
 
             if (!navigator.bluetooth) {
-                showToast('Web Bluetooth not supported', 'error');
+                showToast('Web Bluetooth not supported. Use Chrome/Edge on HTTPS or localhost.', 'error');
                 return;
             }
 
@@ -2315,37 +2996,184 @@
             scanBtn.disabled = true;
 
             try {
+                // Build filters from cube name prefixes (like cstimer)
+                const namePrefixes = Object.keys(cubeModels);
+                const filters = namePrefixes.map(prefix => ({ namePrefix: prefix }));
+
+                // Collect all optional services
+                const optionalServices = [...new Set(Object.values(cubeModels).map(m => m.service))];
+
+                console.log('[Bluetooth] Scanning for cubes:', namePrefixes);
+
                 const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] }],
-                    optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+                    filters: filters,
+                    optionalServices: optionalServices
                 });
 
+                console.log('[Bluetooth] Device selected:', device.name);
+
+                // Detect cube model from device name
+                cubeModel = null;
+                for (const [name, model] of Object.entries(cubeModels)) {
+                    if (device.name && device.name.startsWith(name)) {
+                        cubeModel = model;
+                        break;
+                    }
+                }
+
+                if (!cubeModel) {
+                    // Default to Giiker if unknown
+                    cubeModel = cubeModels['Giiker'];
+                }
+
+                console.log('[Bluetooth] Using model:', cubeModel);
+
+                // Connect to GATT server
+                gattServer = await device.gatt.connect();
+                console.log('[Bluetooth] GATT connected');
+
+                // Get the service
+                const service = await gattServer.getPrimaryService(cubeModel.service);
+                console.log('[Bluetooth] Service found');
+
+                // Get the characteristic
+                cubeCharacteristic = await service.getCharacteristic(cubeModel.characteristic);
+                console.log('[Bluetooth] Characteristic found');
+
+                // Subscribe to notifications
+                await cubeCharacteristic.startNotifications();
+                cubeCharacteristic.addEventListener('characteristicvaluechanged', onCubeStateChanged);
+
+                // Read initial state
+                const initialValue = await cubeCharacteristic.readValue();
+                if (initialValue) {
+                    handleCubeData(initialValue);
+                }
+
+                // Handle disconnect
+                device.addEventListener('gattserverdisconnected', onCubeDisconnected);
+
+                // Update UI
                 state.cubeConnected = true;
                 document.getElementById('connectionDot').classList.add('connected');
-                document.getElementById('connectionText').textContent = device.name || 'Connected';
-                showToast('Cube connected!', 'success');
+                document.getElementById('connectionText').textContent = device.name || cubeModel.prefix;
+                showToast(`Connected to ${device.name || 'Smart Cube'}!`, 'success');
 
+                const devicesList = document.getElementById('btDevices');
                 devicesList.innerHTML = `
                     <div class="bt-device" onclick="disconnectCube()">
-                        <span class="bt-device-name">${device.name || 'Cube'}</span>
+                        <span class="bt-device-name">${device.name || 'Smart Cube'}</span>
                         <span class="bt-device-rssi">Connected ✓</span>
                     </div>
                 `;
+
             } catch (error) {
                 console.error('Bluetooth error:', error);
-                showToast('Could not connect to cube', 'error');
+                showToast('Could not connect: ' + error.message, 'error');
             }
 
             scanBtn.innerHTML = '<span>📡</span> <span data-i18n="scanForCubes">Scan for Cubes</span>';
             scanBtn.disabled = false;
         }
 
-        function disconnectCube() {
+        function onCubeStateChanged(event) {
+            const value = event.target.value;
+            handleCubeData(value);
+        }
+
+        function handleCubeData(value) {
+            if (!value) return;
+
+            const bytes = new Uint8Array(value.buffer);
+            console.log('[Bluetooth] Received:', Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '));
+
+            // Parse based on cube type
+            if (cubeModel && cubeModel.type === 'giiker') {
+                parseGiikerCube(bytes);
+            } else {
+                // Generic parsing - just log for now
+                console.log('[Bluetooth] Unknown cube type, raw data:', bytes);
+            }
+        }
+
+        function parseGiikerCube(bytes) {
+            // Giiker cube protocol parsing
+            if (bytes.length < 20) return;
+
+            // Check if data is encrypted (0xa7 marker)
+            let raw = Array.from(bytes.slice(0, 20));
+            if (raw[18] === 0xa7) {
+                // Decrypt
+                const key = [176, 81, 104, 224, 86, 137, 237, 119, 38, 26, 193, 161, 210, 126, 150, 81, 93, 13, 236, 249, 89, 235, 88, 24, 113, 81, 214, 131, 130, 199, 2, 169, 39, 165, 171, 41];
+                const k1 = (raw[19] >> 4) & 0xf;
+                const k2 = raw[19] & 0xf;
+                for (let i = 0; i < 18; i++) {
+                    raw[i] = (raw[i] - (key[i + k1] || 0) - (key[i + k2] || 0) + 256) % 256;
+                }
+                raw = raw.slice(0, 18);
+            }
+
+            // Extract moves from bytes 16-20 (previous moves)
+            const moveBytes = raw.slice(16, 20);
+            const moves = [];
+            const faces = 'BDLURF';
+
+            for (let i = 0; i < moveBytes.length; i += 2) {
+                if (moveBytes[i] === 0) continue;
+                const faceIdx = moveBytes[i] - 1;
+                if (faceIdx >= 0 && faceIdx < 6) {
+                    const modifier = (moveBytes[i + 1] - 1) % 7;
+                    const modStr = " 2'".charAt(modifier);
+                    moves.push(faces[faceIdx] + modStr);
+                }
+            }
+
+            if (moves.length > 0) {
+                console.log('[Giiker] Moves:', moves);
+                cubeMoveBuffer = moves;
+
+                // If timer is ready (inspection done) and cube moves, start timer
+                if (state.status === 'ready') {
+                    console.log('[Timer] Starting from cube move');
+                    startTimer();
+                }
+
+                // If timer is running and we get moves, record them
+                if (state.status === 'running') {
+                    state.currentSolve.moveCount = (state.currentSolve.moveCount || 0) + moves.length;
+                    // Update virtual cube
+                    applyScrambleToCube(moves.join(' '));
+                }
+
+                // Check for solve completion (cube back to solved state)
+                // For now, we'll rely on the user to press space or stop
+            }
+        }
+
+        function onCubeDisconnected() {
+            console.log('[Bluetooth] Disconnected');
             state.cubeConnected = false;
             document.getElementById('connectionDot').classList.remove('connected');
             document.getElementById('connectionText').textContent = 'Disconnected';
             document.getElementById('btDevices').innerHTML = '';
+            showToast('Cube disconnected', 'error');
+
+            bluetoothDevice = null;
+            gattServer = null;
+            cubeCharacteristic = null;
+            cubeModel = null;
+        }
+
+        async function disconnectCube() {
+            if (gattServer && gattServer.connected) {
+                gattServer.disconnect();
+            }
+            onCubeDisconnected();
             showToast('Cube disconnected', 'success');
+        }
+
+        function isCubeConnected() {
+            return state.cubeConnected && gattServer && gattServer.connected;
         }
 
         // ============ SETTINGS ============
@@ -2484,6 +3312,7 @@
             generateScramble();
             updateTimerDisplay();
             initCube();
+            initCubeView();
             updateUITexts();
         }
 
