@@ -3018,338 +3018,10 @@
         let cubeMoveBuffer = [];
 
         // GAN decryption - using CryptoJS with proper AES-CBC
-        // All keys from cstimer - try different versions
-        const GAN_KEYS = [
-            ["NoRgnAHANATADDWJYwMxQOxiiEcfYgSK6Hpr4TYCs0IG1OEAbDszALpA", "NoNg7ANATFIQnARmogLBRUCs0oAYN8U5J45EQBmFADg0oJAOSlUQF0g"], // V1
-            ["NoRgNATGBs1gLABgQTjCeBWSUDsYBmKbCeMADjNnXxHIoIF0g", "NoRg7ANAzBCsAMEAsioxBEIAc0Cc0ATJkgSIYhXIjhMQGxgC6QA"], // V2
-            ["NoVgNAjAHGBMYDYCcdJgCwTFBkYVgAY9JpJYUsYBmAXSA", "NoRgNAbAHGAsAMkwgMyzClH0LFcArHnAJzIqIBMGWEAukA"] // V3/V4
+        const GAN_KEYS_V2 = [
+            "NoRgNATGBs1gLABgQTjCeBWSUDsYBmKbCeMADjNnXxHIoIF0g",
+            "NoRg7ANAzBCsAMEAsioxBEIAc0Cc0ATJkgSIYhXIjhMQGxgC6QA"
         ];
-
-        // Try all GAN keys - different approaches including simple XOR
-        function tryDecryptWithAllKeys(data, mac) {
-            if (!mac || data.length < 16 || typeof LZString === 'undefined') {
-                return data;
-            }
-
-            const macParts = mac.split(':');
-            const macBytes = macParts.map(p => parseInt(p, 16));
-
-            // Valid GAN protocols - only these first bytes are valid decrypted data
-            // 0x01 = move event, 0x02 = gyro, 0x03 = cube state, 0x10 = hardware, 0x16 = battery, 0x55 = cube state
-            const validProtocols = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x16, 0x55];
-
-            // Try different key versions
-            for (let v = 0; v < GAN_KEYS.length; v++) {
-                try {
-                    const keyArr = JSON.parse(LZString.decompressFromEncodedURIComponent(GAN_KEYS[v][0]));
-                    const ivArr = JSON.parse(LZString.decompressFromEncodedURIComponent(GAN_KEYS[v][1]));
-
-                    // Apply MAC salt
-                    for (let i = 0; i < 6; i++) {
-                        keyArr[i] = (keyArr[i] + macBytes[5 - i]) % 255;
-                        ivArr[i] = (ivArr[i] + macBytes[5 - i]) % 255;
-                    }
-
-                    // Method 1: Simple XOR (like custom AES implementations)
-                    let result = xorDecrypt(data, keyArr, ivArr);
-                    if (validProtocols.includes(result[0])) {
-                        console.log('[GAN] XOR SUCCESS with V' + (v+1) + '! First: 0x' + result[0].toString(16));
-                        return new Uint8Array(result);
-                    }
-
-                    // Method 2: Just XOR with key only (no IV)
-                    result = xorDecryptKeyOnly(data, keyArr);
-                    if (validProtocols.includes(result[0])) {
-                        console.log('[GAN] XOR-key SUCCESS with V' + (v+1) + '! First: 0x' + result[0].toString(16));
-                        return new Uint8Array(result);
-                    }
-
-                    // Method 3: Try AES-CBC if CryptoJS available
-                    if (typeof CryptoJS !== 'undefined') {
-                        result = cryptoJSDecrypt(data, keyArr, ivArr, 'Pkcs7');
-                        if (validProtocols.includes(result[0])) {
-                            console.log('[GAN] AES-CBC SUCCESS with V' + (v+1) + '! First: 0x' + result[0].toString(16));
-                            return new Uint8Array(result);
-                        }
-                    }
-                } catch (e) {
-                    console.log('[GAN] V' + (v+1) + ' failed:', e.message);
-                }
-            }
-
-            console.log('[GAN] All decryption attempts failed');
-            return data;
-        }
-
-        // Simple XOR decryption - expand key to data length
-        function xorDecrypt(data, key, iv) {
-            const result = [];
-            for (let i = 0; i < data.length; i++) {
-                // Use key bytes cyclically, also XOR with IV
-                const keyByte = key[i % key.length];
-                const ivByte = iv[i % iv.length];
-                result.push(data[i] ^ keyByte ^ ivByte);
-            }
-            return result;
-        }
-
-        // XOR with key only
-        function xorDecryptKeyOnly(data, key) {
-            const result = [];
-            for (let i = 0; i < data.length; i++) {
-                const keyByte = key[i % key.length];
-                result.push(data[i] ^ keyByte);
-            }
-            return result;
-        }
-
-        function cryptoJSDecrypt(data, keyArr, ivArr, padding) {
-            try {
-                const key = CryptoJS.lib.WordArray.create(keyArr, 16);
-                const iv = CryptoJS.lib.WordArray.create(ivArr, 16);
-
-                // Prepare data
-                const paddedLen = Math.ceil(data.length / 16) * 16;
-                const paddedData = new Array(paddedLen);
-                for (let i = 0; i < paddedLen; i++) {
-                    paddedData[i] = data[i] || 0;
-                }
-
-                const words = [];
-                for (let i = 0; i < paddedData.length; i += 4) {
-                    let word = 0;
-                    for (let j = 0; j < 4 && i + j < paddedData.length; j++) {
-                        word |= paddedData[i + j] << (j * 8);
-                    }
-                    words.push(word);
-                }
-
-                const encrypted = CryptoJS.lib.WordArray.create(words, paddedData.length);
-
-                const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
-                    iv: iv,
-                    padding: CryptoJS.pad[padding]
-                });
-
-                if (!decrypted || !decrypted.sigBytes) return data;
-
-                // Extract bytes
-                const result = new Uint8Array(decrypted.sigBytes);
-                const decWords = decrypted.words;
-                for (let i = 0; i < decrypted.sigBytes; i++) {
-                    const wordIdx = Math.floor(i / 4);
-                    const byteIdx = 3 - (i % 4);
-                    result[i] = (decWords[wordIdx] >> (byteIdx * 8)) & 0xFF;
-                }
-
-                // XOR with IV (cstimer style)
-                for (let i = 0; i < 16 && i < result.length; i++) {
-                    result[i] ^= ivArr[i];
-                }
-
-                return Array.from(result);
-            } catch (e) {
-                return data;
-            }
-        }
-
-        // Encoder for GAN cube requests - inverse of decoder
-        function ganEncode(data, mac) {
-            if (!mac || data.length < 16 || typeof LZString === 'undefined' || typeof CryptoJS === 'undefined') {
-                return data;
-            }
-
-            const macParts = mac.split(':');
-            const macBytes = macParts.map(p => parseInt(p, 16));
-
-            // Use V2 keys (based on cstimer log)
-            const keyArr = JSON.parse(LZString.decompressFromEncodedURIComponent(GAN_KEYS[1][0]));
-            const ivArr = JSON.parse(LZString.decompressFromEncodedURIComponent(GAN_KEYS[1][1]));
-
-            // Apply MAC salt
-            for (let i = 0; i < 6; i++) {
-                keyArr[i] = (keyArr[i] + macBytes[5 - i]) % 255;
-                ivArr[i] = (ivArr[i] + macBytes[5 - i]) % 255;
-            }
-
-            const ret = data.slice();
-
-            try {
-                const key = CryptoJS.lib.WordArray.create(keyArr, 16);
-
-                // Following cstimer's encode() exactly:
-                // 1. XOR first 16 bytes with IV
-                // 2. Encrypt
-                // 3. If > 16 bytes, do same for last 16
-
-                // First block
-                for (let i = 0; i < 16; i++) {
-                    ret[i] ^= ivArr[i];
-                }
-
-                const words1 = [];
-                for (let i = 0; i < 16; i += 4) {
-                    let word = 0;
-                    for (let j = 0; j < 4; j++) {
-                        word |= ret[i + j] << (j * 8);
-                    }
-                    words1.push(word);
-                }
-
-                const encrypted1 = CryptoJS.lib.WordArray.create(words1, 16);
-                // Use AES.encrypt which returns CipherParams
-                const cipher1 = CryptoJS.AES.encrypt(encrypted1, key, {
-                    padding: CryptoJS.pad.NoPadding,
-                    mode: CryptoJS.mode.ECB
-                });
-
-                // Get the ciphertext
-                const cipherText1 = cipher1.ciphertext;
-                const ctWords1 = cipherText1.words;
-                for (let i = 0; i < 16; i++) {
-                    const wordIdx = Math.floor(i / 4);
-                    const byteIdx = 3 - (i % 4);
-                    ret[i] = (ctWords1[wordIdx] >> (byteIdx * 8)) & 0xFF;
-                }
-
-                // Last block if > 16
-                if (ret.length > 16) {
-                    const offset = ret.length - 16;
-                    for (let i = 0; i < 16; i++) {
-                        ret[offset + i] ^= ivArr[i];
-                    }
-
-                    const words2 = [];
-                    for (let i = 0; i < 16; i += 4) {
-                        let word = 0;
-                        for (let j = 0; j < 4; j++) {
-                            word |= ret[offset + i + j] << (j * 8);
-                        }
-                        words2.push(word);
-                    }
-
-                    const encrypted2 = CryptoJS.lib.WordArray.create(words2, 16);
-                    const cipher2 = CryptoJS.AES.encrypt(encrypted2, key, {
-                        padding: CryptoJS.pad.NoPadding,
-                        mode: CryptoJS.mode.ECB
-                    });
-
-                    const cipherText2 = cipher2.ciphertext;
-                    const ctWords2 = cipherText2.words;
-                    for (let i = 0; i < 16; i++) {
-                        const wordIdx = Math.floor(i / 4);
-                        const byteIdx = 3 - (i % 4);
-                        ret[offset + i] = (ctWords2[wordIdx] >> (byteIdx * 8)) & 0xFF;
-                    }
-                }
-
-                return Array.from(ret);
-            } catch (e) {
-                console.log('[GAN] Encode error:', e);
-                return data;
-            }
-        }
-
-        // Decoder for GAN cube responses
-        // For now, return data as-is (skip decryption) to see raw response
-        function ganDecode(data, mac) {
-            // Skip decryption for now - return raw data
-            console.log('[GAN] Skipping decryption, returning raw data');
-            return data;
-        }
-
-        /* // Original decryption - disabled for testing
-        function ganDecodeOld(data, mac) {
-            if (!mac || data.length < 16 || typeof LZString === 'undefined' || typeof CryptoJS === 'undefined') {
-                return data;
-            }
-
-            const macParts = mac.split(':');
-            const macBytes = macParts.map(p => parseInt(p, 16));
-            console.log('[GAN] MAC bytes:', macBytes);
-
-            // Use V2 keys
-            const keyArr = JSON.parse(LZString.decompressFromEncodedURIComponent(GAN_KEYS[1][0]));
-            const ivArr = JSON.parse(LZString.decompressFromEncodedURIComponent(GAN_KEYS[1][1]));
-            console.log('[GAN] Key before salt:', keyArr.slice(0, 6));
-            console.log('[GAN] IV before salt:', ivArr.slice(0, 6));
-
-            // Apply MAC salt
-            for (let i = 0; i < 6; i++) {
-                keyArr[i] = (keyArr[i] + macBytes[5 - i]) % 255;
-                ivArr[i] = (ivArr[i] + macBytes[5 - i]) % 255;
-            }
-            console.log('[GAN] Key after salt:', keyArr.slice(0, 6));
-            console.log('[GAN] IV after salt:', ivArr.slice(0, 6));
-
-            const ret = data.slice();
-
-            try {
-                const key = CryptoJS.lib.WordArray.create(keyArr, 16);
-
-                // Following cstimer's decode():
-                // 1. If > 16 bytes: decrypt last 16, XOR with IV
-                // 2. Decrypt first 16, XOR with IV
-
-                // Last block first
-                if (ret.length > 16) {
-                    const offset = ret.length - 16;
-                    const wordsLast = [];
-                    for (let i = 0; i < 16; i += 4) {
-                        let word = 0;
-                        for (let j = 0; j < 4; j++) {
-                            word |= ret[offset + i + j] << (j * 8);
-                        }
-                        wordsLast.push(word);
-                    }
-
-                    const encryptedLast = CryptoJS.lib.WordArray.create(wordsLast, 16);
-                    const decryptedLast = CryptoJS.AES.decrypt(encryptedLast, key, {
-                        padding: CryptoJS.pad.NoPadding,
-                        mode: CryptoJS.mode.ECB
-                    });
-
-                    const decWordsLast = decryptedLast.words;
-                    for (let i = 0; i < 16; i++) {
-                        const wordIdx = Math.floor(i / 4);
-                        const byteIdx = 3 - (i % 4);
-                        const decByte = (decWordsLast[wordIdx] >> (byteIdx * 8)) & 0xFF;
-                        ret[offset + i] = decByte ^ ivArr[i];
-                    }
-                }
-
-                // First block
-                const wordsFirst = [];
-                for (let i = 0; i < 16; i += 4) {
-                    let word = 0;
-                    for (let j = 0; j < 4; j++) {
-                        word |= ret[i + j] << (j * 8);
-                    }
-                    wordsFirst.push(word);
-                }
-
-                const encryptedFirst = CryptoJS.lib.WordArray.create(wordsFirst, 16);
-                const decryptedFirst = CryptoJS.AES.decrypt(encryptedFirst, key, {
-                    padding: CryptoJS.pad.NoPadding,
-                    mode: CryptoJS.mode.ECB
-                });
-
-                const decWordsFirst = decryptedFirst.words;
-                for (let i = 0; i < 16 && i < ret.length; i++) {
-                    const wordIdx = Math.floor(i / 4);
-                    const byteIdx = 3 - (i % 4);
-                    const decByte = (decWordsFirst[wordIdx] >> (byteIdx * 8)) & 0xFF;
-                    ret[i] = decByte ^ ivArr[i];
-                }
-
-                console.log('[GAN] Decoded:', ret.slice(0, 4).map(b => b.toString(2).padStart(8, '0')).join(' '));
-                return Array.from(ret);
-            } catch (e) {
-                console.log('[GAN] Decode error:', e);
-                return data;
-            }
-        }
-        */ // End of original decryption
 
         // Using Web Crypto API for proper AES-CBC decryption
         async function ganDecryptWithWebCrypto(data, mac) {
@@ -3401,7 +3073,6 @@
         }
 
         function ganDecryptWithCryptoJS(data, mac) {
-            console.log('[GAN] CryptoJS decrypt called, mac:', mac, 'data length:', data.length);
             if (!mac || data.length < 16 || typeof LZString === 'undefined' || typeof CryptoJS === 'undefined') {
                 console.log('[GAN] Missing dependencies');
                 return data;
@@ -3417,13 +3088,10 @@
                 const ivArr = JSON.parse(LZString.decompressFromEncodedURIComponent(GAN_KEYS_V2[1]));
 
                 // Apply MAC salt
-                console.log('[GAN] MAC bytes before salt:', macBytes);
                 for (let i = 0; i < 6; i++) {
                     keyArr[i] = (keyArr[i] + macBytes[5 - i]) % 255;
                     ivArr[i] = (ivArr[i] + macBytes[5 - i]) % 255;
                 }
-                console.log('[GAN] Key after salt:', keyArr.slice(0, 6));
-                console.log('[GAN] IV after salt:', ivArr.slice(0, 6));
 
                 // Convert to CryptoJS format
                 const key = CryptoJS.lib.WordArray.create(keyArr, 16);
@@ -3467,10 +3135,9 @@
             }
         }
 
-        // Async wrapper - try all GAN keys
+        // Async wrapper - use Web Crypto
         async function ganDecryptAsync(data, mac) {
-            console.log('[GAN] Trying decryption with MAC:', mac);
-            return ganDecode(data, mac);
+            return ganDecryptWithWebCrypto(data, mac);
         }
 
         // Sync wrapper (returns data, decryption happens in async parse)
@@ -3479,15 +3146,11 @@
         }
 
         // Check if data looks decrypted (not random)
-        // In GAN V2, the decrypted data starts with 4 bits representing mode
         function isLikelyDecrypted(data) {
-            // Convert first byte to binary and check first 4 bits (mode)
             const firstByte = data[0];
-            const mode = (firstByte >> 4) & 0x0F;
-
-            // Valid GAN V2 modes: 1=gyro, 2=move, 4=facelets, 5=hardware, 9=battery
-            const validModes = [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x9, 0xA];
-            return validModes.includes(mode);
+            const validProtocols = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x16, 0x55, 0xED, 0xD1, 0xEF, 0xEC];
+            return validProtocols.includes(firstByte) ||
+                   (data[0] >= 0xF5 && data[0] <= 0xFF);
         }
 
         async function scanForCubes() {
@@ -3529,60 +3192,40 @@
                 cubeMac = null;  // Reset for new connection
                 if (device.watchAdvertisements) {
                     console.log('[Bluetooth] Watching for advertisements to get MAC...');
-
-                    // Add listener first, then start watching
-                    const adEventHandler = (event) => {
-                        console.log('[Bluetooth] Advertisement received!');
-                        console.log('[Bluetooth] rssi:', event.rssi);
-                        console.log('[Bluetooth] name:', event.name);
-                        console.log('[Bluetooth] manufacturerData size:', event.manufacturerData?.size || 0);
-                        console.log('[Bluetooth] serviceData size:', event.serviceData?.size || 0);
-
-                        const manufacturerData = event.manufacturerData;
-                        if (manufacturerData && manufacturerData.size > 0) {
-                            console.log('[Bluetooth] Manufacturer data:', Array.from(manufacturerData.entries()));
-                            for (const [id, data] of manufacturerData) {
-                                const bytes = new Uint8Array(data.buffer);
-                                console.log('[Bluetooth] Company ID', id, '=', id.toString(16), 'bytes:', Array.from(bytes));
-                                // GAN MAC: take bytes 3-8 in REVERSE order (matching cstimer)
-                                // Bytes: [0,0,0,CF,F0,61,34,12,AB] -> MAC should be AB:12:34:61:F0:CF
-                                if (bytes.length >= 9) {
-                                    const mac = [];
-                                    for (let i = 8; i >= 3; i--) {
-                                        mac.push(bytes[i].toString(16).padStart(2, '0'));
-                                    }
-                                    cubeMac = mac.join(':');
-                                    console.log('[Bluetooth] MAC extracted (reversed):', cubeMac);
-                                }
-                            }
-                        }
-                    };
-
-                    device.addEventListener('advertisementreceived', adEventHandler);
-
                     try {
-                        await device.watchAdvertisements();
-                        console.log('[Bluetooth] Started watching advertisements');
-
-                        // Wait for MAC with timeout
-                        const maxWait = 20000; // 20 seconds
-                        const startTime = Date.now();
-
-                        while (!cubeMac && (Date.now() - startTime) < maxWait) {
-                            await new Promise(r => setTimeout(r, 500));
-                            console.log('[Bluetooth] Waiting for MAC... current:', cubeMac);
-                        }
-
-                        device.stopWatchingAdvertisements?.();
-                        device.removeEventListener('advertisementreceived', adEventHandler);
-
+                        await new Promise((resolve, reject) => {
+                            const timeout = setTimeout(() => {
+                                device.stopWatchingAdvertisements?.();
+                                reject(new Error('MAC timeout'));
+                            }, 5000);
+                            device.addEventListener('advertisementreceived', (event) => {
+                                console.log('[Bluetooth] Got advertisement event');
+                                const manufacturerData = event.manufacturerData;
+                                // Extract MAC from manufacturer data
+                                if (manufacturerData) {
+                                    for (const [id, data] of manufacturerData) {
+                                        const dataView = new DataView(data.buffer);
+                                        if (dataView.byteLength >= 6) {
+                                            const mac = [];
+                                            for (let i = 6; i >= 1; i--) {
+                                                mac.push(dataView.getUint8(dataView.byteLength - i).toString(16).padStart(2, '0'));
+                                            }
+                                            cubeMac = mac.join(':');
+                                            console.log('[Bluetooth] Extracted MAC:', cubeMac, 'from manufacturer data');
+                                            console.log('[Bluetooth] Full manufacturerData:', JSON.stringify(Array.from(event.manufacturerData.entries()).map(x => [x[0], Array.from(new Uint8Array(x[1].buffer))]));
+                                            clearTimeout(timeout);
+                                            device.stopWatchingAdvertisements?.();
+                                            resolve();
+                                            return;
+                                        }
+                                    }
+                                }
+                            });
+                            device.watchAdvertisements();
+                        });
                     } catch (e) {
-                        console.log('[Bluetooth] Error watching:', e.message);
+                        console.log('[Bluetooth] Could not get MAC:', e.message);
                     }
-                }
-
-                if (!cubeMac) {
-                    console.log('[Bluetooth] MAC not from ads, trying GATT...');
                 }
 
                 console.log('[Bluetooth] Cube MAC:', cubeMac);
@@ -3615,36 +3258,6 @@
                 // Connect to GATT server
                 gattServer = await device.gatt.connect();
                 console.log('[Bluetooth] GATT connected');
-
-                // Fallback: try to get MAC from Device Information Service
-                if (!cubeMac) {
-                    try {
-                        const dis = await gattServer.getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb');
-                        if (dis) {
-                            const chars = await dis.getCharacteristics();
-                            for (const char of chars) {
-                                console.log('[Bluetooth] Device Info char:', char.uuid);
-                                // Try to read serial number which sometimes contains MAC
-                                if (char.uuid.toLowerCase().includes('2a25') || // Serial Number String
-                                    char.uuid.toLowerCase().includes('2a27')) { // Hardware Revision String
-                                    try {
-                                        const value = await char.readValue();
-                                        const decoder = new TextDecoder();
-                                        const str = decoder.decode(value);
-                                        console.log('[Bluetooth] Device Info value:', str);
-                                        // Check if it looks like MAC
-                                        if (str.match(/^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}$/)) {
-                                            cubeMac = str.toLowerCase();
-                                            console.log('[Bluetooth] MAC from Device Info:', cubeMac);
-                                        }
-                                    } catch(e) {}
-                                }
-                            }
-                        }
-                    } catch(e) {
-                        console.log('[Bluetooth] Could not get Device Info:', e.message);
-                    }
-                }
 
                 // Get all primary services to find which one exists
                 const services = await gattServer.getPrimaryServices();
@@ -3717,22 +3330,14 @@
                 cubeCharacteristic.addEventListener('characteristicvaluechanged', onCubeStateChanged);
 
                 // For GAN V2, send initial requests to trigger data
-                // Following cstimer: send hardware info (5) first, then facelets (4)
                 if (writeCharacteristic && serviceUUID.includes('6e400001')) {
-                    console.log('[GAN] Sending initial requests to cube...');
-
+                    console.log('[GAN] Sending initial request to cube...');
+                    // Request facelets (opcode 4) - 20 bytes
+                    const req = new Uint8Array(20);
+                    req[0] = 4;  // Request facelets
                     try {
-                        // Send UNENCRYPTED requests first to test if cube responds
-                        const reqHw = new Uint8Array(20);
-                        reqHw[0] = 5;  // Hardware info opcode
-                        await writeCharacteristic.writeValue(reqHw.buffer);
-                        console.log('[GAN] Hardware info request sent (unencrypted)');
-
-                        await new Promise(r => setTimeout(r, 50));
-                        const reqFacelets = new Uint8Array(20);
-                        reqFacelets[0] = 4;  // Facelets opcode
-                        await writeCharacteristic.writeValue(reqFacelets.buffer);
-                        console.log('[GAN] Facelets request sent (unencrypted)');
+                        await writeCharacteristic.writeValue(req.buffer);
+                        console.log('[GAN] Initial request sent');
                     } catch (e) {
                         console.log('[GAN] Could not send request:', e);
                     }
@@ -3805,26 +3410,22 @@
 
             // Try to decrypt using MAC
             const mac = window.cubeMac || cubeMac;
-            let decrypted = null;
             if (mac) {
                 // Try async AES decryption
-                decrypted = await ganDecryptAsync(Array.from(bytes), mac);
+                const decrypted = await ganDecryptAsync(Array.from(bytes), mac);
                 if (!decrypted || !decrypted.length) {
-                    console.log('[GAN] Decryption failed, falling back to move detection');
-                    decrypted = null;
-                } else {
-                    console.log('[GAN] Decrypted bytes:', Array.from(decrypted).map(b => b.toString(16).padStart(2, '0')).join(' '));
-                    console.log('[GAN] First byte:', '0x' + decrypted[0].toString(16));
-
-                    if (decrypted && isLikelyDecrypted(decrypted)) {
-                        parseGanProtocol(decrypted);
-                        return;
-                    } else {
-                        console.log('[GAN] Decryption result is not valid GAN protocol');
-                    }
+                    console.log('[GAN] Decryption returned empty result');
+                    return;
                 }
-            } else {
-                console.log('[GAN] No MAC available, using fallback move detection');
+                console.log('[GAN] Decrypted bytes:', Array.from(decrypted).map(b => b.toString(16).padStart(2, '0')).join(' '));
+                console.log('[GAN] First byte:', '0x' + decrypted[0].toString(16));
+
+                if (decrypted && isLikelyDecrypted(decrypted)) {
+                    parseGanProtocol(decrypted);
+                    return;
+                } else {
+                    console.log('[GAN] Decryption result is not valid GAN protocol');
+                }
             }
 
             // Fallback: detect moves from encrypted data by looking at move counter region
@@ -3853,18 +3454,9 @@
                 // ANY change could be a move - trigger on any diff
                 if (diffCount > 0) {
                     console.log('[GAN] MOVE DETECTED! diffCount:', diffCount, 'state:', state.status);
-
-                    // Add placeholder move to buffer for virtual cube update
-                    cubeMoveBuffer.push('?');
-                    if (cubeMoveBuffer.length > 10) cubeMoveBuffer.shift();
-
-                    // Start timer based on state
                     if (state.status === 'ready') {
                         console.log('[Timer] Starting from GAN cube move');
                         startTimer();
-                    } else if (state.status === 'idle') {
-                        console.log('[Timer] Starting inspection from GAN cube move');
-                        startSolve();
                     }
                 }
             } else {
@@ -3876,31 +3468,18 @@
 
         function parseGanProtocol(bytes) {
             // Parse GAN V2 protocol
-            // First 4 bits of first byte = mode
-            const firstByte = bytes[0];
-            const mode = (firstByte >> 4) & 0x0F;
-            console.log('[GAN] Mode:', mode);
+            // Format varies by message type
+            const protocolType = bytes[0];
+            console.log('[GAN] Protocol type:', '0x' + protocolType.toString(16));
 
-            // Mode 2 = Cube move
-            if (mode === 2) {
-                // Move event: parse binary string
-                // Convert to binary string like cstimer does
-                let binaryStr = '';
-                for (let i = 0; i < bytes.length; i++) {
-                    binaryStr += bytes[i].toString(2).padStart(8, '0');
-                }
-
-                // moveCnt: bits 4-11 (8 bits)
-                const moveCnt = parseInt(binaryStr.slice(4, 12), 2);
-                // axis: bits 12-14 (3 bits)
-                const axis = parseInt(binaryStr.slice(12, 15), 2);
-                // direction: bit 15
-                const direction = parseInt(binaryStr.slice(15, 16), 2);
-
+            // 0x01 = Cube move
+            if (protocolType === 0x01) {
+                // Move event: bytes[1]=len, bytes[2-3]=moveCnt, bytes[4]=axis, bytes[5]=direction
+                const moveCnt = bytes[2];
+                const axis = bytes[4];
+                const direction = bytes[5];
                 const faces = 'URFDLB';
                 const modifiers = " 2'";
-
-                console.log('[GAN] Move parsed - axis:', axis, 'dir:', direction, 'cnt:', moveCnt);
 
                 if (axis < 6) {
                     const move = faces[axis] + modifiers[direction];
@@ -3917,64 +3496,14 @@
                     }
                 }
             }
-            // Mode 4 = Cube state/facelets response
-            else if (mode === 4) {
-                console.log('[GAN] Cube state/facelets response');
-                parseGanFacelets(bytes);
+            // 0x55 = Cube state response
+            else if (protocolType === 0x55) {
+                console.log('[GAN] Cube state response');
             }
-            // Mode 5 = Hardware info
-            else if (mode === 5) {
-                console.log('[GAN] Hardware info response');
-                parseGanHardwareInfo(bytes);
-            }
-            // Mode 9 = Battery
-            else if (mode === 9) {
-                console.log('[GAN] Battery response');
-            }
-            // Mode 1 = Gyro
-            else if (mode === 1) {
-                console.log('[GAN] Gyro data');
-            }
+            // Other types: 0x10=hardware, 0x16=battery, etc.
             else {
-                console.log('[GAN] Unknown mode:', mode);
+                console.log('[GAN] Unknown protocol type');
             }
-        }
-
-        function parseGanFacelets(bytes) {
-            // Convert to binary string like cstimer
-            let binaryStr = '';
-            for (let i = 0; i < bytes.length; i++) {
-                binaryStr += bytes[i].toString(2).padStart(8, '0');
-            }
-
-            console.log('[GAN] Facelets binary:', binaryStr.slice(0, 64));
-
-            // Mode 4 = facelets state
-            // Parse cubie cube from binary (simplified)
-            // This would need full cubie cube parsing for complete state
-            console.log('[GAN] Facelets state received');
-        }
-
-        function parseGanHardwareInfo(bytes) {
-            // Convert to binary string
-            let binaryStr = '';
-            for (let i = 0; i < bytes.length; i++) {
-                binaryStr += bytes[i].toString(2).padStart(8, '0');
-            }
-
-            // Hardware version: bits 8-15 (8 bits)
-            const hardwareVersion = parseInt(binaryStr.slice(8, 16), 2);
-            // Software version: bits 16-23
-            const softwareVersion = parseInt(binaryStr.slice(16, 24), 2);
-            // Device name: bits 40-103 (64 bits = 8 chars)
-            let devName = '';
-            for (let i = 0; i < 8; i++) {
-                devName += String.fromCharCode(parseInt(binaryStr.slice(40 + i * 8, 48 + i * 8), 2));
-            }
-
-            console.log('[GAN] Hardware Version:', hardwareVersion + '.' + (softwareVersion >> 4) + '.' + (softwareVersion & 0x0F));
-            console.log('[GAN] Software Version:', (softwareVersion >> 4) + '.' + (softwareVersion & 0x0F));
-            console.log('[GAN] Device Name:', devName);
         }
 
         function detectGanMove(curr, prev, diffIndices) {
