@@ -82,21 +82,27 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
 
-    - name: Restore dependencies
-      run: dotnet restore CubeStatsApi/CubeStatsApi.csproj
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
 
-    - name: Build static files
-      run: |
-        dotnet build CubeStatsApi/CubeStatsApi.csproj -c Release --no-restore
-        cp -r CubeStatsApi/wwwroot ./dist
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Create .nojekyll file
+      run: touch ./CubeStatsApi/wwwroot/.nojekyll
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist
+        publish_dir: ./CubeStatsApi/wwwroot
+        force_orphan: true
