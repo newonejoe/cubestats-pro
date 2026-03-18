@@ -95,10 +95,112 @@
                 state.scramble = scrambleArray.join(' ');
             }
 
-            document.getElementById('scramble').textContent = state.scramble;
+            state.scrambleSequence = state.scramble.split(' ');
+            state.scrambleIndex = 0;
+            state.scramblePendingHalfMove = null;
+            
+            renderScramble();
             applyScrambleToCube(state.scramble);
+        }
+
+        function renderScramble() {
+            const container = document.getElementById('scramble');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            state.scrambleSequence.forEach((move, i) => {
+                const span = document.createElement('span');
+                span.textContent = move;
+                span.id = `scr-move-${i}`;
+                span.className = 'scramble-move';
+                
+                if (i < state.scrambleIndex) {
+                    span.textContent = '*'.repeat(move.length);
+                    span.style.opacity = '0.5';
+                } else if (i === state.scrambleIndex && state.scramblePendingHalfMove) {
+                    span.style.color = 'var(--warning)'; // yellow/warning color
+                }
+                
+                container.appendChild(span);
+                container.appendChild(document.createTextNode(' '));
+            });
+        }
+
+        function navigateScramble(face, modifier) {
+            if (!state.scrambleSequence || state.scrambleSequence.length === 0) return;
+            
+            const physicalMod = modifier.trim();
+            
+            // Check if undoing the pending half move
+            if (state.scramblePendingHalfMove && state.scrambleIndex < state.scrambleSequence.length) {
+                const expectedFace = state.scrambleSequence[state.scrambleIndex][0];
+                if (face === expectedFace) {
+                    const undoMod = state.scramblePendingHalfMove === "'" ? "" : "'";
+                    if (physicalMod === undoMod) {
+                        state.scramblePendingHalfMove = null;
+                        renderScramble();
+                        return;
+                    } else {
+                        // Completes the 2 move
+                        state.scramblePendingHalfMove = null;
+                        state.scrambleIndex++;
+                        renderScramble();
+                        return;
+                    }
+                }
+            }
+            
+            // Check if advancing forwards
+            if (state.scrambleIndex < state.scrambleSequence.length) {
+                const expectedMove = state.scrambleSequence[state.scrambleIndex];
+                const expectedFace = expectedMove[0];
+                const expectedMod = expectedMove.length > 1 ? expectedMove.slice(1) : '';
+                
+                if (face === expectedFace) {
+                    if (expectedMod === '2') {
+                        if (physicalMod === '2') {
+                            state.scrambleIndex++;
+                        } else {
+                            state.scramblePendingHalfMove = physicalMod === "" ? " " : "'";
+                        }
+                        renderScramble();
+                        return;
+                    } else if (physicalMod === expectedMod) {
+                        state.scrambleIndex++;
+                        renderScramble();
+                        return;
+                    }
+                }
+            }
+            
+            // Check if going backwards (undoing)
+            if (state.scrambleIndex > 0 && !state.scramblePendingHalfMove) {
+                const prevMove = state.scrambleSequence[state.scrambleIndex - 1];
+                const prevFace = prevMove[0];
+                const prevMod = prevMove.length > 1 ? prevMove.slice(1) : '';
+                
+                if (face === prevFace) {
+                    if (prevMod === '2') {
+                        if (physicalMod !== '2') {
+                            state.scrambleIndex--;
+                            state.scramblePendingHalfMove = physicalMod === "'" ? " " : "'";
+                            renderScramble();
+                            return;
+                        }
+                    } else {
+                        const inverseMod = prevMod === "'" ? "" : "'";
+                        if (physicalMod === inverseMod) {
+                            state.scrambleIndex--;
+                            renderScramble();
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
 // Expose to window for inline HTML and other modules
 window.setScrambleType = setScrambleType;
 window.generateScramble = generateScramble;
+window.renderScramble = renderScramble;
+window.navigateScramble = navigateScramble;

@@ -2,11 +2,11 @@ function formatTime(ms) {
             if (ms === null || ms === undefined) return '--';
             const minutes = Math.floor(ms / 60000);
             const seconds = Math.floor((ms % 60000) / 1000);
-            const centiseconds = Math.floor((ms % 1000) / 10);
+            const milliseconds = Math.floor(ms % 1000);
             if (minutes > 0) {
-                return `${minutes}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+                return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
             }
-            return `${seconds}.${centiseconds.toString().padStart(2, '0')}`;
+            return `${seconds}.${milliseconds.toString().padStart(3, '0')}`;
         }
 
         function updateTimerDisplay() {
@@ -61,6 +61,8 @@ function formatTime(ms) {
             }
         }
 
+        let currentSolveStartTime = 0;
+
         function startTimer() {
             if (state.inspectionInterval) {
                 clearInterval(state.inspectionInterval);
@@ -70,16 +72,17 @@ function formatTime(ms) {
             if (inspectionEl) inspectionEl.textContent = '';
 
             state.status = 'solving';
-            state.timer = Date.now();
+            currentSolveStartTime = Date.now();
+            state.timer = 0;
             state.currentSolve = {
-                startTime: new Date(state.timer).toISOString(),
+                startTime: new Date(currentSolveStartTime).toISOString(),
                 scramble: state.scramble,
                 inspectionTime: state.inspectionTime,
                 sessionId: state.currentSession?.id
             };
 
             state.timerInterval = setInterval(() => {
-                state.timer = Date.now() - state.timer;
+                state.timer = Date.now() - currentSolveStartTime;
                 updateTimerDisplay();
             }, 10);
 
@@ -98,7 +101,8 @@ function formatTime(ms) {
             }
 
             const endTime = Date.now();
-            const solveTime = endTime - state.timer;
+            const solveTime = endTime - currentSolveStartTime;
+            state.timer = solveTime;
 
             state.status = 'idle';
             document.getElementById('penaltyBtns').style.display = 'flex';

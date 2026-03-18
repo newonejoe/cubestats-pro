@@ -48,6 +48,12 @@ let bluetoothManager = new window.BluetoothManager();
                             const face = moveStr[0];
                             const modifier = moveStr.length > 1 ? moveStr.slice(1) : '';
                             updateBtCubeView({ face, modifier });
+
+                            if (state.status === 'idle') {
+                                if (window.navigateScramble) {
+                                    window.navigateScramble(face, modifier);
+                                }
+                            }
                         }
 
                         if (state.status === 'idle') {
