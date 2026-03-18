@@ -97,8 +97,12 @@ jobs:
       working-directory: ./frontend
       run: npm run build
 
+    - name: Create .nojekyll file
+      run: touch ./CubeStatsApi/wwwroot/.nojekyll
+
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./CubeStatsApi/wwwroot
+        force_orphan: true
