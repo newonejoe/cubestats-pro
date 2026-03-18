@@ -200,13 +200,25 @@ Both views are displayed simultaneously side by side or stacked:
 - Session history
 - Trend graphs (optional)
 
-### User Interactions
+### User Interactions without bluetooth cube
 
 1. **Start Solve**: Press spacebar or tap start button
 2. **Inspection**: 15-second countdown before solve
 3. **Solving**: Timer runs, bluetooth cube tracks moves
 4. **Finish**: Timer stops, data saved, analysis displayed
 5. **Review**: View solve history, export data
+
+### User Interactions with bluetooth cube
+
+1. **Precondition**: Bluetooth cube is connected and reset
+1. **Scramble**: Twist the cube according to current scramble
+1. **Start Solve**: Trigger by the cube status matching the scramble target 
+2. **Inspection**: 15-second countdown before solve
+3. **Solving**: Timer runs, bluetooth cube tracks moves
+4. **Finish**: Timer stops, data saved, analysis displayed
+5. **Review**: View solve history, export data
+
+
 
 ### Data Handling
 
@@ -389,3 +401,13 @@ Index 4 is always the center piece of each face.
 
 - **.NET API**: Deploy to Linux server or Azure Web App
 - **Static Frontend**: GitHub Pages deployment from `wwwroot/` content
+
+### Bluetooth Cube Compatiablity
+- Reference CSTimer
+- Must to support: GAN, Qiyi
+
+### Gan Cube Test
+- Model: Gan
+- Connect with a Cube named: `GANicvmR`
+- Mac address: `cf:f0:61:34:12:ab`
+- Gan Protocol Version: ``
