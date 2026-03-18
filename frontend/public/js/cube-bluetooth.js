@@ -130,7 +130,18 @@ class GanDriver extends CubeDriver {
         this.characteristic = characteristics.find(c => c.properties.notify);
         this.writeCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
 
+        if (this.protocolVersion === 2) {
+            console.log('[gancube] v2init start');
+            console.log(`[gancube] v2init find chrcts ${this.characteristic},${this.writeCharacteristic}`);
+            console.log('[gancube] v2init v2read start notifications');
+        }
+
         await this.characteristic.startNotifications();
+        
+        if (this.protocolVersion === 2) {
+            console.log('[gancube] v2init v2read notification started');
+        }
+        
         this.characteristic.addEventListener('characteristicvaluechanged', this.onData.bind(this));
 
         // Initial requests if writing is supported
@@ -162,7 +173,9 @@ class GanDriver extends CubeDriver {
     async sendV2Request(opcode) {
         const req = new Array(20).fill(0);
         req[0] = opcode;
-        await this.writeCharacteristic.writeValue(new Uint8Array(this.encode(req)).buffer);
+        const encoded = this.encode(req);
+        console.log(`[gancube] v2sendRequest ${req.join(',')} ${encoded.join(',')}`);
+        await this.writeCharacteristic.writeValue(new Uint8Array(encoded).buffer);
     }
 
     async sendV3Request(opcode) {
@@ -199,8 +212,8 @@ class GanDriver extends CubeDriver {
             const iv = JSON.parse(LZString.decompressFromEncodedURIComponent(ivStr));
             
             for (let i = 0; i < 6; i++) {
-                key[i] = (key[i] + macBytes[5 - i]) % 255;
-                iv[i] = (iv[i] + macBytes[5 - i]) % 255;
+                key[i] = (key[i] + macBytes[i]) % 255;
+                iv[i] = (iv[i] + macBytes[i]) % 255;
             }
             
             this.decoder = { key, iv };
@@ -211,7 +224,13 @@ class GanDriver extends CubeDriver {
     }
 
     aesDecryptBlock(block) {
-        const keyWord = CryptoJS.lib.WordArray.create(this.decoder.key, 16);
+        const key = this.decoder.key;
+        const keyWord = CryptoJS.lib.WordArray.create([
+            (key[0]<<24) | (key[1]<<16) | (key[2]<<8) | key[3],
+            (key[4]<<24) | (key[5]<<16) | (key[6]<<8) | key[7],
+            (key[8]<<24) | (key[9]<<16) | (key[10]<<8) | key[11],
+            (key[12]<<24) | (key[13]<<16) | (key[14]<<8) | key[15]
+        ], 16);
         const encrypted = CryptoJS.lib.WordArray.create([
             (block[0]<<24) | (block[1]<<16) | (block[2]<<8) | block[3],
             (block[4]<<24) | (block[5]<<16) | (block[6]<<8) | block[7],
@@ -234,7 +253,13 @@ class GanDriver extends CubeDriver {
     }
 
     aesEncryptBlock(block) {
-        const keyWord = CryptoJS.lib.WordArray.create(this.decoder.key, 16);
+        const key = this.decoder.key;
+        const keyWord = CryptoJS.lib.WordArray.create([
+            (key[0]<<24) | (key[1]<<16) | (key[2]<<8) | key[3],
+            (key[4]<<24) | (key[5]<<16) | (key[6]<<8) | key[7],
+            (key[8]<<24) | (key[9]<<16) | (key[10]<<8) | key[11],
+            (key[12]<<24) | (key[13]<<16) | (key[14]<<8) | key[15]
+        ], 16);
         const dataWord = CryptoJS.lib.WordArray.create([
             (block[0]<<24) | (block[1]<<16) | (block[2]<<8) | block[3],
             (block[4]<<24) | (block[5]<<16) | (block[6]<<8) | block[7],
@@ -314,7 +339,8 @@ class GanDriver extends CubeDriver {
         // Convert to binary string
         let bin = '';
         for (let i = 0; i < decrypted.length; i++) {
-            bin += decrypted[i].toString(2).padStart(8, '0');
+            // Add 256 then toString(2) and slice(1) to safely pad to 8 bits like cstimer
+            bin += (decrypted[i] + 256).toString(2).slice(1);
         }
         
         if (this.protocolVersion === 2) {
@@ -330,6 +356,9 @@ class GanDriver extends CubeDriver {
         const mode = parseInt(bin.slice(0, 4), 2);
         
         if (mode === 2) { // cube move
+            const nowIso = new Date().toISOString();
+            console.log(`[${nowIso}] [gancube] v2 received move event ${bin}`);
+            
             const moveCnt = parseInt(bin.slice(4, 12), 2);
             if (moveCnt === this.prevMoveCnt || this.prevMoveCnt === -1) {
                 this.prevMoveCnt = moveCnt;
@@ -338,14 +367,23 @@ class GanDriver extends CubeDriver {
             
             const diff = (moveCnt - this.prevMoveCnt) & 0xFF;
             const movesToEmit = [];
+            const timeOffsToEmit = [];
             
             for (let i = 0; i < Math.min(diff, 7); i++) {
                 const m = parseInt(bin.slice(12 + i * 5, 17 + i * 5), 2);
+                const timeOffs = parseInt(bin.slice(47 + i * 16, 63 + i * 16), 2);
                 const moveStr = "URFDLB".charAt(m >> 1) + " '".charAt(m & 1);
-                if (m < 12) movesToEmit.unshift(moveStr); // Invalid moves might be >= 12
+                if (m < 12) {
+                    movesToEmit.unshift(moveStr); // Invalid moves might be >= 12
+                    timeOffsToEmit.unshift(timeOffs);
+                }
             }
             
-            for (const move of movesToEmit) {
+            for (let i = 0; i < movesToEmit.length; i++) {
+                const move = movesToEmit[i];
+                const timeOffs = timeOffsToEmit[i];
+                const logIso = new Date().toISOString();
+                console.log(`[${logIso}] [gancube] move ${move}  ${timeOffs}`);
                 this.onMove([move]);
             }
             
@@ -353,6 +391,74 @@ class GanDriver extends CubeDriver {
         } else if (mode === 4) { // facelets
             this.prevMoveCnt = parseInt(bin.slice(4, 12), 2);
             console.log('[GAN V2] Facelets received, moveCnt:', this.prevMoveCnt);
+            
+            // Parse facelets state
+            const ca = [];
+            const ea = [];
+            let echk = 0;
+            let cchk = 0xf00;
+            for (let i = 0; i < 7; i++) {
+                const perm = parseInt(bin.slice(12 + i * 3, 15 + i * 3), 2);
+                const ori = parseInt(bin.slice(33 + i * 2, 35 + i * 2), 2);
+                cchk -= ori << 3;
+                cchk ^= perm;
+                ca[i] = ori << 3 | perm;
+            }
+            ca[7] = (cchk & 0xff8) % 24 | cchk & 0x7;
+            for (let i = 0; i < 11; i++) {
+                const perm = parseInt(bin.slice(47 + i * 4, 51 + i * 4), 2);
+                const ori = parseInt(bin.slice(91 + i, 92 + i), 2);
+                echk ^= perm << 1 | ori;
+                ea[i] = perm << 1 | ori;
+            }
+            ea[11] = echk;
+            
+            console.log('[gancube] v2 facelets event state parsed');
+            
+            // Check if it's solved (ca: 0..7, ea: 0,2,4,6,8,10,12,14,16,18,20,22)
+            let isSolved = true;
+            for (let i = 0; i < 8; i++) {
+                if (ca[i] !== i) isSolved = false;
+            }
+            for (let i = 0; i < 12; i++) {
+                if (ea[i] !== i * 2) isSolved = false;
+            }
+            
+            if (isSolved) {
+                console.log('[gancube] init cube state - Cube is solved');
+                if (window.resetBtCube) {
+                    window.resetBtCube();
+                }
+            } else {
+                console.log('[gancube] init cube state - Cube is NOT solved, ca:', ca, 'ea:', ea);
+                // Map the corners and edges to sticker colors
+                if (window.initBtCubeFromState) {
+                    window.initBtCubeFromState(ca, ea);
+                }
+            }
+            
+            // Replicate cstimer: send battery request after facelets
+            console.log('[gancube] v2sendRequest 9 (battery)');
+            this.sendV2Request(9);
+        } else if (mode === 5) { // hardware info
+            console.log(`[gancube] v2 received hardware info event`);
+            const hardwareVersion = parseInt(bin.slice(8, 16), 2) + "." + parseInt(bin.slice(16, 24), 2);
+            const softwareVersion = parseInt(bin.slice(24, 32), 2) + "." + parseInt(bin.slice(32, 40), 2);
+            let devName = '';
+            for (let i = 0; i < 8; i++) {
+                const charCode = parseInt(bin.slice(40 + i * 8, 48 + i * 8), 2);
+                if (charCode > 0) {
+                    devName += String.fromCharCode(charCode);
+                }
+            }
+            const gyroEnabled = 1 === parseInt(bin.slice(104, 105), 2);
+            console.log('[gancube] Hardware Version:', hardwareVersion);
+            console.log('[gancube] Software Version:', softwareVersion);
+            console.log('[gancube] Device Name:', devName);
+            console.log('[gancube] Gyro Enabled:', gyroEnabled);
+        } else if (mode === 9) { // battery
+            const batteryLevel = parseInt(bin.slice(8, 16), 2);
+            console.log('[gancube] v2 received battery event, level:', batteryLevel);
         }
     }
 
@@ -546,12 +652,25 @@ class BluetoothManager {
         
         // If still no MAC for GAN cube, we may need to prompt the user
         const name = device.name || '';
+        const cacheKey = `cubestats_mac_${device.id}`;
+        
         if (!mac && (name.startsWith('GAN') || name.startsWith('MG') || name.startsWith('AiCube'))) {
-            const userMac = prompt("Could not automatically detect cube MAC address needed for decryption. Please enter it (format XX:XX:XX:XX:XX:XX):");
-            if (userMac) {
-                mac = userMac.toLowerCase();
-                console.log('[Bluetooth] MAC provided by user:', mac);
+            // Try to get from localStorage
+            mac = localStorage.getItem(cacheKey) || localStorage.getItem('cubestats_mac_last');
+            if (mac) {
+                console.log('[Bluetooth] MAC retrieved from localStorage:', mac);
+            } else {
+                const userMac = prompt(`Could not automatically detect cube MAC address needed for decryption. Please enter it for ${name} (format XX:XX:XX:XX:XX:XX):`);
+                if (userMac) {
+                    mac = userMac.toLowerCase();
+                    console.log('[Bluetooth] MAC provided by user:', mac);
+                }
             }
+        }
+        
+        if (mac) {
+            localStorage.setItem(cacheKey, mac);
+            localStorage.setItem('cubestats_mac_last', mac);
         }
 
         const services = await gattServer.getPrimaryServices();

@@ -62,6 +62,13 @@ function formatTime(ms) {
         }
 
         function startTimer() {
+            if (state.inspectionInterval) {
+                clearInterval(state.inspectionInterval);
+                state.inspectionInterval = null;
+            }
+            const inspectionEl = document.getElementById('inspectionTimer');
+            if (inspectionEl) inspectionEl.textContent = '';
+
             state.status = 'solving';
             state.timer = Date.now();
             state.currentSolve = {

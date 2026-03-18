@@ -43,21 +43,31 @@ let bluetoothManager = new window.BluetoothManager();
                         cubeMoveBuffer.push(...moves);
                         if (cubeMoveBuffer.length > 10) cubeMoveBuffer = cubeMoveBuffer.slice(-10);
 
-                        // If timer is ready (inspection done) and cube moves, start timer
-                        if (state.status === 'ready') {
-                            console.log('[Timer] Starting from cube move');
-                            startTimer();
-                        } else if (state.status === 'idle') {
-                            // Optionally start inspection
-                            console.log('[Timer] Starting inspection from cube move');
-                            startSolve();
+                        // Apply moves to virtual bluetooth cube
+                        for (const moveStr of moves) {
+                            const face = moveStr[0];
+                            const modifier = moveStr.length > 1 ? moveStr.slice(1) : '';
+                            updateBtCubeView({ face, modifier });
                         }
 
-                        // If timer is running and we get moves, record them
-                        if (state.status === 'running') {
+                        if (state.status === 'idle') {
+                            // Scramble phase
+                            if (isScrambleReached()) {
+                                showToast('Scramble completed!', 'success');
+                                startSolve(); // Starts inspection
+                            }
+                        } else if (state.status === 'ready' || state.status === 'inspection') {
+                            // During inspection or ready phase, any twist starts the solve timer
+                            console.log('[Timer] Starting solve from cube move');
+                            startTimer();
+                        } else if (state.status === 'solving') {
+                            // During solving, record moves
                             state.currentSolve.moveCount = (state.currentSolve.moveCount || 0) + moves.length;
-                            // Update virtual cube
-                            applyScrambleToCube(moves.join(' '));
+                            
+                            // End timer if solved
+                            if (isCubeSolved(state.btCubeState)) {
+                                stopTimer();
+                            }
                         }
                     }
                 });
