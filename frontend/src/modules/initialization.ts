@@ -16,12 +16,16 @@ async function init() {
             // Check user role and show coach panel if needed
             await switchUser();
 
-            await loadSolves();
+            loadSolves();
             generateScramble();
             updateTimerDisplay();
             initCube();
             initCubeView();
             updateUITexts();
+            updateSessionStats();
+
+            // Update timer visibility based on connection state
+            updateTimerVisibility();
         }
 
         init();

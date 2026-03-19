@@ -32,6 +32,12 @@
             <div class="connection-status">
                 <span class="status-dot" id="connectionDot"></span>
                 <span id="connectionText" data-i18n="disconnected">Disconnected</span>
+                <button class="btn-bt-scan" id="headerScanBtn" onclick="scanForCubes()" title="Scan for Bluetooth Cubes">
+                    <span>📡</span>
+                </button>
+                <div class="bt-dropdown" id="btDropdown">
+                    <div class="bt-dropdown-content" id="btDevices"></div>
+                </div>
             </div>
         </div>
     </header>
@@ -40,6 +46,39 @@
         <!-- Timer Section -->
         <div class="timer-section">
             <div class="card timer-display">
+                <div class="scramble-controls-row">
+                    <div class="scramble-display">
+                        <div class="scramble-label" data-i18n="scramble">Scramble</div>
+                        <div class="scramble-text" id="scramble">R U R' U' F D F' D' R2 U2 R U2 R'</div>
+                    </div>
+                    <div class="scramble-dropdown-container">
+                        <select class="scramble-type-select" id="scrambleTypeSelect" onchange="setScrambleType(this.value)">
+                            <option value="wca">WCA</option>
+                            <option value="cross">Cross</option>
+                            <option value="f2l">F2L</option>
+                            <option value="oll">OLL</option>
+                            <option value="pll">PLL</option>
+                        </select>
+                        <div class="scramble-options" id="wcaOptions">
+                            <button class="scramble-option active" data-length="20">20</button>
+                            <button class="scramble-option" data-length="25">25</button>
+                            <button class="scramble-option" data-length="30">30</button>
+                        </div>
+                        <div class="scramble-options" id="crossOptions" style="display: none;">
+                            <span class="scramble-hint">4 moves</span>
+                        </div>
+                        <div class="scramble-options" id="f2lOptions" style="display: none;">
+                            <span class="scramble-hint">8 moves</span>
+                        </div>
+                        <div class="scramble-options" id="pllOptions" style="display: none;">
+                            <span class="scramble-hint">21 cases</span>
+                        </div>
+                        <div class="scramble-options" id="ollOptions" style="display: none;">
+                            <span class="scramble-hint">57 cases</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="inspection-timer" id="inspectionTimer"></div>
                 <div class="timer" id="timer">0.00</div>
                 <div class="penalty-btns" id="penaltyBtns" style="display: none;">
@@ -47,11 +86,19 @@
                     <button class="btn btn-secondary" onclick="applyPenalty('+2')">+2</button>
                 </div>
 
-                <!-- Cube Display Container - Both Views -->
-                <div id="cubeContainer" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
-                    <!-- Flat View (Scramble Target) -->
-                    <div id="cubeFlatContainer" style="text-align: center;">
-                        <div class="face-label" style="margin-bottom: 8px; color: var(--text-secondary);">Scramble Target</div>
+                <!-- Cube Display Container - Side by Side Layout -->
+                <div id="cubeContainer" class="cube-container">
+                    <!-- Left: 3D Virtual Cube -->
+                    <div class="cube-3d-panel">
+                        <canvas id="threeJsCanvas" width="300" height="300"></canvas>
+                    </div>
+
+                    <!-- Right: Scramble Target -->
+                    <div class="cube-flat-panel" id="cubeFlatPanel">
+                        <div class="panel-header">
+                            <span class="face-label">Scramble Target</span>
+                            <button class="btn btn-sm btn-secondary" onclick="toggleScrambleTarget()">Toggle</button>
+                        </div>
                         <div id="cubeDisplay">
                             <!-- Row 1: Empty, U, Empty, Empty -->
                             <div class="cube-row">
@@ -130,46 +177,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- 3D View (Bluetooth Status) - Three.js -->
-                    <div id="cube3DContainer" style="text-align: center;">
-                        <div class="face-label" style="margin-bottom: 8px; color: var(--text-secondary);">Bluetooth Status</div>
-                        <canvas id="threeJsCanvas" width="400" height="400" style="border-radius: 8px;"></canvas>
-                    </div>
-                </div>
-
-                <!-- Cube View Toggle -->
-                <div style="display: flex; justify-content: center; gap: 8px; margin-top: 8px;">
-                    <button class="btn btn-secondary" id="cubeViewBtn" onclick="toggleCubeView()">Hide Flat View</button>
-                </div>
-
-                <div class="scramble-display">
-                    <div class="scramble-label" data-i18n="scramble">Scramble</div>
-                    <div class="scramble-text" id="scramble">R U R' U' F D F' D' R2 U2 R U2 R'</div>
-                </div>
-                <div class="scramble-type-options">
-                    <button class="scramble-type-btn active" data-type="wca" onclick="setScrambleType('wca')">WCA</button>
-                    <button class="scramble-type-btn" data-type="cross" onclick="setScrambleType('cross')">Cross</button>
-                    <button class="scramble-type-btn" data-type="f2l" onclick="setScrambleType('f2l')">F2L</button>
-                    <button class="scramble-type-btn" data-type="oll" onclick="setScrambleType('oll')">OLL</button>
-                    <button class="scramble-type-btn" data-type="pll" onclick="setScrambleType('pll')">PLL</button>
-                </div>
-                <div class="scramble-options" id="wcaOptions">
-                    <button class="scramble-option active" data-length="20">20</button>
-                    <button class="scramble-option" data-length="25">25</button>
-                    <button class="scramble-option" data-length="30">30</button>
-                </div>
-                <div class="scramble-options" id="crossOptions" style="display: none;">
-                    <span class="scramble-hint">4 moves</span>
-                </div>
-                <div class="scramble-options" id="f2lOptions" style="display: none;">
-                    <span class="scramble-hint">8 moves</span>
-                </div>
-                <div class="scramble-options" id="pllOptions" style="display: none;">
-                    <span class="scramble-hint">21 cases</span>
-                </div>
-                <div class="scramble-options" id="ollOptions" style="display: none;">
-                    <span class="scramble-hint">57 cases</span>
                 </div>
             </div>
 
@@ -283,9 +290,11 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-title" data-i18n="solveHistory">Solve History</span>
-                    <div class="history-filters">
-                        <button class="filter-btn active" data-filter="all">All</button>
-                        <button class="filter-btn" data-filter="session">Session</button>
+                    <div class="history-controls">
+                        <select class="session-select" id="sessionSelector" onchange="onSessionChange(event)">
+                            <option value="1">Session 1</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" onclick="createNewSession()">+ New</button>
                         <button class="filter-btn" onclick="exportData()">Export</button>
                     </div>
                 </div>

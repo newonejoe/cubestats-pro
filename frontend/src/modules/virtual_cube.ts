@@ -606,8 +606,13 @@
                 cubeContainer.classList.remove('hidden-flat', 'hidden-3d');
                 btn.textContent = 'Hide Flat View';
             }
-            // Save preference
-            localStorage.setItem('cubeViewMode', cubeViewMode);
+        }
+
+        function toggleScrambleTarget() {
+            const flatPanel = document.getElementById('cubeFlatPanel');
+            if (flatPanel) {
+                flatPanel.classList.toggle('hidden');
+            }
         }
 
         function initCubeView() {
@@ -946,6 +951,7 @@ window.createCubie = createCubie;
 window.applyMove = applyMove;
 window.animateThreeJs = animateThreeJs;
 window.toggleCubeView = toggleCubeView;
+window.toggleScrambleTarget = toggleScrambleTarget;
 window.applyBtMove = applyBtMove;
 window.updateBtCubeView = updateBtCubeView;
 window.initCube = initCube;

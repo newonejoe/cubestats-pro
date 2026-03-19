@@ -1,6 +1,37 @@
 let bluetoothManager = new window.BluetoothManager();
         let cubeMoveBuffer = [];
 
+        function updateBtDropdown(name: string | null, connected: boolean) {
+            const dropdown = document.getElementById('btDropdown');
+            const devicesList = document.getElementById('btDevices');
+
+            if (connected && name) {
+                dropdown?.classList.add('show');
+                devicesList.innerHTML = `
+                    <div class="bt-device" onclick="disconnectCube()">
+                        <span class="bt-device-name">${name}</span>
+                        <span class="bt-device-rssi">Connected ✓</span>
+                    </div>
+                `;
+            } else {
+                dropdown?.classList.remove('show');
+                devicesList.innerHTML = '';
+            }
+        }
+
+        function updateHeaderScanBtn(scanning: boolean) {
+            const btn = document.getElementById('headerScanBtn');
+            if (btn) {
+                if (scanning) {
+                    btn.classList.add('scanning');
+                    btn.innerHTML = '<span class="recording">📡</span>';
+                } else {
+                    btn.classList.remove('scanning');
+                    btn.innerHTML = '<span>📡</span>';
+                }
+            }
+        }
+
         async function scanForCubes() {
             const scanBtn = document.getElementById('scanBtn');
             if (!navigator.bluetooth) {
@@ -8,8 +39,11 @@ let bluetoothManager = new window.BluetoothManager();
                 return;
             }
 
-            scanBtn.innerHTML = '<span class="recording">📡</span> Scanning...';
-            scanBtn.disabled = true;
+            updateHeaderScanBtn(true);
+            if (scanBtn) {
+                scanBtn.innerHTML = '<span class="recording">📡</span> Scanning...';
+                scanBtn.disabled = true;
+            }
 
             try {
                 const { device, mac } = await bluetoothManager.scan();
@@ -19,22 +53,17 @@ let bluetoothManager = new window.BluetoothManager();
                     document.getElementById('connectionDot').classList.add('connected');
                     document.getElementById('connectionText').textContent = name || 'Smart Cube';
                     showToast(`Connected to ${name || 'Smart Cube'}!`, 'success');
-
-                    const devicesList = document.getElementById('btDevices');
-                    devicesList.innerHTML = `
-                        <div class="bt-device" onclick="disconnectCube()">
-                            <span class="bt-device-name">${name || 'Smart Cube'}</span>
-                            <span class="bt-device-rssi">Connected ✓</span>
-                        </div>
-                    `;
+                    updateBtDropdown(name || 'Smart Cube', true);
+                    window.updateTimerVisibility?.();
                 });
 
                 bluetoothManager.setOnDisconnect(() => {
                     state.cubeConnected = false;
                     document.getElementById('connectionDot').classList.remove('connected');
                     document.getElementById('connectionText').textContent = 'Disconnected';
-                    document.getElementById('btDevices').innerHTML = '';
+                    updateBtDropdown(null, false);
                     showToast('Cube disconnected', 'error');
+                    window.updateTimerVisibility?.();
                 });
 
                 bluetoothManager.setOnMove((moves) => {
@@ -89,8 +118,11 @@ let bluetoothManager = new window.BluetoothManager();
                 }
             }
 
-            scanBtn.innerHTML = '<span>📡</span> <span data-i18n="scanForCubes">Scan for Cubes</span>';
-            scanBtn.disabled = false;
+            updateHeaderScanBtn(false);
+            if (scanBtn) {
+                scanBtn.innerHTML = '<span>📡</span> <span data-i18n="scanForCubes">Scan for Cubes</span>';
+                scanBtn.disabled = false;
+            }
         }
 
         function onCubeDisconnected() {

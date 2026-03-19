@@ -90,7 +90,7 @@ function formatTime(ms) {
             document.getElementById('penaltyBtns').style.display = 'none';
         }
 
-        async function stopTimer() {
+        async function stopTimer(penalty: string | null = null) {
             if (state.timerInterval) {
                 clearInterval(state.timerInterval);
                 state.timerInterval = null;
@@ -113,12 +113,37 @@ function formatTime(ms) {
 
             document.getElementById('currentTime').textContent = formatTime(solveTime);
 
+            // If penalty is provided (auto-stop from cube detection), apply it
+            if (penalty) {
+                if (penalty === '+2') {
+                    state.currentSolve.penalty = 1;
+                    state.currentSolve.plus2 = true;
+                } else if (penalty === 'DNF') {
+                    state.currentSolve.penalty = 2;
+                    state.currentSolve.dnf = true;
+                }
+            }
+
+            // Save solve to localStorage
+            const isDNF = state.currentSolve.penalty === 2;
+            const isPlus2 = state.currentSolve.penalty === 1;
+            const finalTime = isDNF ? null : (isPlus2 ? solveTime + 2000 : solveTime);
+
+            window.addSolve?.(solveTime, state.currentSolve.scramble || state.scramble, state.currentSolve.moveCount || 0, isDNF, isPlus2);
+
+            // Save to API
+            await saveSolve(state.currentSolve);
+
+            // Reload data
+            loadSolves();
+            loadStatistics();
+
             setTimeout(() => {
                 generateScramble();
             }, 1000);
         }
 
-        async function applyPenalty(penalty) {
+        async function applyPenalty(penalty: string) {
             if (!state.currentSolve) return;
 
             let finalTime = state.currentSolve.time;
@@ -133,6 +158,11 @@ function formatTime(ms) {
             }
 
             state.currentSolve.finalTime = finalTime;
+
+            // Save to localStorage
+            const isDNF = penalty === 'DNF';
+            const isPlus2 = penalty === '+2';
+            window.addSolve?.(state.currentSolve.time, state.currentSolve.scramble || state.scramble, state.currentSolve.moveCount || 0, isDNF, isPlus2);
 
             // Get CFOP analysis
             const analysis = await analyzeSolve(state.currentSolve.time);
@@ -159,8 +189,8 @@ function formatTime(ms) {
             await saveSolve(state.currentSolve);
 
             // Reload data
-            await loadSolves();
-            await loadStatistics();
+            loadSolves();
+            loadStatistics();
 
             // Reset UI
             document.getElementById('penaltyBtns').style.display = 'none';
