@@ -31,3 +31,7 @@ document.addEventListener('keydown', (e) => {
         document.getElementById('coachModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) closeCoachDashboard();
         });
+
+        document.getElementById('resetModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeResetModal(false);
+        });

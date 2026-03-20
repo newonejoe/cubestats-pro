@@ -1,6 +1,8 @@
 // Qiyi Cube Driver
 
 import { CubeDriver, registerDriver } from './driver.js';
+import { getProp } from '../kernel.js'
+import { SOLVED_FACELET} from '../lib/mathlib.js'
 
 declare const CryptoJS: any;
 declare const LZString: any;
@@ -168,7 +170,7 @@ export class QiyiDriver extends CubeDriver {
 
     parseData(bytes: Uint8Array): void {
 	const nowIso = new Date().toISOString();
-        const encMsg = Array.from(bytes);
+    const encMsg = Array.from(bytes);
 	console.log(`[${nowIso}] [qiyicube] receive enc data ${ encMsg.join(',')}`);
         if (!this.decoder) return;
         const msg: number[] = [];
@@ -227,10 +229,28 @@ export class QiyiDriver extends CubeDriver {
             const facelets = this.parseFacelet(faceletData);
             console.log(`[qiyicube] Initial facelets: ${facelets}`);
 
-            // Update virtual cube with facelets if callback exists
-            if ((window as any).onGanCubeState) {
-                (window as any).onGanCubeState(facelets);
+            // Check if cube matches saved solved state (using virtual_cube functions)
+            // const isMatch = (window as any).checkSolvedState?.(facelets) ?? false;
+            // if (!isMatch) {
+            if (facelets != getProp('giiSolved', SOLVED_FACELET)) {
+                console.log('[qiyicube] Cube does not match saved solved state, asking user...');
+                // Show modal to ask user if cube is actually solved
+                (window as any).showResetModal?.((confirmed: boolean) => {
+                    if (confirmed) {
+                        console.log('[qiyicube] User confirmed solved, saving facelets...');
+                        (window as any).markCubeSolved?.(facelets);
+                    }
+		    else{
+            		// Update virtual cube with facelets if callback exists
+            		if ((window as any).onGanCubeState) {
+                	    (window as any).onGanCubeState(facelets);
+            	        }
+		    }	
+                });
+            } else {
+                console.log('[qiyicube] Cube matches saved solved state');
             }
+
 
             this.lastTs = ts;
 
@@ -270,11 +290,6 @@ export class QiyiDriver extends CubeDriver {
             const faceletData = msg.slice(7, 34);
             const facelets = this.parseFacelet(faceletData);
             console.log(`[qiyicube] Current facelets: ${facelets}`);
-
-            // Update virtual cube with facelets if callback exists
-            if ((window as any).onGanCubeState) {
-                (window as any).onGanCubeState(facelets);
-            }
 
             // Battery level at byte 35
             const batteryLevel = msg[35];

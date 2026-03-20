@@ -1,3 +1,7 @@
+// Import mathlib for solved state management
+
+import { setProp } from "../kernel";
+
 // Three.js variables
         let threeScene, threeCamera, threeRenderer, threeCube;
         let cubeGroup;
@@ -70,7 +74,7 @@
                 white: 0xffffff,
                 yellow: 0xfffd05,
                 red: 0xfe0100,
-                orange: 0xfdab01,
+                orange: 0xff5800,
                 green: 0x00df00,
                 blue: 0x0001fd,
                 black: 0x111111
@@ -387,6 +391,21 @@
             buildThreeJsCube();
             console.log('[VirtualCube] Updated from facelets:', facelets);
         }
+
+        // Mark current state as solved and save to localStorage
+        // Reference: cstimer markSolved() - saves current facelets as the solved reference
+        function markCubeSolved(facelets: string): void {
+            setProp('giiSolved', facelets);
+            console.log('[VirtualCube] Saved solved facelets:', facelets);
+            // Reset cube state tracking (similar to cstimer)
+            // Reset scramble/move tracking for new solve
+            if (window.resetCubeTracking) {
+                window.resetCubeTracking();
+            }
+        }
+
+        // Expose functions for hardware drivers
+        (window as any).markCubeSolved = markCubeSolved;
 
         // Callback for hardware drivers to update cube state from facelets
         (window as any).onGanCubeState = setBtCubeStateFromFacelets;

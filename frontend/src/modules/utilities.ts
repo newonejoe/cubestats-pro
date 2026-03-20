@@ -31,6 +31,26 @@ function showToast(message, type = 'success') {
             showToast(`Exported ${state.solves.length} solves`, 'success');
         }
 
+// Reset modal functions
+let resetModalCallback: ((confirmed: boolean) => void) | null = null;
+
+function showResetModal(callback: (confirmed: boolean) => void) {
+    resetModalCallback = callback;
+    const modal = document.getElementById('resetModal');
+    modal?.classList.add('active');
+}
+
+function closeResetModal(confirmed: boolean) {
+    const modal = document.getElementById('resetModal');
+    modal?.classList.remove('active');
+    if (resetModalCallback) {
+        resetModalCallback(confirmed);
+        resetModalCallback = null;
+    }
+}
+
 // Expose to window for inline HTML and other modules
 window.exportData = exportData;
 window.showToast = showToast;
+window.showResetModal = showResetModal;
+window.closeResetModal = closeResetModal;

@@ -3,6 +3,12 @@ import { bluetoothManager } from '../hardware/index.js';
 
 let cubeMoveBuffer: any[] = [];
 
+// Reset cube tracking state (called when marking cube as solved)
+function resetCubeTracking(): void {
+    cubeMoveBuffer = [];
+    console.log('[Bluetooth] Cube tracking reset');
+}
+
         function updateBtDropdown(name: string | null, connected: boolean) {
             const dropdown = document.getElementById('btDropdown');
             const devicesList = document.getElementById('btDevices');
@@ -147,3 +153,4 @@ window.disconnectCube = disconnectCube;
 window.onCubeDisconnected = onCubeDisconnected;
 window.bluetoothManager = bluetoothManager;
 window.cubeMoveBuffer = cubeMoveBuffer;
+window.resetCubeTracking = resetCubeTracking;
