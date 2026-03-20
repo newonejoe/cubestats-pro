@@ -1,6 +1,8 @@
 // GAN Cube Driver
 
 import { CubeDriver, registerDriver } from './driver.js';
+import { getProp } from '../kernel.js';
+import { SOLVED_FACELET } from '../lib/mathlib.js';
 
 declare const CryptoJS: any;
 declare const LZString: any;
@@ -311,7 +313,7 @@ export class GanDriver extends CubeDriver {
 
             this.prevMoveCnt = moveCnt;
         } else if (mode === 4) {
-            // Facelets event
+            // Facelets event - initial state or state query response
             console.log(`[${nowIso}] [gancube] v2 received facelets event ${bin}`);
 
             this.prevMoveCnt = parseInt(bin.slice(4, 12), 2);
@@ -320,9 +322,27 @@ export class GanDriver extends CubeDriver {
             const facelets = this.parseFaceletsV2(bin);
             console.log(`[${nowIso}] [gancube] v2 facelets event state parsed ${facelets}`);
 
-            // Update virtual cube with facelets
-            if ((window as any).onGanCubeState) {
-                (window as any).onGanCubeState(facelets);
+            // Check if cube matches saved solved state
+            if (facelets !== getProp('giiSolved', SOLVED_FACELET)) {
+                console.log('[gancube] Cube does not match saved solved state, asking user...');
+                // Show modal to ask user if cube is actually solved
+                (window as any).showResetModal?.((confirmed: boolean) => {
+                    if (confirmed) {
+                        console.log('[gancube] User confirmed solved, saving facelets...');
+                        (window as any).markCubeSolved?.(facelets);
+                    } else {
+                        // Update virtual cube with facelets if user says it's scrambled
+                        if ((window as any).onGanCubeState) {
+                            (window as any).onGanCubeState(facelets);
+                        }
+                    }
+                });
+            } else {
+                console.log('[gancube] Cube matches saved solved state');
+                // Update virtual cube with facelets
+                if ((window as any).onGanCubeState) {
+                    (window as any).onGanCubeState(facelets);
+                }
             }
         } else if (mode === 5) {
             // Hardware info event
