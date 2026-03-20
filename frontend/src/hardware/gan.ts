@@ -349,13 +349,144 @@ export class GanDriver extends CubeDriver {
         }
     }
 
+    // Convert cubie state to facelet string
+    cubieToFacelet(ca: number[], ea: number[]): string {
+        // Corner colors: URF, UFL, ULB, UBR, DFR, DLF, DBL, DRB
+        const cornerColors = [
+            ['U', 'R', 'F'], // URF
+            ['U', 'F', 'L'], // UFL
+            ['U', 'L', 'B'], // ULB
+            ['U', 'B', 'R'], // UBR
+            ['D', 'F', 'R'], // DFR
+            ['D', 'L', 'F'], // DLF
+            ['D', 'B', 'L'], // DBL
+            ['D', 'R', 'B']  // DRB
+        ];
+
+        // Edge colors: UR, UF, UL, UB, DR, DF, DL, DB, FR, FL, BL, BR
+        const edgeColors = [
+            ['U', 'R'], // UR
+            ['U', 'F'], // UF
+            ['U', 'L'], // UL
+            ['U', 'B'], // UB
+            ['D', 'R'], // DR
+            ['D', 'F'], // DF
+            ['D', 'L'], // DL
+            ['D', 'B'], // DB
+            ['F', 'R'], // FR
+            ['F', 'L'], // FL
+            ['B', 'L'], // BL
+            ['B', 'R']  // BR
+        ];
+
+        // Corner index to position mapping (CornieCube.ca stores (ori << 3) | perm)
+        // Extract orientation and permutation from ca[i]
+        const getOri = (c: number) => (c >> 3) & 0x3; // 2 bits for orientation
+        const getPerm = (c: number) => c & 0x7; // 3 bits for permutation
+
+        // Edge index to position mapping
+        const getEdgeOri = (e: number) => e & 0x1; // 1 bit for orientation
+        const getEdgePerm = (e: number) => (e >> 1) & 0xF; // 4 bits for permutation
+
+        // Initialize facelets array (54 positions)
+        const facelets: string[] = new Array(54);
+
+        // Map corners to facelets (9-17: R face, 18-26: F face, 27-35: D face, 36-44: L face, 45-53: B face)
+        // Corner indices: 0=URF, 1=UFL, 2=ULB, 3=UBR, 4=DFR, 5=DLF, 6=DBL, 7=DRB
+        // Corner facelet positions:
+        // - URF: U0(0), R0(9), F0(18)
+        // - UFL: U1(1), F1(18), L0(36)
+        // - ULB: U2(2), L1(37), B0(45)
+        // - UBR: U3(3), B1(46), R1(10)
+        // - DFR: D0(27), F2(19), R2(11)
+        // - DLF: D1(28), L2(38), F3(20)
+        // - DBL: D2(29), B2(47), L3(39)
+        // - DRB: D3(30), R3(12), B3(48)
+
+        const cornerFacelets = [
+            [0, 9, 18],   // URF
+            [1, 20, 36],  // UFL
+            [2, 37, 45],  // ULB
+            [3, 46, 10],  // UBR
+            [27, 19, 11], // DFR
+            [28, 38, 20], // DLF
+            [29, 47, 39], // DBL
+            [30, 12, 48]  // DRB
+        ];
+
+        // Edge facelet positions
+        const edgeFacelets = [
+            [4, 10],  // UR
+            [5, 19],  // UF
+            [6, 37],  // UL
+            [7, 46],  // UB
+            [31, 11], // DR
+            [32, 21], // DF
+            [33, 39], // DL
+            [34, 48], // DB
+            [22, 13], // FR
+            [23, 40], // FL
+            [41, 50], // BL
+            [24, 14]  // BR
+        ];
+
+        // Apply corner permutation and orientation
+        for (let i = 0; i < 8; i++) {
+            const cubie = ca[i];
+            const ori = getOri(cubie);
+            const perm = getPerm(cubie);
+
+            const colors = cornerColors[perm];
+            const positions = cornerFacelets[i];
+
+            // Apply orientation - rotate colors
+            // ori=0: colors as-is, ori=1: rotate once, ori=2: rotate twice
+            for (let j = 0; j < 3; j++) {
+                const idx = (j + ori) % 3;
+                facelets[positions[j]] = colors[idx];
+            }
+        }
+
+        // Apply edge permutation and orientation
+        for (let i = 0; i < 12; i++) {
+            const cubie = ea[i];
+            const ori = getEdgeOri(cubie);
+            const perm = getEdgePerm(cubie);
+
+            const colors = edgeColors[perm];
+            const positions = edgeFacelets[i];
+
+            // For edges, orientation flips the colors
+            if (ori === 0) {
+                facelets[positions[0]] = colors[0];
+                facelets[positions[1]] = colors[1];
+            } else {
+                facelets[positions[0]] = colors[1];
+                facelets[positions[1]] = colors[0];
+            }
+        }
+
+        // Fill U face (0-8) - center is always U
+        for (let i = 0; i < 9; i++) {
+            if (!facelets[i]) facelets[i] = 'U';
+        }
+
+        // Fill D face (27-35) - center is always D
+        for (let i = 27; i < 36; i++) {
+            if (!facelets[i]) facelets[i] = 'D';
+        }
+
+        return facelets.join('');
+    }
+
     parseFaceletsV2(bin: string): string {
-        // Simplified facelets parsing for V2
+        // Parse corner permutation and orientation from cubie data
         const ca: number[] = [];
         const ea: number[] = [];
         let echk = 0;
         let cchk = 0xf00;
 
+        // Parse 7 corners (8th corner is computed)
         for (let i = 0; i < 7; i++) {
             const perm = parseInt(bin.slice(12 + i * 3, 15 + i * 3), 2);
             const ori = parseInt(bin.slice(33 + i * 2, 35 + i * 2), 2);
@@ -363,18 +494,21 @@ export class GanDriver extends CubeDriver {
             cchk ^= perm;
             ca[i] = ori << 3 | perm;
         }
+        // Compute 8th corner from checksum
         ca[7] = (cchk & 0xff8) % 24 | cchk & 0x7;
 
+        // Parse 11 edges (12th edge is computed)
         for (let i = 0; i < 11; i++) {
             const perm = parseInt(bin.slice(47 + i * 4, 51 + i * 4), 2);
             const ori = parseInt(bin.slice(91 + i, 92 + i), 2);
             echk ^= perm << 1 | ori;
             ea[i] = perm << 1 | ori;
         }
+        // Compute 12th edge from checksum
         ea[11] = echk;
 
-        // Return facelets string (simplified - assumes solved state for now)
-        return 'UUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB';
+        // Convert cubie state to facelets
+        return this.cubieToFacelet(ca, ea);
     }
 
     parseV3Data(bin: string): void {
