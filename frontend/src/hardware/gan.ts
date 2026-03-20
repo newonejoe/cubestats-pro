@@ -351,7 +351,38 @@ export class GanDriver extends CubeDriver {
 
     // Convert cubie state to facelet string
     cubieToFacelet(ca: number[], ea: number[]): string {
-        // Corner colors: URF, UFL, ULB, UBR, DFR, DLF, DBL, DRB
+        // Corner facelet positions from cstimer mathlib.js
+        const cFacelet = [
+            [8, 9, 20],   // URF
+            [6, 18, 38],  // UFL
+            [0, 36, 47],  // ULB
+            [2, 45, 11],  // UBR
+            [29, 26, 15], // DFR
+            [27, 44, 24], // DLF
+            [33, 53, 42], // DBL
+            [35, 17, 51]  // DRB
+        ];
+
+        // Edge facelet positions from cstimer mathlib.js
+        const eFacelet = [
+            [5, 10],  // UR
+            [7, 19],  // UF
+            [3, 37],  // UL
+            [1, 46],  // UB
+            [32, 16], // DR
+            [28, 25], // DF
+            [30, 43], // DL
+            [34, 52], // DB
+            [23, 12], // FR
+            [21, 41], // FL
+            [50, 39], // BL
+            [48, 14]  // BR
+        ];
+
+        // Center facelets
+        const ctFacelet = [4, 13, 22, 31, 40, 49]; // U, R, F, D, L, B
+
+        // Corner colors for each cubie position (URF, UFL, ULB, UBR, DFR, DLF, DBL, DRB)
         const cornerColors = [
             ['U', 'R', 'F'], // URF
             ['U', 'F', 'L'], // UFL
@@ -363,7 +394,7 @@ export class GanDriver extends CubeDriver {
             ['D', 'R', 'B']  // DRB
         ];
 
-        // Edge colors: UR, UF, UL, UB, DR, DF, DL, DB, FR, FL, BL, BR
+        // Edge colors for each edge position
         const edgeColors = [
             ['U', 'R'], // UR
             ['U', 'F'], // UF
@@ -379,84 +410,45 @@ export class GanDriver extends CubeDriver {
             ['B', 'R']  // BR
         ];
 
-        // Corner index to position mapping (CornieCube.ca stores (ori << 3) | perm)
-        // Extract orientation and permutation from ca[i]
+        // Helper to extract corner orientation and permutation
         const getOri = (c: number) => (c >> 3) & 0x3; // 2 bits for orientation
         const getPerm = (c: number) => c & 0x7; // 3 bits for permutation
 
-        // Edge index to position mapping
+        // Helper to extract edge orientation and permutation
         const getEdgeOri = (e: number) => e & 0x1; // 1 bit for orientation
         const getEdgePerm = (e: number) => (e >> 1) & 0xF; // 4 bits for permutation
 
         // Initialize facelets array (54 positions)
         const facelets: string[] = new Array(54);
 
-        // Map corners to facelets (9-17: R face, 18-26: F face, 27-35: D face, 36-44: L face, 45-53: B face)
-        // Corner indices: 0=URF, 1=UFL, 2=ULB, 3=UBR, 4=DFR, 5=DLF, 6=DBL, 7=DRB
-        // Corner facelet positions:
-        // - URF: U0(0), R0(9), F0(18)
-        // - UFL: U1(1), F1(18), L0(36)
-        // - ULB: U2(2), L1(37), B0(45)
-        // - UBR: U3(3), B1(46), R1(10)
-        // - DFR: D0(27), F2(19), R2(11)
-        // - DLF: D1(28), L2(38), F3(20)
-        // - DBL: D2(29), B2(47), L3(39)
-        // - DRB: D3(30), R3(12), B3(48)
-
-        const cornerFacelets = [
-            [0, 9, 18],   // URF
-            [1, 20, 36],  // UFL
-            [2, 37, 45],  // ULB
-            [3, 46, 10],  // UBR
-            [27, 19, 11], // DFR
-            [28, 38, 20], // DLF
-            [29, 47, 39], // DBL
-            [30, 12, 48]  // DRB
-        ];
-
-        // Edge facelet positions
-        const edgeFacelets = [
-            [4, 10],  // UR
-            [5, 19],  // UF
-            [6, 37],  // UL
-            [7, 46],  // UB
-            [31, 11], // DR
-            [32, 21], // DF
-            [33, 39], // DL
-            [34, 48], // DB
-            [22, 13], // FR
-            [23, 40], // FL
-            [41, 50], // BL
-            [24, 14]  // BR
-        ];
-
-        // Apply corner permutation and orientation
+        // Apply corners: ca[i] is the cubie at position i
         for (let i = 0; i < 8; i++) {
             const cubie = ca[i];
-            const ori = getOri(cubie);
-            const perm = getPerm(cubie);
+            const ori = getOri(cubie);  // orientation of this cubie
+            const perm = getPerm(cubie); // which cubie is at position i
 
+            // Get the colors of the cubie that's at position i
             const colors = cornerColors[perm];
-            const positions = cornerFacelets[i];
+            const positions = cFacelet[i];
 
-            // Apply orientation - rotate colors
-            // ori=0: colors as-is, ori=1: rotate once, ori=2: rotate twice
+            // Apply orientation - rotate which color is on which face
+            // ori=0: colors as-is, ori=1: rotate once (2nd color on U/F/B), ori=2: rotate twice
             for (let j = 0; j < 3; j++) {
                 const idx = (j + ori) % 3;
                 facelets[positions[j]] = colors[idx];
             }
         }
 
-        // Apply edge permutation and orientation
+        // Apply edges: ea[i] is the edge at position i
         for (let i = 0; i < 12; i++) {
             const cubie = ea[i];
             const ori = getEdgeOri(cubie);
             const perm = getEdgePerm(cubie);
 
             const colors = edgeColors[perm];
-            const positions = edgeFacelets[i];
+            const positions = eFacelet[i];
 
-            // For edges, orientation flips the colors
+            // For edges, orientation flips which color is on which face
             if (ori === 0) {
                 facelets[positions[0]] = colors[0];
                 facelets[positions[1]] = colors[1];
@@ -466,14 +458,10 @@ export class GanDriver extends CubeDriver {
             }
         }
 
-        // Fill U face (0-8) - center is always U
-        for (let i = 0; i < 9; i++) {
-            if (!facelets[i]) facelets[i] = 'U';
-        }
-
-        // Fill D face (27-35) - center is always D
-        for (let i = 27; i < 36; i++) {
-            if (!facelets[i]) facelets[i] = 'D';
+        // Fill centers
+        const faceColors = ['U', 'R', 'F', 'D', 'L', 'B'];
+        for (let i = 0; i < 6; i++) {
+            facelets[ctFacelet[i]] = faceColors[i];
         }
 
         return facelets.join('');
