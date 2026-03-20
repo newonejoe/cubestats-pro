@@ -351,120 +351,95 @@ export class GanDriver extends CubeDriver {
 
     // Convert cubie state to facelet string
     cubieToFacelet(ca: number[], ea: number[]): string {
-        // Corner facelet positions from cstimer mathlib.js
+        // cFacelet[c][n] gives the facelet index for corner position c, facelet n
+        // cFacelet[j][n] gives the facelet index for cubie j (in its default orientation), facelet n
         const cFacelet = [
-            [8, 9, 20],   // URF
-            [6, 18, 38],  // UFL
-            [0, 36, 47],  // ULB
-            [2, 45, 11],  // UBR
-            [29, 26, 15], // DFR
-            [27, 44, 24], // DLF
-            [33, 53, 42], // DBL
-            [35, 17, 51]  // DRB
+            [8, 9, 20],   // position 0: URF
+            [6, 18, 38],  // position 1: UFL
+            [0, 36, 47],  // position 2: ULB
+            [2, 45, 11],  // position 3: UBR
+            [29, 26, 15], // position 4: DFR
+            [27, 44, 24], // position 5: DLF
+            [33, 53, 42], // position 6: DBL
+            [35, 17, 51]  // position 7: DRB
         ];
 
-        // Edge facelet positions from cstimer mathlib.js
+        // eFacelet[e][n] gives the facelet index for edge position e, facelet n
         const eFacelet = [
-            [5, 10],  // UR
-            [7, 19],  // UF
-            [3, 37],  // UL
-            [1, 46],  // UB
-            [32, 16], // DR
-            [28, 25], // DF
-            [30, 43], // DL
-            [34, 52], // DB
-            [23, 12], // FR
-            [21, 41], // FL
-            [50, 39], // BL
-            [48, 14]  // BR
+            [5, 10],  // position 0: UR
+            [7, 19],  // position 1: UF
+            [3, 37],  // position 2: UL
+            [1, 46],  // position 3: UB
+            [32, 16], // position 4: DR
+            [28, 25], // position 5: DF
+            [30, 43], // position 6: DL
+            [34, 52], // position 7: DB
+            [23, 12], // position 8: FR
+            [21, 41], // position 9: FL
+            [50, 39], // position 10: BL
+            [48, 14]  // position 11: BR
         ];
 
         // Center facelets
         const ctFacelet = [4, 13, 22, 31, 40, 49]; // U, R, F, D, L, B
 
-        // Corner colors for each cubie position (URF, UFL, ULB, UBR, DFR, DLF, DBL, DRB)
-        const cornerColors = [
-            ['U', 'R', 'F'], // URF
-            ['U', 'F', 'L'], // UFL
-            ['U', 'L', 'B'], // ULB
-            ['U', 'B', 'R'], // UBR
-            ['D', 'F', 'R'], // DFR
-            ['D', 'L', 'F'], // DLF
-            ['D', 'B', 'L'], // DBL
-            ['D', 'R', 'B']  // DRB
-        ];
-
-        // Edge colors for each edge position
-        const edgeColors = [
-            ['U', 'R'], // UR
-            ['U', 'F'], // UF
-            ['U', 'L'], // UL
-            ['U', 'B'], // UB
-            ['D', 'R'], // DR
-            ['D', 'F'], // DF
-            ['D', 'L'], // DL
-            ['D', 'B'], // DB
-            ['F', 'R'], // FR
-            ['F', 'L'], // FL
-            ['B', 'L'], // BL
-            ['B', 'R']  // BR
-        ];
-
-        // Helper to extract corner orientation and permutation
-        const getOri = (c: number) => (c >> 3) & 0x3; // 2 bits for orientation
-        const getPerm = (c: number) => c & 0x7; // 3 bits for permutation
-
-        // Helper to extract edge orientation and permutation
-        const getEdgeOri = (e: number) => e & 0x1; // 1 bit for orientation
-        const getEdgePerm = (e: number) => (e >> 1) & 0xF; // 4 bits for permutation
-
         // Initialize facelets array (54 positions)
-        const facelets: string[] = new Array(54);
+        const facelets: (string | number)[] = new Array(54);
 
-        // Apply corners: ca[i] is the cubie at position i
+        // Apply corners: ca[i] = (ori << 3) | perm
+        // perm = which cubie is at position i, ori = how it's oriented
         for (let i = 0; i < 8; i++) {
             const cubie = ca[i];
-            const ori = getOri(cubie);  // orientation of this cubie
-            const perm = getPerm(cubie); // which cubie is at position i
+            const perm = cubie & 0x7;  // which cubie (0-7) is at position i
+            const ori = (cubie >> 3) & 0x3; // orientation (0-2)
 
-            // Get the colors of the cubie that's at position i
-            const colors = cornerColors[perm];
-            const positions = cFacelet[i];
-
-            // Apply orientation - rotate which color is on which face
-            // ori=0: colors as-is, ori=1: rotate once (2nd color on U/F/B), ori=2: rotate twice
-            for (let j = 0; j < 3; j++) {
-                const idx = (j + ori) % 3;
-                facelets[positions[j]] = colors[idx];
+            // For position i, we map facelets from cubie type perm
+            // cFacelet[i][n] = facelet index at position i for facelet n
+            // cFacelet[perm][n] = facelet index for cubie perm for facelet n
+            // The orientation rotates which facelet from cubie goes to which position
+            for (let n = 0; n < 3; n++) {
+                facelets[cFacelet[i][(n + ori) % 3]] = cFacelet[perm][n];
             }
         }
 
-        // Apply edges: ea[i] is the edge at position i
+        // Apply edges: ea[i] = (perm << 1) | ori
+        // perm = which edge is at position i, ori = how it's oriented
         for (let i = 0; i < 12; i++) {
             const cubie = ea[i];
-            const ori = getEdgeOri(cubie);
-            const perm = getEdgePerm(cubie);
+            const perm = (cubie >> 1) & 0xF; // which edge (0-11) is at position i
+            const ori = cubie & 0x1; // orientation (0 or 1)
 
-            const colors = edgeColors[perm];
-            const positions = eFacelet[i];
-
-            // For edges, orientation flips which color is on which face
-            if (ori === 0) {
-                facelets[positions[0]] = colors[0];
-                facelets[positions[1]] = colors[1];
-            } else {
-                facelets[positions[0]] = colors[1];
-                facelets[positions[1]] = colors[0];
+            // Similar mapping for edges
+            for (let n = 0; n < 2; n++) {
+                facelets[eFacelet[i][(n + ori) % 2]] = eFacelet[perm][n];
             }
         }
+
+        // Now convert facelet indices to colors
+        // Facelet 0-8 = U, 9-17 = R, 18-26 = F, 27-35 = D, 36-44 = L, 45-53 = B
+        const faceFromIdx = (idx: number): string => {
+            if (idx < 9) return 'U';
+            if (idx < 18) return 'R';
+            if (idx < 27) return 'F';
+            if (idx < 36) return 'D';
+            if (idx < 45) return 'L';
+            return 'B';
+        };
 
         // Fill centers
         const faceColors = ['U', 'R', 'F', 'D', 'L', 'B'];
         for (let i = 0; i < 6; i++) {
-            facelets[ctFacelet[i]] = faceColors[i];
+            facelets[ctFacelet[i]] = ctFacelet[i];
         }
 
-        return facelets.join('');
+        // Convert facelet indices to face colors
+        const result: string[] = [];
+        for (let i = 0; i < 54; i++) {
+            const idx = typeof facelets[i] === 'number' ? facelets[i] as number : i;
+            result.push(faceFromIdx(idx));
+        }
+
+        return result.join('');
     }
 
     parseFaceletsV2(bin: string): string {
@@ -474,6 +449,8 @@ export class GanDriver extends CubeDriver {
         let echk = 0;
         let cchk = 0xf00;
 
+        console.log('[gancube] Parsing facelets from bin length:', bin.length);
+
         // Parse 7 corners (8th corner is computed)
         for (let i = 0; i < 7; i++) {
             const perm = parseInt(bin.slice(12 + i * 3, 15 + i * 3), 2);
@@ -481,9 +458,11 @@ export class GanDriver extends CubeDriver {
             cchk -= ori << 3;
             cchk ^= perm;
             ca[i] = ori << 3 | perm;
+            console.log(`[gancube] Corner ${i}: perm=${perm}, ori=${ori}, ca=${ca[i]}`);
         }
         // Compute 8th corner from checksum
         ca[7] = (cchk & 0xff8) % 24 | cchk & 0x7;
+        console.log(`[gancube] Corner 7 (computed): ca=${ca[7]}, cchk=${cchk}`);
 
         // Parse 11 edges (12th edge is computed)
         for (let i = 0; i < 11; i++) {
@@ -491,12 +470,16 @@ export class GanDriver extends CubeDriver {
             const ori = parseInt(bin.slice(91 + i, 92 + i), 2);
             echk ^= perm << 1 | ori;
             ea[i] = perm << 1 | ori;
+            console.log(`[gancube] Edge ${i}: perm=${perm}, ori=${ori}, ea=${ea[i]}`);
         }
         // Compute 12th edge from checksum
         ea[11] = echk;
+        console.log(`[gancube] Edge 11 (computed): ea=${ea[11]}, echk=${echk}`);
 
         // Convert cubie state to facelets
-        return this.cubieToFacelet(ca, ea);
+        const facelets = this.cubieToFacelet(ca, ea);
+        console.log('[gancube] Final facelets:', facelets);
+        return facelets;
     }
 
     parseV3Data(bin: string): void {
