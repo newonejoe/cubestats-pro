@@ -322,28 +322,8 @@ export class GanDriver extends CubeDriver {
             const facelets = this.parseFaceletsV2(bin);
             console.log(`[${nowIso}] [gancube] v2 facelets event state parsed ${facelets}`);
 
-            // Check if cube matches saved solved state
-            if (facelets !== getProp('giiSolved', SOLVED_FACELET)) {
-                console.log('[gancube] Cube does not match saved solved state, asking user...');
-                // Show modal to ask user if cube is actually solved
-                (window as any).showResetModal?.((confirmed: boolean) => {
-                    if (confirmed) {
-                        console.log('[gancube] User confirmed solved, saving facelets...');
-                        (window as any).markCubeSolved?.(facelets);
-                    } else {
-                        // Update virtual cube with facelets if user says it's scrambled
-                        if ((window as any).onGanCubeState) {
-                            (window as any).onGanCubeState(facelets);
-                        }
-                    }
-                });
-            } else {
-                console.log('[gancube] Cube matches saved solved state');
-                // Update virtual cube with facelets
-                if ((window as any).onGanCubeState) {
-                    (window as any).onGanCubeState(facelets);
-                }
-            }
+            // Check and initialize cube state
+            this.initialCubeState(facelets);
         } else if (mode === 5) {
             // Hardware info event
             console.log(`[${nowIso}] [gancube] v2 received hardware info event ${bin}`);
@@ -525,6 +505,18 @@ export class GanDriver extends CubeDriver {
             }
 
             this.prevMoveCnt = moveCnt;
+        } else if (mode === 2) {
+            // Cube state event - initial state
+            console.log(`[${nowIso}] [gancube] v3 received cube state event ${bin}`);
+
+            this.prevMoveCnt = parseInt(bin.slice(64, 72) + bin.slice(56, 64), 2);
+
+            // Parse cubie state to facelets
+            const facelets = this.parseCubieStateV3(bin);
+            console.log(`[${nowIso}] [gancube] v3 cube state parsed ${facelets}`);
+
+            // Check and initialize cube state
+            this.initialCubeState(facelets);
         }
     }
 
@@ -548,7 +540,55 @@ export class GanDriver extends CubeDriver {
             }
 
             this.prevMoveCnt = moveCnt;
+        } else if (mode === 0xED) {
+            // Cube state event - initial state
+            console.log(`[${nowIso}] [gancube] v4 received cube state event ${bin}`);
+
+            this.prevMoveCnt = parseInt(bin.slice(56, 64) + bin.slice(48, 56), 2);
+
+            // Parse cubie state to facelets
+            const facelets = this.parseCubieStateV3(bin);
+            console.log(`[${nowIso}] [gancube] v4 cube state parsed ${facelets}`);
+
+            // Check and initialize cube state
+            this.initialCubeState(facelets);
         }
+    }
+
+    // Initialize cube state - check if matches saved solved state
+    // Reference: cstimer initCubeState() in gancube.js
+    initialCubeState(facelets: string): void {
+        // Check if cube matches saved solved state
+        if (facelets !== getProp('giiSolved', SOLVED_FACELET)) {
+            console.log('[gancube] Cube does not match saved solved state, asking user...');
+            // Show modal to ask user if cube is actually solved
+            (window as any).showResetModal?.((confirmed: boolean) => {
+                if (confirmed) {
+                    console.log('[gancube] User confirmed solved, saving facelets...');
+                    (window as any).markCubeSolved?.(facelets);
+                } else {
+                    // Update virtual cube with facelets if user says it's scrambled
+                    if ((window as any).onGanCubeState) {
+                        (window as any).onGanCubeState(facelets);
+                    }
+                }
+            });
+        } else {
+            console.log('[gancube] Cube matches saved solved state');
+            // Update virtual cube with facelets
+            if ((window as any).onGanCubeState) {
+                (window as any).onGanCubeState(facelets);
+            }
+        }
+    }
+
+    // Parse cubie state to facelets for v3/v4 protocols
+    parseCubieStateV3(bin: string): string {
+        // For v3/v4, we need to parse the cubie data similar to parseFaceletsV2
+        // This is a placeholder - the actual implementation would decode cubie state
+        // For now, return empty string as this needs proper implementation
+        console.log('[gancube] parseCubieStateV3 not fully implemented');
+        return '';
     }
 }
 
