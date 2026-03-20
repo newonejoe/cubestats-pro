@@ -74,11 +74,11 @@ let cubeMoveBuffer: any[] = [];
                         cubeMoveBuffer.push(...moves);
                         if (cubeMoveBuffer.length > 10) cubeMoveBuffer = cubeMoveBuffer.slice(-10);
 
-                        // Apply moves to virtual bluetooth cube
+                        // Process moves for timer/scramble tracking
+                        // Note: Virtual cube is updated via onGanCubeState facelet callback
                         for (const moveStr of moves) {
                             const face = moveStr[0];
                             const modifier = moveStr.length > 1 ? moveStr.slice(1) : '';
-                            updateBtCubeView({ face, modifier });
 
                             if (state.status === 'idle') {
                                 if (window.navigateScramble) {
