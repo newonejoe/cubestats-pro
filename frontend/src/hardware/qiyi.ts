@@ -110,9 +110,12 @@ export class QiyiDriver extends CubeDriver {
         for (let i = 0; i < msg.length; i += 16) {
             const block = msg.slice(i, i + 16);
             const encrypted = this.aesEncryptBlock(block);
+            // const encrypted = this.decoder.encrypt(block);
             for (let j = 0; j < 16; j++) encMsg[i + j] = encrypted[j];
         }
-        console.log('[Qiyi] send message', msg.slice(0, 20).join(','));
+        // console.log('[qiyicube] send message to cube', msg.slice(0, 20).join(','), encMsg.join(','));
+	const nowIso = new Date().toISOString();
+        console.log(`[${nowIso}] [qiyicube] send message to cube ${msg.join(',')} ${encMsg.join(',')}`);
         await this.characteristic.writeValue(new Uint8Array(encMsg).buffer);
     }
 
@@ -137,14 +140,19 @@ export class QiyiDriver extends CubeDriver {
         if (!this.mac) {
             throw new Error('Qiyi cube requires MAC from advertisement');
         }
+	let nowIso = new Date().toISOString();
+	console.log(`[${nowIso}] [qiyicube] init, find cube bluetooth hardware MAC = ${this.mac}`);
         this.initDecoder();
         this.gattServer = await device.gatt.connect();
         const service = await this.gattServer.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+	nowIso = new Date().toISOString();
+	console.log(`[${nowIso}] [qiyicube] got primary service 0000fff0-0000-1000-8000-00805f9b34fb`);
         this.characteristic = await service.getCharacteristic('0000fff6-0000-1000-8000-00805f9b34fb');
-        await this.characteristic.startNotifications();
+	nowIso = new Date().toISOString();
+	console.log(`[${nowIso}] [qiyicube] find chrcts`, this.characteristic);
         this.characteristic.addEventListener('characteristicvaluechanged', this.onData.bind(this));
+        await this.characteristic.startNotifications();
         await this.sendHello(this.mac);
-        console.log('[Qiyi] Connected and hello sent');
         return this;
     }
 
@@ -152,14 +160,16 @@ export class QiyiDriver extends CubeDriver {
         try {
             const key = JSON.parse(LZString.decompressFromEncodedURIComponent(QiyiDriver.QIYI_KEYS[0]));
             this.decoder = key;
-            console.log('[Qiyi] AES decoder initialized');
+            console.log('[qiyicube] AES decoder initialized');
         } catch (e) {
-            console.log('[Qiyi] Decoder init error:', e);
+            console.log('[qiyicube] Decoder init error:', e);
         }
     }
 
     parseData(bytes: Uint8Array): void {
+	const nowIso = new Date().toISOString();
         const encMsg = Array.from(bytes);
+	console.log(`[${nowIso}] [qiyicube] receive enc data ${ encMsg.join(',')}`);
         if (!this.decoder) return;
         const msg: number[] = [];
         for (let i = 0; i < encMsg.length; i += 16) {
@@ -167,6 +177,7 @@ export class QiyiDriver extends CubeDriver {
             const decrypted = this.aesDecryptBlock(block);
             for (let j = 0; j < 16; j++) msg[i + j] = decrypted[j];
         }
+        console.log(`[${nowIso}] [qiyicube] receive decrypted msg ${msg.join(',')}`);
         const len = msg[1];
         const trimmed = msg.slice(0, len);
         if (trimmed.length < 3 || this.crc16modbus(trimmed) !== 0) {
@@ -176,21 +187,99 @@ export class QiyiDriver extends CubeDriver {
         this.parseCubeData(trimmed);
     }
 
+    // Parse facelet data from bytes 7-33 (27 bytes for 54 facelets)
+    parseFacelet(faceMsg: number[]): string {
+        const faceMap = "LRDUFB"; // L, R, D, U, F, B order
+        const ret: string[] = [];
+        for (let i = 0; i < 54; i++) {
+            const byte = faceMsg[Math.floor(i / 2)];
+            const shift = (i % 2) * 4;
+            const colorIdx = (byte >> shift) & 0xf;
+            ret.push(faceMap[colorIdx]);
+        }
+        return ret.join("");
+    }
+
     parseCubeData(msg: number[]): void {
-        if (msg[0] !== 0xfe) return;
+        const nowIso = new Date().toISOString();
+
+        if (msg[0] !== 0xfe) {
+            console.log('[qiyicube] error cube data', msg);
+            return;
+        }
+
         const opcode = msg[2];
         const ts = (msg[3] << 24 | msg[4] << 16 | msg[5] << 8 | msg[6]);
+
+        // Acknowledge the message
+        this.sendMessage(msg.slice(2, 7));
+
         if (opcode === 0x2) {
-            this.sendMessage(msg.slice(2, 7));
+            // Cube Hello - initial state
+            console.log('[qiyicube] Cube hello, opcode 0x2');
+
+            // Battery level at byte 35
+            const batteryLevel = msg[35];
+            console.log(`[qiyicube] Battery level: ${batteryLevel}%`);
+
+            // Parse facelets from bytes 7-33 (27 bytes)
+            const faceletData = msg.slice(7, 34);
+            const facelets = this.parseFacelet(faceletData);
+            console.log(`[qiyicube] Initial facelets: ${facelets}`);
+
+            // Update virtual cube with facelets if callback exists
+            if ((window as any).onGanCubeState) {
+                (window as any).onGanCubeState(facelets);
+            }
+
             this.lastTs = ts;
+
         } else if (opcode === 0x3) {
-            this.sendMessage(msg.slice(2, 7));
-            const mv = msg[34];
-            const axis = [4, 1, 3, 0, 2, 5][(mv - 1) >> 1];
-            const power = [0, 2][mv & 1];
-            const moveStr = "URFDLB".charAt(axis) + " 2'".charAt(power);
-            console.log('[Qiyi] Move:', moveStr);
-            this.onMove([moveStr]);
+            // State change - handle moves
+            console.log('[qiyicube] State change, opcode 0x3');
+
+            // Build list of moves from history (up to 10 moves)
+            const todoMoves: [number, number][] = [[msg[34], ts]];
+
+            // Read historical moves from bytes 91 backwards
+            while (todoMoves.length < 10) {
+                const off = 91 - 5 * todoMoves.length;
+                const hisTs = (msg[off] << 24 | msg[off + 1] << 16 | msg[off + 2] << 8 | msg[off + 3]);
+                const hisMv = msg[off + 4];
+                if (hisTs <= this.lastTs) {
+                    break;
+                }
+                todoMoves.push([hisMv, hisTs]);
+            }
+
+            if (todoMoves.length > 1) {
+                console.log('[qiyicube] miss history moves', JSON.stringify(todoMoves), this.lastTs);
+            }
+
+            // Process moves in reverse order (oldest to newest)
+            for (let i = todoMoves.length - 1; i >= 0; i--) {
+                const mv = todoMoves[i][0];
+                const axis = [4, 1, 3, 0, 2, 5][(mv - 1) >> 1];
+                const power = [0, 2][mv & 1];
+                const moveStr = "URFDLB".charAt(axis) + " 2'".charAt(power);
+                console.log(`[qiyicube] Move: ${moveStr}`);
+                this.onMove([moveStr]);
+            }
+
+            // Parse current facelets
+            const faceletData = msg.slice(7, 34);
+            const facelets = this.parseFacelet(faceletData);
+            console.log(`[qiyicube] Current facelets: ${facelets}`);
+
+            // Update virtual cube with facelets if callback exists
+            if ((window as any).onGanCubeState) {
+                (window as any).onGanCubeState(facelets);
+            }
+
+            // Battery level at byte 35
+            const batteryLevel = msg[35];
+            console.log(`[qiyicube] Battery level: ${batteryLevel}%`);
+
             this.lastTs = ts;
         }
     }
