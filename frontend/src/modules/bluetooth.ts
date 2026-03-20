@@ -1,5 +1,7 @@
-let bluetoothManager = new window.BluetoothManager();
-        let cubeMoveBuffer = [];
+// Import BluetoothManager from hardware module
+import { bluetoothManager } from '../hardware/index.js';
+
+let cubeMoveBuffer: any[] = [];
 
         function updateBtDropdown(name: string | null, connected: boolean) {
             const dropdown = document.getElementById('btDropdown');
