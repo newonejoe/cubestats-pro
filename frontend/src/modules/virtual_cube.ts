@@ -13,7 +13,7 @@
             // Camera
             threeCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
             // Camera looking at white-green edge center - see both equally
-            threeCamera.position.set(0, 0, 6);
+            threeCamera.position.set(0, 0, 8);
             threeCamera.lookAt(0, 0, 0);
 
             // Renderer
@@ -37,6 +37,10 @@
             cubeGroup = new THREE.Group();
             threeScene.add(cubeGroup);
 
+	    // Add the axis helper
+	    // const axesHelper = new THREE.AxesHelper(5);
+	    // threeScene.add(axesHelper);
+
             // Build the cube
             buildThreeJsCube();
 
@@ -51,7 +55,7 @@
             }
 
             // Color mapping
-            const colors = {
+            const colorsOriginal = {
                 white: 0xffffff,
                 yellow: 0xffd500,
                 red: 0xb71234,
@@ -60,6 +64,18 @@
                 blue: 0x0046ad,
                 black: 0x111111
             };
+
+	    // Color mapping
+            const colors = {
+                white: 0xffffff,
+                yellow: 0xfffd05,
+                red: 0xfe0100,
+                orange: 0xfdab01,
+                green: 0x00df00,
+                blue: 0x0001fd,
+                black: 0x111111
+            };
+
 
             // Get colors from btCubeState if it exists
             const stateColors = state.btCubeState || {
@@ -79,7 +95,7 @@
 
             // Kimi spec: GAP=0.05, ISO view: 25,-30
             const cubieSize = 0.95;
-            const gap = 1.12; // gap at corners to see other faces
+            const gap = 1; // gap at corners to see other faces
 
             // Create 27 cubies (3x3x3)
             for (let x = -1; x <= 1; x++) {
@@ -145,8 +161,9 @@
             // Only set rotation if it's the initial build, otherwise keep user's rotation
             if (state.cubeRotation.x === -25 && state.cubeRotation.y === -45) {
                 // Initialize default view similar to before
-                cubeGroup.rotation.x = Math.PI / 6; // ~30 deg
-                cubeGroup.rotation.y = -Math.PI / 4; // -45 deg
+                // cubeGroup.rotation.x = Math.PI / 6; // ~30 deg
+                // cubeGroup.rotation.y = -Math.PI / 4; // -45 deg
+                cubeGroup.rotation.x = Math.PI / 4; // ~45 deg
             } else {
                 cubeGroup.rotation.x = state.cubeRotation.x * Math.PI / 180;
                 cubeGroup.rotation.y = state.cubeRotation.y * Math.PI / 180;
@@ -156,12 +173,13 @@
         function createCubie(x, y, z, size, colors) {
             const group = new THREE.Group();
 
-            // Black core - more transparent to see through
+            // Transparent core - only sticker visible, sticker has color on both sides
             const geometry = new THREE.BoxGeometry(size, size, size);
             const material = new THREE.MeshLambertMaterial({
-                color: colors.black,
+                color: colors.transparent,
                 transparent: true,
-                opacity: 0.15
+                opacity: 0.0,
+		depthWrite: false,
             });
             const cubie = new THREE.Mesh(geometry, material);
             group.add(cubie);
@@ -173,7 +191,7 @@
             // Right face (x = 1) - R
             if (x === 1 && colors.R !== undefined) {
                 const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
-                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.R });
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.R, side: THREE.DoubleSide });
                 const sticker = new THREE.Mesh(stickerGeo, stickerMat);
                 sticker.position.set(stickerOffset, 0, 0);
                 sticker.rotation.y = Math.PI / 2;
@@ -183,7 +201,7 @@
             // Left face (x = -1) - L
             if (x === -1 && colors.L !== undefined) {
                 const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
-                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.L });
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.L, side: THREE.DoubleSide  });
                 const sticker = new THREE.Mesh(stickerGeo, stickerMat);
                 sticker.position.set(-stickerOffset, 0, 0);
                 sticker.rotation.y = -Math.PI / 2;
@@ -193,7 +211,7 @@
             // Up face (y = 1) - U
             if (y === 1 && colors.U !== undefined) {
                 const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
-                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.U });
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.U, side: THREE.DoubleSide  });
                 const sticker = new THREE.Mesh(stickerGeo, stickerMat);
                 sticker.position.set(0, stickerOffset, 0);
                 sticker.rotation.x = -Math.PI / 2;
@@ -203,7 +221,7 @@
             // Down face (y = -1) - D
             if (y === -1 && colors.D !== undefined) {
                 const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
-                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.D });
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.D, side: THREE.DoubleSide  });
                 const sticker = new THREE.Mesh(stickerGeo, stickerMat);
                 sticker.position.set(0, -stickerOffset, 0);
                 sticker.rotation.x = Math.PI / 2;
@@ -213,7 +231,7 @@
             // Front face (z = 1) - F
             if (z === 1 && colors.F !== undefined) {
                 const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
-                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.F });
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.F, side: THREE.DoubleSide  });
                 const sticker = new THREE.Mesh(stickerGeo, stickerMat);
                 sticker.position.set(0, 0, stickerOffset);
                 group.add(sticker);
@@ -222,7 +240,7 @@
             // Back face (z = -1) - B
             if (z === -1 && colors.B !== undefined) {
                 const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
-                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.B });
+                const stickerMat = new THREE.MeshLambertMaterial({ color: colors.B, side: THREE.DoubleSide  });
                 const sticker = new THREE.Mesh(stickerGeo, stickerMat);
                 sticker.position.set(0, 0, -stickerOffset);
                 sticker.rotation.y = Math.PI;
