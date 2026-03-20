@@ -39,7 +39,6 @@ export class GanDriver extends CubeDriver {
         mac?: string
     ): Promise<this> {
         this.device = device;
-        this.mac = mac || null;
 
         // Determine protocol version
         if (serviceUUID.includes('6e400001')) this.protocolVersion = 2;
@@ -49,6 +48,27 @@ export class GanDriver extends CubeDriver {
 
         const nowIso = new Date().toISOString();
         console.log(`[${nowIso}] [gancube] v2init start`);
+
+        // If MAC not provided, try to get from localStorage or prompt user
+        if (!mac) {
+            const deviceName = device.name || '';
+            const cacheKey = `cubestats_mac_${deviceName}`;
+            mac = localStorage.getItem(cacheKey) || undefined;
+            if (mac) {
+                console.log(`[${nowIso}] [gancube] MAC from localStorage: ${mac}`);
+            } else {
+                // Prompt user for MAC address
+                console.log(`[${nowIso}] [gancube] MAC not found, prompting user...`);
+                mac = await this.promptForMac(device.name);
+                if (mac) {
+                    // Save to localStorage for future use
+                    localStorage.setItem(cacheKey, mac);
+                    console.log(`[${nowIso}] [gancube] MAC saved to localStorage: ${mac}`);
+                }
+            }
+        }
+
+        this.mac = mac || null;
 
         // Initialize decoder
         const isAiCube = device.name?.startsWith('AiCube') || false;
@@ -589,6 +609,19 @@ export class GanDriver extends CubeDriver {
         // For now, return empty string as this needs proper implementation
         console.log('[gancube] parseCubieStateV3 not fully implemented');
         return '';
+    }
+
+    // Prompt user for MAC address when not available
+    private async promptForMac(deviceName: string | null): Promise<string> {
+        return new Promise((resolve) => {
+            (window as any).showMacModal?.((mac: string | null) => {
+                if (mac) {
+                    resolve(mac);
+                } else {
+                    resolve('');
+                }
+            });
+        });
     }
 }
 

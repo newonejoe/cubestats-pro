@@ -35,3 +35,15 @@ document.addEventListener('keydown', (e) => {
         document.getElementById('resetModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) closeResetModal(false);
         });
+
+        document.getElementById('macModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeMacModal(null);
+        });
+
+        // Handle Enter key in MAC input
+        document.getElementById('macInput')?.addEventListener('keydown', (e) => {
+            if (e.code === 'Enter') {
+                e.preventDefault();
+                submitMacAddress();
+            }
+        });

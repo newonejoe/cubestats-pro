@@ -49,8 +49,45 @@ function closeResetModal(confirmed: boolean) {
     }
 }
 
+// MAC address modal functions
+let macModalCallback: ((mac: string | null) => void) | null = null;
+
+function showMacModal(callback: (mac: string | null) => void) {
+    macModalCallback = callback;
+    const modal = document.getElementById('macModal');
+    const input = document.getElementById('macInput') as HTMLInputElement;
+    if (input) input.value = '';
+    modal?.classList.add('active');
+    // Focus input
+    setTimeout(() => input?.focus(), 100);
+}
+
+function closeMacModal(mac: string | null) {
+    const modal = document.getElementById('macModal');
+    modal?.classList.remove('active');
+    if (macModalCallback) {
+        macModalCallback(mac);
+        macModalCallback = null;
+    }
+}
+
+function submitMacAddress() {
+    const input = document.getElementById('macInput') as HTMLInputElement;
+    const mac = input?.value?.trim().toUpperCase() || '';
+    // Validate MAC format
+    const macRegex = /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/;
+    if (macRegex.test(mac)) {
+        closeMacModal(mac);
+    } else {
+        showToast('Invalid MAC address format (AA:BB:CC:DD:EE:FF)', 'error');
+    }
+}
+
 // Expose to window for inline HTML and other modules
 window.exportData = exportData;
 window.showToast = showToast;
 window.showResetModal = showResetModal;
 window.closeResetModal = closeResetModal;
+window.showMacModal = showMacModal;
+window.closeMacModal = closeMacModal;
+window.submitMacAddress = submitMacAddress;

@@ -1,5 +1,7 @@
 // Moyu Cube Driver
 
+import { getProp } from '../kernel.js';
+import { SOLVED_FACELET } from '../lib/mathlib.js';
 import { CubeDriver, registerDriver } from './driver.js';
 
 declare const CryptoJS: any;
@@ -182,17 +184,21 @@ export class MoyuDriver extends CubeDriver {
         return this.decode(dataView);
     }
 
-    private deriveMacFromName(name: string | null): string | null {
-        if (!name) return null;
-        // Try to extract MAC from device name if possible
-        // This is a placeholder - actual implementation would need device-specific logic
-        return null;
-    }
-
-    private async promptForMac(name: string | null): Promise<string> {
-        // This would need UI integration - return a placeholder
-        console.log('[Moyu] Please enter MAC manually');
-        return '00:00:00:00:00:00';
+    // Parse facelets from binary string (reference: cstimer moyu32cube.js)
+    parseFacelet(faceletBits: string): string {
+        const state: string[] = [];
+        const faces = [2, 5, 0, 3, 4, 1]; // parse in order URFDLB instead of FBUDRL
+        for (let i = 0; i < 6; i++) {
+            const faceIdx = faces[i];
+            const face = faceletBits.slice(faceIdx * 24, 24 + faceIdx * 24);
+            for (let j = 0; j < 8; j++) {
+                state.push("FBUDLR".charAt(parseInt(face.slice(j * 3, 3 + j * 3), 2)));
+                if (j === 3) {
+                    state.push("FBUDLR".charAt(faceIdx));
+                }
+            }
+        }
+        return state.join('');
     }
 
     async connect(
@@ -203,13 +209,38 @@ export class MoyuDriver extends CubeDriver {
         mac?: string
     ): Promise<this> {
         this.device = device;
-        this.mac = mac || this.deriveMacFromName(device.name);
 
-        // If MAC is not available, prompt user for manual entry
-        if (!this.mac) {
-            console.log('[Moyu] MAC not available, prompting user...');
-            this.mac = await this.promptForMac(device.name);
+        // Try to get MAC from parameter, localStorage, device name, or prompt user
+        if (!mac) {
+            const deviceName = device.name || '';
+            const cacheKey = `cubestats_mac_${deviceName}`;
+            mac = localStorage.getItem(cacheKey) || undefined;
+            if (mac) {
+                console.log(`[Moyu] MAC from localStorage: ${mac}`);
+            }
         }
+
+        if (!mac) {
+            mac = this.deriveMacFromName(device.name || '') || undefined;
+            if (mac) {
+                console.log(`[Moyu] MAC derived from device name: ${mac}`);
+            }
+        }
+
+        // If still not available, prompt user
+        if (!mac) {
+            console.log('[Moyu] MAC not available, prompting user...');
+            mac = await this.promptForMac(device.name);
+            if (mac) {
+                // Save to localStorage for future use
+                const deviceName = device.name || '';
+                const cacheKey = `cubestats_mac_${deviceName}`;
+                localStorage.setItem(cacheKey, mac);
+                console.log(`[Moyu] MAC saved to localStorage: ${mac}`);
+            }
+        }
+
+        this.mac = mac || null;
 
         console.log('[Moyu] Using MAC:', this.mac);
 
@@ -247,39 +278,213 @@ export class MoyuDriver extends CubeDriver {
         await this.characteristic.startNotifications();
         this.characteristic.addEventListener('characteristicvaluechanged', this.onData.bind(this));
 
+        // Send initialization requests with delays
+        console.log('[Moyu] Sending requestCubeInfo...');
+        await this.requestCubeInfo();
+        await new Promise(r => setTimeout(r, 500));
+
+        console.log('[Moyu] Sending requestCubeStatus...');
+        await this.requestCubeStatus();
+        await new Promise(r => setTimeout(r, 500));
+
+        console.log('[Moyu] Sending requestCubePower...');
+        await this.requestCubePower();
+
+        console.log('[Moyu] Connected and initialized, listening to events');
         return this;
     }
 
-    parseData(bytes: Uint8Array): void {
-        const decrypted = this.decode(bytes);
-        console.log('[Moyu] Decrypted data:', decrypted.slice(0, 20).join(','));
-
-        // Parse move data - simplified version
-        if (decrypted.length < 4) return;
-
-        const moveCnt = decrypted[0];
-        if (moveCnt === this.prevMoveCnt || this.prevMoveCnt === -1) {
-            this.prevMoveCnt = moveCnt;
+    // Send a request to the cube
+    async sendRequest(opcode: number): Promise<void> {
+        if (!this.writeCharacteristic) {
+            console.log('[Moyu] No write characteristic, cannot send request');
             return;
         }
 
-        const diff = (moveCnt - this.prevMoveCnt) & 0xFF;
+        // Create 20-byte request with opcode
+        const req = new Uint8Array(20);
+        req[0] = opcode;
 
-        for (let i = 0; i < Math.min(diff, 10); i++) {
-            if (decrypted.length > 1 + i * 2) {
-                const mv = decrypted[1 + i * 2];
-                if (mv === 0) continue;
+        // Encrypt the request
+        const encrypted = this.encode(Array.from(req));
+        console.log(`[Moyu] Sending opcode: ${opcode}, encrypted: ${encrypted.join(',')}`);
 
-                const axis = [4, 1, 3, 0, 2, 5][((mv - 1) >> 1) % 6];
-                const power = [0, 2][mv & 1];
-                const moveStr = "URFDLB".charAt(axis) + " 2'".charAt(power);
+        try {
+            await this.writeCharacteristic.writeValue(new Uint8Array(encrypted).buffer);
+            console.log(`[Moyu] Sent encrypted request opcode: ${opcode}`);
+        } catch (e: any) {
+            console.log('[Moyu] Error sending request:', e.message);
+        }
+    }
 
-                this.prevMoves.push(moveStr);
-                this.onMove([moveStr]);
+    async requestCubeInfo(): Promise<void> {
+        return this.sendRequest(161); // 0xA1
+    }
+
+    async requestCubeStatus(): Promise<void> {
+        return this.sendRequest(163); // 0xA3
+    }
+
+    async requestCubePower(): Promise<void> {
+        return this.sendRequest(164); // 0xA4
+    }
+
+    initCubeState(nowIso:string , bin: string): void {
+        const moveCnt = parseInt(bin.slice(152, 160), 2);
+        console.log(`[${nowIso}] [Moyu] initializing move count from state: ${moveCnt}`);
+        this.prevMoveCnt = moveCnt;
+
+        // Parse facelets and check solved state
+        const facelets = this.parseFacelet(bin.slice(8, 152));
+        console.log(`[${nowIso}] [Moyu] facelets: ${facelets}`);
+
+        // Check if cube matches saved solved state
+        if (facelets !== getProp('giiSolved', SOLVED_FACELET)) {
+            console.log('[gancube] Cube does not match saved solved state, asking user...');
+            // Show modal to ask user if cube is actually solved
+            (window as any).showResetModal?.((confirmed: boolean) => {
+                if (confirmed) {
+                    console.log('[gancube] User confirmed solved, saving facelets...');
+                    (window as any).markCubeSolved?.(facelets);
+                } else {
+                    // Update virtual cube with facelets if user says it's scrambled
+                    if ((window as any).onGanCubeState) {
+                        (window as any).onGanCubeState(facelets);
+                    }
+                }
+            });
+        } else {
+            console.log('[gancube] Cube matches saved solved state');
+            // Update virtual cube with facelets
+            if ((window as any).onGanCubeState) {
+                (window as any).onGanCubeState(facelets);
             }
         }
+ }
 
-        this.prevMoveCnt = moveCnt;
+    // Handle incoming data from the cube
+    onData(event: Event): void {
+        const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
+        if (!value) return;
+
+        const rawLen = value.byteLength;
+
+        // Convert DataView to array for decoding
+        const dataArray: number[] = [];
+        for (let i = 0; i < rawLen; i++) {
+            dataArray.push(value.getUint8(i));
+        }
+
+        // Try decoding
+        const decrypted = this.decode(dataArray);
+
+        if (decrypted.length < 8) return;
+
+        // Convert to binary string for parsing
+        let bin = '';
+        for (let i = 0; i < decrypted.length; i++) {
+            bin += (decrypted[i] + 0x100).toString(2).slice(1);
+        }
+
+        const msgType = parseInt(bin.slice(0, 8), 2);
+
+        // Only log important message types (161=info, 163=state, 164=battery, 165=move)
+        const nowIso = new Date().toISOString();
+        if (msgType === 161 || msgType === 163 || msgType === 164 || msgType === 165) {
+            console.log(`[${nowIso}] [Moyu] message type: ${msgType} (0x${msgType.toString(16)}) ${bin}`);
+        }
+
+        if (msgType === 161) { // Hardware info
+            console.log(`[${nowIso}] [Moyu] received hardware info event`);
+            let devName = '';
+            for (let i = 0; i < 8; i++) {
+                const charCode = parseInt(bin.slice(8 + i * 8, 16 + i * 8), 2);
+                if (charCode > 0) devName += String.fromCharCode(charCode);
+            }
+            const hardwareVersion = parseInt(bin.slice(88, 96), 2) + "." + parseInt(bin.slice(96, 104), 2);
+            const softwareVersion = parseInt(bin.slice(72, 80), 2) + "." + parseInt(bin.slice(80, 88), 2);
+            console.log(`[${nowIso}] [Moyu] Hardware Version: ${hardwareVersion}`);
+            console.log(`[${nowIso}] [Moyu] Software Version: ${softwareVersion}`);
+            console.log(`[${nowIso}] [Moyu] Device Name: ${devName}`);
+        } else if (msgType === 163) { // State (facelets)
+            console.log(`[${nowIso}] [Moyu] received facelets state`);
+
+            // Initialize move count from state message (only on first state)
+            if (this.prevMoveCnt === -1) {
+               this.initCubeState(nowIso, bin); 
+            }
+        } else if (msgType === 164) { // Battery level
+            const battery = parseInt(bin.slice(8, 16), 2);
+            console.log(`[${nowIso}] [Moyu] Battery: ${battery}%`);
+        } else if (msgType === 165) { // Move
+            const moveCnt = parseInt(bin.slice(88, 96), 2);
+            console.log(`[${nowIso}] [Moyu] move count: ${moveCnt}, prev: ${this.prevMoveCnt}`);
+
+            if (moveCnt === this.prevMoveCnt || this.prevMoveCnt === -1) {
+                return;
+            }
+
+            let invalidMove = false;
+            // Parse up to 5 moves
+            for (let i = 0; i < 5; i++) {
+                const m = parseInt(bin.slice(96 + i * 5, 101 + i * 5), 2);
+                this.timeOffs[i] = parseInt(bin.slice(8 + i * 16, 24 + i * 16), 2);
+                this.prevMoves[i] = "FBUDLR".charAt(m >> 1) + " '".charAt(m & 1);
+
+                if (m >= 12) {
+                    this.prevMoves[i] = 'U ';
+                    invalidMove = true;
+                }
+            }
+
+            if(!invalidMove) {
+                let moveDiff = (moveCnt - this.prevMoveCnt) & 0xff;
+                this.prevMoveCnt = moveCnt;
+
+                if (moveDiff > this.prevMoves.length) {
+                    moveDiff = this.prevMoves.length;
+                }
+
+                for (let i = moveDiff - 1; i >= 0; i--) {
+                    // this could be a bug
+                    const moveStr = this.prevMoves[i];
+                    console.log(`[${nowIso}] [Moyu] Move: ${moveStr}, time offset: ${this.timeOffs[i]}`);
+                    this.onMove([moveStr]);
+                }
+            }
+
+            /*
+            console.log(`[${nowIso}] [Moyu] Move: ${moveStr}, time offset: ${this.timeOffs[i]}`);
+            this.onMove([moveStr]);
+            */
+        }
+    }
+
+    // Derive MAC from device name (e.g., WCU_MY32_BEB6 -> CF:30:16:00:BE:B6)
+    deriveMacFromName(deviceName: string): string | null {
+        const match = /^WCU_MY32_([0-9A-F]{4})$/.exec(deviceName);
+        if (match) {
+            return 'CF:30:16:00:' + match[1].slice(0, 2) + ':' + match[1].slice(2);
+        }
+        return null;
+    }
+
+    // Prompt user for MAC address when not available
+    private async promptForMac(deviceName: string | null): Promise<string> {
+        return new Promise((resolve) => {
+            (window as any).showMacModal?.((mac: string | null) => {
+                if (mac) {
+                    resolve(mac);
+                } else {
+                    resolve('');
+                }
+            });
+        });
+    }
+
+    // Legacy parseData for compatibility
+    parseData(bytes: Uint8Array): void {
+        // Handled in onData now
     }
 }
 

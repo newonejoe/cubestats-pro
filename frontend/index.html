@@ -360,6 +360,27 @@
         </div>
     </div>
 
+    <!-- MAC Address Input Modal -->
+    <div class="modal-overlay" id="macModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Enter MAC Address</span>
+                <button class="modal-close" onclick="closeMacModal(null)">&times;</button>
+            </div>
+            <p style="margin: 20px 0; text-align: center;">
+                Could not find MAC address for this cube.<br>
+                Please enter the MAC address manually.
+            </p>
+            <div style="margin: 20px 0;">
+                <input type="text" id="macInput" placeholder="AA:BB:CC:DD:EE:FF" style="width: 100%; padding: 10px; font-size: 16px; text-transform: uppercase;">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-danger" onclick="closeMacModal(null)" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="submitMacAddress()" style="flex: 1;">Submit</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast">
         <span id="toastMessage"></span>
