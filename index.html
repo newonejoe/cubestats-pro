@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CubeStats Pro - 3x3 Cubing Data Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+  <script type="module" crossorigin src="./js/index.js"></script>
+  <link rel="stylesheet" crossorigin href="./css/index.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🎲</div>
+            <div class="logo-text">Cube<span>Stats</span> Pro</div>
+        </div>
+        <div class="header-controls">
+            <select class="lang-select" id="langSelect" onchange="changeLanguage()">
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ja">日本語</option>
+            </select>
+            <select class="user-select" id="userSelect" onchange="switchUser()">
+                <option value="1">Coach</option>
+                <option value="2" selected>User</option>
+            </select>
+            <div class="connection-status">
+                <span class="status-dot" id="connectionDot"></span>
+                <span id="connectionText" data-i18n="disconnected">Disconnected</span>
+                <button class="btn-bt-scan" id="headerScanBtn" onclick="scanForCubes()" title="Scan for Bluetooth Cubes">
+                    <span>📡</span>
+                </button>
+                <div class="bt-dropdown" id="btDropdown">
+                    <div class="bt-dropdown-content" id="btDevices"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <!-- Timer Section -->
+        <div class="timer-section">
+            <div class="card timer-display">
+                <div class="scramble-controls-row">
+                    <div class="scramble-display">
+                        <div class="scramble-label" data-i18n="scramble">Scramble</div>
+                        <div class="scramble-text" id="scramble">R U R' U' F D F' D' R2 U2 R U2 R'</div>
+                    </div>
+                    <div class="scramble-dropdown-container">
+                        <select class="scramble-type-select" id="scrambleTypeSelect" onchange="setScrambleType(this.value)">
+                            <option value="wca">WCA</option>
+                            <option value="cross">Cross</option>
+                            <option value="f2l">F2L</option>
+                            <option value="oll">OLL</option>
+                            <option value="pll">PLL</option>
+                        </select>
+                        <div class="scramble-options" id="wcaOptions">
+                            <button class="scramble-option active" data-length="20">20</button>
+                            <button class="scramble-option" data-length="25">25</button>
+                            <button class="scramble-option" data-length="30">30</button>
+                        </div>
+                        <div class="scramble-options" id="crossOptions" style="display: none;">
+                            <span class="scramble-hint">4 moves</span>
+                        </div>
+                        <div class="scramble-options" id="f2lOptions" style="display: none;">
+                            <span class="scramble-hint">8 moves</span>
+                        </div>
+                        <div class="scramble-options" id="pllOptions" style="display: none;">
+                            <span class="scramble-hint">21 cases</span>
+                        </div>
+                        <div class="scramble-options" id="ollOptions" style="display: none;">
+                            <span class="scramble-hint">57 cases</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inspection-timer" id="inspectionTimer"></div>
+                <div class="timer" id="timer">0.00</div>
+                <div class="penalty-btns" id="penaltyBtns" style="display: none;">
+                    <button class="btn btn-danger" onclick="applyPenalty('DNF')">DNF</button>
+                    <button class="btn btn-secondary" onclick="applyPenalty('+2')">+2</button>
+                </div>
+
+                <!-- Cube Display Container - Side by Side Layout -->
+                <div id="cubeContainer" class="cube-container">
+                    <!-- Left: 3D Virtual Cube -->
+                    <div class="cube-3d-panel">
+                        <canvas id="threeJsCanvas" width="300" height="300"></canvas>
+                    </div>
+
+                    <!-- Right: Scramble Target -->
+                    <div class="cube-flat-panel" id="cubeFlatPanel">
+                        <div class="panel-header">
+                            <span class="face-label">Scramble Target</span>
+                            <button class="btn btn-sm btn-secondary" onclick="toggleScrambleTarget()">Toggle</button>
+                        </div>
+                        <div id="cubeDisplay">
+                            <!-- Row 1: Empty, U, Empty, Empty -->
+                            <div class="cube-row">
+                                <div class="cube-cell"></div>
+                                <div class="cube-cell">
+                                    <div class="face-label">U</div>
+                                    <table class="touchcube" data-face="U">
+                                        <tbody>
+                                            <tr><td id="U0"></td><td id="U1"></td><td id="U2"></td></tr>
+                                            <tr><td id="U3"></td><td id="U4"></td><td id="U5"></td></tr>
+                                            <tr><td id="U6"></td><td id="U7"></td><td id="U8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell"></div>
+                                <div class="cube-cell"></div>
+                            </div>
+                            <!-- Row 2: L, F, R, B -->
+                            <div class="cube-row">
+                                <div class="cube-cell">
+                                    <div class="face-label">L</div>
+                                    <table class="touchcube" data-face="L">
+                                        <tbody>
+                                            <tr><td id="L0"></td><td id="L1"></td><td id="L2"></td></tr>
+                                            <tr><td id="L3"></td><td id="L4"></td><td id="L5"></td></tr>
+                                            <tr><td id="L6"></td><td id="L7"></td><td id="L8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell">
+                                    <div class="face-label">F</div>
+                                    <table class="touchcube" data-face="F">
+                                        <tbody>
+                                            <tr><td id="F0"></td><td id="F1"></td><td id="F2"></td></tr>
+                                            <tr><td id="F3"></td><td id="F4"></td><td id="F5"></td></tr>
+                                            <tr><td id="F6"></td><td id="F7"></td><td id="F8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell">
+                                    <div class="face-label">R</div>
+                                    <table class="touchcube" data-face="R">
+                                        <tbody>
+                                            <tr><td id="R0"></td><td id="R1"></td><td id="R2"></td></tr>
+                                            <tr><td id="R3"></td><td id="R4"></td><td id="R5"></td></tr>
+                                            <tr><td id="R6"></td><td id="R7"></td><td id="R8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell">
+                                    <div class="face-label">B</div>
+                                    <table class="touchcube" data-face="B">
+                                        <tbody>
+                                            <tr><td id="B0"></td><td id="B1"></td><td id="B2"></td></tr>
+                                            <tr><td id="B3"></td><td id="B4"></td><td id="B5"></td></tr>
+                                            <tr><td id="B6"></td><td id="B7"></td><td id="B8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- Row 3: Empty, D, Empty, Empty -->
+                            <div class="cube-row">
+                                <div class="cube-cell"></div>
+                                <div class="cube-cell">
+                                    <div class="face-label">D</div>
+                                    <table class="touchcube" data-face="D">
+                                        <tbody>
+                                            <tr><td id="D0"></td><td id="D1"></td><td id="D2"></td></tr>
+                                            <tr><td id="D3"></td><td id="D4"></td><td id="D5"></td></tr>
+                                            <tr><td id="D6"></td><td id="D7"></td><td id="D8"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="cube-cell"></div>
+                                <div class="cube-cell"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" data-i18n="controls">Controls</span>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-primary" id="startBtn" onclick="startSolve()">
+                        <span>▶</span> <span class="i18n" data-i18n="start">Start</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="generateScramble()">
+                        <span>🔄</span> <span class="i18n" data-i18n="newScramble">New Scramble</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="openSettings()">
+                        <span>⚙</span> <span class="i18n" data-i18n="settings">Settings</span>
+                    </button>
+                </div>
+                <div class="keyboard-hint">
+                    <span class="i18n" data-i18n="pressSpace">Press</span> <kbd>Space</kbd> <span class="i18n" data-i18n="pressSpace2">to start/stop</span> · <kbd>Enter</kbd> <span class="i18n" data-i18n="pressEnter">for new scramble</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" data-i18n="sessionStats">Session Statistics</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="currentTime">--</div>
+                        <div class="stat-label" data-i18n="current">Current</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="ao5">--</div>
+                        <div class="stat-label" data-i18n="ao5">Ao5</div>
+                    </div>
+                    <div class="stat-item best">
+                        <div class="stat-value" id="bestTime">--</div>
+                        <div class="stat-label" data-i18n="best">Best</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="ao12">--</div>
+                        <div class="stat-label" data-i18n="ao12">Ao12</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="ao100">--</div>
+                        <div class="stat-label" data-i18n="ao100">Ao100</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="solveCount">0</div>
+                        <div class="stat-label" data-i18n="solves">Solves</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" data-i18n="bluetoothCube">Bluetooth Cube</span>
+                </div>
+                <div class="bluetooth-controls">
+                    <button class="btn btn-secondary" id="scanBtn" onclick="scanForCubes()" style="width: 100%;">
+                        <span>📡</span> <span data-i18n="scanForCubes">Scan for Cubes</span>
+                    </button>
+                    <div class="bt-devices" id="btDevices"></div>
+                </div>
+            </div>
+
+            <!-- Coach Section -->
+            <div class="card" id="coachPanel" style="display: none;">
+                <div class="card-header">
+                    <span class="card-title" data-i18n="coachDashboard">Coach Dashboard</span>
+                </div>
+                <div class="user-stats" id="userStats">
+                    <!-- Populated by API -->
+                </div>
+                <button class="btn coach-btn" onclick="viewCoachDashboard()">
+                    <span>📊</span> Full Analysis
+                </button>
+            </div>
+        </div>
+
+        <!-- Analysis Section -->
+        <div class="analysis-section">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" data-i18n="cfopAnalysis">CFOP Analysis</span>
+                </div>
+                <div id="analysisContent">
+                    <div class="no-data">
+                        <div class="no-data-icon">📊</div>
+                        <p>Complete solves to see CFOP analysis</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" data-i18n="lastSolveDetails">Last Solve Details</span>
+                </div>
+                <div id="lastSolveDetails">
+                    <div class="no-data">
+                        <div class="no-data-icon">🎯</div>
+                        <p>No solve data yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="history-section" style="grid-column: 1 / -1;">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" data-i18n="solveHistory">Solve History</span>
+                    <div class="history-controls">
+                        <select class="session-select" id="sessionSelector" onchange="onSessionChange(event)">
+                            <option value="1">Session 1</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" onclick="createNewSession()">+ New</button>
+                        <button class="filter-btn" onclick="exportData()">Export</button>
+                    </div>
+                </div>
+                <div class="solves-list" id="solvesList">
+                    <div class="no-data">
+                        <p>No solves recorded yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Settings</span>
+                <button class="modal-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="setting-group">
+                <label class="setting-label" data-i18n="inspectionSec">Inspection Time (seconds)</label>
+                <input type="number" class="setting-input" id="inspectionTime" value="15" min="0" max="30">
+            </div>
+            <div class="setting-group">
+                <label class="setting-label" data-i18n="timerSound">Timer Sound</label>
+                <select class="setting-input" id="timerSound">
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()" style="width: 100%;">Save Settings</button>
+            <button class="btn btn-danger" onclick="clearAllData()" style="width: 100%; margin-top: 12px;">Clear All Data</button>
+        </div>
+    </div>
+
+    <!-- Coach Dashboard Modal -->
+    <div class="modal-overlay" id="coachModal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <span class="modal-title">Coach Dashboard - User Analysis</span>
+                <button class="modal-close" onclick="closeCoachDashboard()">&times;</button>
+            </div>
+            <div id="coachContent">
+                <!-- Populated by API -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cube State Confirmation Modal -->
+    <div class="modal-overlay" id="resetModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Cube State</span>
+                <button class="modal-close" onclick="closeResetModal(false)">&times;</button>
+            </div>
+            <p style="margin: 20px 0; text-align: center;">
+                The cube does not match the saved solved state.<br>
+                Is the cube currently solved?
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-danger" onclick="closeResetModal(false)" style="flex: 1;">No, it's Scrambled</button>
+                <button class="btn btn-primary" onclick="closeResetModal(true)" style="flex: 1;">Yes, Save Solved State</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAC Address Input Modal -->
+    <div class="modal-overlay" id="macModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Enter MAC Address</span>
+                <button class="modal-close" onclick="closeMacModal(null)">&times;</button>
+            </div>
+            <p style="margin: 20px 0; text-align: center;">
+                Could not find MAC address for this cube.<br>
+                Please enter the MAC address manually.
+            </p>
+            <div style="margin: 20px 0;">
+                <input type="text" id="macInput" placeholder="AA:BB:CC:DD:EE:FF" style="width: 100%; padding: 10px; font-size: 16px; text-transform: uppercase;">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-danger" onclick="closeMacModal(null)" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="submitMacAddress()" style="flex: 1;">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+</body>
+</html>
