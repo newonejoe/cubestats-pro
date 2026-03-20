@@ -176,7 +176,6 @@
             // Transparent core - only sticker visible, sticker has color on both sides
             const geometry = new THREE.BoxGeometry(size, size, size);
             const material = new THREE.MeshLambertMaterial({
-                color: colors.transparent,
                 transparent: true,
                 opacity: 0.0,
 		depthWrite: false,
@@ -356,6 +355,41 @@
             updateCubeView();
             buildThreeJsCube();
         }
+
+        function setBtCubeStateFromFacelets(facelets: string) {
+            // facelets format: "UUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
+            // U: 0-8, R: 9-17, F: 18-26, D: 27-35, L: 36-44, B: 45-53
+            if (!facelets || facelets.length !== 54) {
+                console.log('[VirtualCube] Invalid facelets:', facelets);
+                return;
+            }
+
+            // Map facelet character to color
+            const colorMap: { [key: string]: string } = {
+                'U': 'white',
+                'D': 'yellow',
+                'R': 'red',
+                'L': 'orange',
+                'F': 'green',
+                'B': 'blue'
+            };
+
+            state.btCubeState = {
+                U: facelets.slice(0, 9).split('').map(c => colorMap[c] || 'white'),
+                R: facelets.slice(9, 18).split('').map(c => colorMap[c] || 'red'),
+                F: facelets.slice(18, 27).split('').map(c => colorMap[c] || 'green'),
+                D: facelets.slice(27, 36).split('').map(c => colorMap[c] || 'yellow'),
+                L: facelets.slice(36, 45).split('').map(c => colorMap[c] || 'orange'),
+                B: facelets.slice(45, 54).split('').map(c => colorMap[c] || 'blue')
+            };
+
+            updateCubeView();
+            buildThreeJsCube();
+            console.log('[VirtualCube] Updated from facelets:', facelets);
+        }
+
+        // Callback for hardware drivers to update cube state from facelets
+        (window as any).onGanCubeState = setBtCubeStateFromFacelets;
 
         function applyScrambleToCube(scramble) {
             // Reset flat view to solved state first
