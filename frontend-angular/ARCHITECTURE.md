@@ -115,15 +115,16 @@ cb.notifyCubeState(facelets);
 - [x] Fix Qiyi MAC extraction fallback (name-based)
 - [x] Fix GAN cube driver MAC prompt handling
 - [x] Build verification
+- [x] Integrate Timer with cube moves (Bluetooth move callback)
+- [x] Virtual cube 2D rendering (flat view with 6 faces)
+- [x] History component - display solve list
+- [x] Statistics component - show averages (current, ao5, ao12, ao100, best)
+- [x] Remove `(window as any)` usages - added global.d.ts type declarations
 
 ### Known Issues / TODO
 
-- [ ] Timer doesn't respond to cube moves (needs integration with TimerService)
-- [ ] Test all cube drivers (GAN, Giiker, Qiyi, Moyu, GoCube)
-- [ ] Virtual cube 3D rendering integration
-- [ ] History component - display solve list
-- [ ] Statistics component - show averages
-- [ ] Remove `(window as any)` usages in favor of proper types
+- [ ] Test all cube drivers (GAN, Giiker, Qiyi, Moyu, GoCube) - user tested GAN, Qiyi, Moyu
+- [ ] Virtual cube 3D rendering (Three.js) - currently using 2D flat view
 
 ## TypeScript Refactoring
 

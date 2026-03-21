@@ -211,4 +211,21 @@ export class CubeService {
     this.state.btCubeState.set(newState);
     this.state.saveCubeState(newState);
   }
+
+  // Check if cube is solved
+  checkSolved(): boolean {
+    const state = this.state.btCubeState();
+    if (!state) return false;
+
+    const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
+    for (const face of faces) {
+      const faceColors = state[face as keyof CubeState];
+      if (!faceColors || faceColors.length !== 9) continue;
+      const firstColor = faceColors[0];
+      if (!faceColors.every(c => c === firstColor)) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

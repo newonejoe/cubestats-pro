@@ -289,7 +289,7 @@ export class TimerComponent implements OnInit {
     const checkStatus = setInterval(() => {
       if (this.state.status() === 'inspection') {
         if (this.state.inspectionInterval) {
-          const elapsed = Math.floor((Date.now() - (this.timerService as any).inspectionStart) / 1000);
+          const elapsed = Math.floor((Date.now() - this.timerService.inspectionStartTime) / 1000);
           const left = Math.max(0, this.state.inspectionTime() - elapsed);
           this.inspectionTimeLeft.set('Inspection: ' + left);
         }

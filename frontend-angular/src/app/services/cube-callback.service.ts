@@ -20,7 +20,7 @@ export class CubeCallbackService {
 
   constructor() {
     // Register self as global singleton for driver access
-    (window as unknown as { cubeCallbackService: CubeCallbackService }).cubeCallbackService = this;
+    window.cubeCallbackService = this;
   }
 
   /**
@@ -88,6 +88,5 @@ export class CubeCallbackService {
  * Get the global CubeCallbackService instance for use in non-Angular contexts (drivers)
  */
 export function getCubeCallbackService(): CubeCallbackService {
-  const global = window as unknown as { cubeCallbackService?: CubeCallbackService };
-  return global.cubeCallbackService || new CubeCallbackService();
+  return window.cubeCallbackService || new CubeCallbackService();
 }

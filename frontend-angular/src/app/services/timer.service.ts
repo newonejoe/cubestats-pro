@@ -2,6 +2,7 @@ import { Injectable, inject, signal, type WritableSignal } from '@angular/core';
 import { StateService, Solve } from './state.service';
 import { ApiService } from './api.service';
 import { CubeService } from './cube.service';
+import { BluetoothService } from './bluetooth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -10,10 +11,49 @@ export class TimerService {
   private state = inject(StateService);
   private api = inject(ApiService);
   private cube = inject(CubeService);
+  private bluetooth = inject(BluetoothService);
 
   private currentSolveStartTime = 0;
   private inspectionStart = 0;
   inspectionStartTime = 0;
+  private currentMoveCount = 0;
+  private cubeState: string[] = [];
+
+  constructor() {
+    // Set up Bluetooth move callback
+    this.bluetooth.setOnMove((moves: string[]) => {
+      this.handleCubeMoves(moves);
+    });
+  }
+
+  private handleCubeMoves(moves: string[]): void {
+    console.log('[TimerService] Cube moves:', moves);
+
+    for (const move of moves) {
+      this.currentMoveCount++;
+      this.cubeState.push(move);
+    }
+
+    // Check if cube is solved (simplified check - could be enhanced)
+    const isSolved = this.cube.checkSolved();
+
+    if (this.state.status() === 'ready') {
+      // First move after inspection starts the timer
+      console.log('[TimerService] First move - starting timer');
+      this.startTimer();
+    } else if (this.state.status() === 'solving') {
+      // Update move count during solve
+      console.log('[TimerService] Move count:', this.currentMoveCount);
+      if (isSolved) {
+        console.log('[TimerService] Cube solved - stopping timer');
+        this.stopTimer();
+      }
+    } else if (this.state.status() === 'idle' && this.bluetooth.isConnected()) {
+      // Cube connected but idle - start inspection
+      console.log('[TimerService] Cube move but idle - starting inspection');
+      this.startSolve();
+    }
+  }
 
   formatTime(ms: number | null): string {
     if (ms === null || ms === undefined) return '--';

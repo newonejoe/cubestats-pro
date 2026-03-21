@@ -6,6 +6,7 @@ import { TimerComponent } from './components/timer/timer.component';
 import { StatisticsComponent } from './components/statistics/statistics.component';
 import { HistoryComponent } from './components/history/history.component';
 import { MacModalComponent } from './components/mac-modal/mac-modal.component';
+import { VirtualCubeComponent } from './components/virtual-cube/virtual-cube.component';
 
 import { StateService } from './services/state.service';
 import { CubeService } from './services/cube.service';
@@ -20,7 +21,8 @@ import { BluetoothService } from './services/bluetooth.service';
     TimerComponent,
     StatisticsComponent,
     HistoryComponent,
-    MacModalComponent
+    MacModalComponent,
+    VirtualCubeComponent
   ],
   template: `
     <app-header></app-header>
@@ -48,6 +50,14 @@ import { BluetoothService } from './services/bluetooth.service';
 
       <!-- Analysis Section -->
       <div class="analysis-section">
+        <!-- Virtual Cube -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">{{ t('virtualCube') }}</span>
+          </div>
+          <app-virtual-cube></app-virtual-cube>
+        </div>
+
         <div class="card">
           <div class="card-header">
             <span class="card-title">{{ t('cfopAnalysis') }}</span>
@@ -319,6 +329,7 @@ export class App implements OnInit {
     scanForCubes: 'Scan for Cubes',
     cfopAnalysis: 'CFOP Analysis',
     lastSolveDetails: 'Last Solve Details',
+    virtualCube: 'Virtual Cube',
     settings: 'Settings',
     inspectionSec: 'Inspection Time (seconds)',
     timerSound: 'Timer Sound',
