@@ -20,8 +20,25 @@ export class CubeService {
   // Signals
   scrambleGenerated = signal<string>('');
 
-  // Scramble generation
-  private moves = ['U', 'D', 'R', 'L', 'F', 'B'];
+  // Scramble generation - cstimer style
+  // Moves grouped by axis: [U/D axis, R/L axis, F/B axis]
+  // Each axis has 3 move types: [face, face2, face']
+  private scrambleAxes: string[][] = [
+    ['U', 'U2', "U'"],  // axis 0: U face moves
+    ['D', 'D2', "D'"],  // axis 1: D face moves (but handled as axis in mega)
+    ['R', 'R2', "R'"],  // axis 2: R face moves
+    ['L', 'L2', "L'"],  // axis 3: L face moves
+    ['F', 'F2', "F'"],  // axis 4: F face moves
+    ['B', 'B2', "B'"],  // axis 5: B face moves
+  ];
+
+  // For mega function - proper 3-axis grouping: [U/D, R/L, F/B]
+  private scrambleAxesGrouped: string[][][] = [
+    [['U', 'U2', "U'"], ['D', 'D2', "D'"]],   // axis 0: U/D
+    [['R', 'R2', "R'"], ['L', 'L2', "L'"]],   // axis 1: R/L
+    [['F', 'F2', "F'"], ['B', 'B2', "B'"]],   // axis 2: F/B
+  ];
+
   private modifiers = ['', "'", '2'];
 
   generateScramble(): void {
@@ -56,38 +73,145 @@ export class CubeService {
     this.state.scrambleSequence.set(sequence);
     this.state.scrambleIndex.set(0);
 
-    // Apply scramble to cube state
-    this.applyScramble(sequence);
+    // Reset cube to solved state first, then apply scramble
+    // This creates the "scramble target" state that user must match
+    this.state.resetCubeState();
+    const scrambleTargetState = this.applyScrambleGetState(sequence);
+    this.state.scrambleTargetState.set(scrambleTargetState);
 
     this.scrambleGenerated.set(scramble);
   }
 
-  private generateWCAScramble(length: number): string[] {
+  // Apply scramble and return the resulting state (without saving)
+  private applyScrambleGetState(sequence: string[]): CubeState {
+    let cubeState = this.getSolvedState();
+
+    for (const move of sequence) {
+      cubeState = this.applyMove(cubeState, move);
+    }
+
+    return cubeState;
+  }
+
+  // Get solved cube state
+  getSolvedState(): CubeState {
+    return {
+      U: Array(9).fill('white'),
+      D: Array(9).fill('yellow'),
+      R: Array(9).fill('red'),
+      L: Array(9).fill('orange'),
+      F: Array(9).fill('green'),
+      B: Array(9).fill('blue')
+    };
+  }
+
+  // Compare two cube states
+  statesEqual(state1: CubeState, state2: CubeState): boolean {
+    const faces = ['U', 'D', 'R', 'L', 'F', 'B'] as const;
+    for (const face of faces) {
+      const colors1 = state1[face];
+      const colors2 = state2[face];
+      for (let i = 0; i < 9; i++) {
+        if (colors1[i] !== colors2[i]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * cstimer-style mega scramble generator
+   * Generates random moves while avoiding:
+   * - Same face consecutive moves (e.g., R R)
+   * - Same axis moves that would be redundant (e.g., U then U')
+   * - Consecutive opposite face moves (cstimer specific)
+   */
+  private generateWCAScramble(_length: number): string[] {
+    // WCA scrambles are fixed at 25 moves (cstimer standard)
+    const length = 25;
+    return this.mega(length);
+  }
+
+  /**
+   * Core mega function - cstimer's scramble generation algorithm
+   * @param length Number of moves to generate
+   * @param axes Optional custom axes (defaults to 3-axis grouping for 3x3)
+   */
+  private mega(length: number, axes?: string[][][]): string[] {
+    const useAxes = axes || this.scrambleAxesGrouped;
     const sequence: string[] = [];
-    let lastMove = '';
-    let secondLastMove = '';
+    let donemoves = 0;  // bitmask: tracks which moves on current axis are used
+    let lastAxis = -1;
 
     for (let i = 0; i < length; i++) {
-      // Get available moves (avoid same face and opposite face)
-      const availableMoves = this.moves.filter(m => {
-        if (m === lastMove) return false;
-        if (this.isOpposite(m, lastMove) && m === secondLastMove) return false;
-        return true;
-      });
+      let axis: number;
+      let faceIdx: number;
+      let moveIdx: number;
+      let move: string;
 
-      const move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-      const modifier = this.modifiers[Math.floor(Math.random() * this.modifiers.length)];
+      // Keep picking until we find a valid move
+      do {
+        // Pick random axis (U/D, R/L, or F/B)
+        axis = Math.floor(Math.random() * useAxes.length);
 
-      sequence.push(move + modifier);
-      secondLastMove = lastMove;
-      lastMove = move;
+        // Within the axis, pick one of the face groups (e.g., U or D for U/D axis)
+        const faceGroup = useAxes[axis];
+        faceIdx = Math.floor(Math.random() * faceGroup.length);
+        const movesOnFace = faceGroup[faceIdx];
+
+        // Within that face, pick a move modifier ('', '2', "'")
+        moveIdx = Math.floor(Math.random() * movesOnFace.length);
+        move = movesOnFace[moveIdx];
+
+        // If we changed axis, reset donemoves
+        if (axis !== lastAxis) {
+          donemoves = 0;
+          lastAxis = axis;
+        }
+      } while (((donemoves >> moveIdx) & 1) !== 0);
+
+      // Mark this move (modifier) as used on current axis
+      donemoves |= 1 << moveIdx;
+
+      sequence.push(move);
     }
 
     return sequence;
   }
 
   private generateCrossScramble(): string[] {
-    return this.generateWCAScramble(4);
+    // Cross scrambles should set up a cube state where solving the cross
+    // requires specific moves. We use predefined cross cases that represent
+    // common solved-cross states, then apply random setup moves using mega.
+
+    // Predefined cross setups - each creates a specific cross to solve
+    // These are the moves that SOLVE a cross (so applying them as scramble
+    // creates a cross that needs those moves to solve)
+    const crossCases = [
+      // Cross on R face
+      'R U R\'', 'R U2 R\'', 'R U R2', 'R\' D R', 'R\' D2 R',
+      // Cross on L face
+      'L U L\'', 'L U2 L\'', 'L U L2', 'L\' D\' L', 'L\' D2 L',
+      // Cross on U face (already on top)
+      'U', 'U2', 'U\'',
+      // Cross on F face
+      'F U F\'', 'F U2 F\'', 'F R U R\'',
+      // Cross on B face
+      'B U B\'', 'B U2 B\'', 'B U\' B\'',
+    ];
+
+    // Select a random cross case
+    const baseCase = crossCases[Math.floor(Math.random() * crossCases.length)];
+    const baseMoves = baseCase.split(' ');
+
+    // Apply setup moves using mega algorithm
+    const numSetupMoves = Math.floor(Math.random() * 3) + 1; // 1-3 setup moves
+    const setupMoves = this.mega(numSetupMoves);
+
+    // Combine: setup moves + base case
+    // The user will need to undo setup + solve cross
+    return [...setupMoves, ...baseMoves];
   }
 
   private generateF2LScramble(): string[] {
@@ -113,18 +237,10 @@ export class CubeService {
     return [pllCases[Math.floor(Math.random() * pllCases.length)]];
   }
 
-  private isOpposite(m1: string, m2: string): boolean {
-    const opposites: Record<string, string> = {
-      'U': 'D', 'D': 'U',
-      'R': 'L', 'L': 'R',
-      'F': 'B', 'B': 'F'
-    };
-    return opposites[m1] === m2;
-  }
-
   // Cube state manipulation
   private applyScramble(sequence: string[]): void {
-    let cubeState = { ...this.state.cubeState() };
+    // Reset to solved first
+    let cubeState = this.getSolvedState();
 
     for (const move of sequence) {
       cubeState = this.applyMove(cubeState, move);
@@ -139,12 +255,12 @@ export class CubeService {
 
     // Use btCubeState if available (has scrambled state from facelets)
     let currentState = this.state.btCubeState();
-    console.log('[CubeService] btCubeState:', JSON.stringify(currentState));
+    // console.log('[CubeService] btCubeState:', JSON.stringify(currentState));
 
     if (!currentState) {
       // Fall back to cubeState if btCubeState not available
       currentState = this.state.cubeState();
-      console.log('[CubeService] Using cubeState:', JSON.stringify(currentState));
+      // console.log('[CubeService] Using cubeState:', JSON.stringify(currentState));
     }
 
     const workingState = currentState ? { ...currentState } : {
@@ -157,14 +273,14 @@ export class CubeService {
     };
 
     const newState = this.applyMove(workingState, move);
-    console.log('[CubeService] New state after applyMove:', JSON.stringify(newState));
+    // console.log('[CubeService] New state after applyMove:', JSON.stringify(newState));
 
     // Update both states
     this.state.saveCubeState(newState);
     this.state.btCubeState.set(newState);
 
-    console.log('[CubeService] States after save - cubeState:', JSON.stringify(this.state.cubeState()));
-    console.log('[CubeService] States after save - btCubeState:', JSON.stringify(this.state.btCubeState()));
+    // console.log('[CubeService] States after save - cubeState:', JSON.stringify(this.state.cubeState()));
+    // console.log('[CubeService] States after save - btCubeState:', JSON.stringify(this.state.btCubeState()));
   }
 
   // Apply multiple moves to the virtual cube state
@@ -177,7 +293,7 @@ export class CubeService {
     console.log('[CubeService] Applied moves:', moves);
   }
 
-  private applyMove(state: CubeState, move: string): CubeState {
+  applyMove(state: CubeState, move: string): CubeState {
     const face = move[0];
     const modifier = move.slice(1);
 

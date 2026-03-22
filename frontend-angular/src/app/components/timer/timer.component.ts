@@ -13,7 +13,10 @@ import { CubeService } from '../../services/cube.service';
       <div class="scramble-controls-row">
         <div class="scramble-display">
           <div class="scramble-label">{{ t('scramble') }}</div>
-          <div class="scramble-text">{{ scramble() }}</div>
+          <div class="scramble-text"
+               [class.with-progress]="status() === 'twisting' || status() === 'twisted'"
+               [innerHTML]="scrambleWithProgress()">
+          </div>
         </div>
         <div class="scramble-dropdown-container">
           <select class="scramble-type-select" [value]="scrambleType()" (change)="onScrambleTypeChange($event)">
@@ -23,20 +26,9 @@ import { CubeService } from '../../services/cube.service';
             <option value="oll">OLL</option>
             <option value="pll">PLL</option>
           </select>
-          @if (scrambleType() === 'wca') {
-            <div class="scramble-options">
-              <button
-                class="scramble-option"
-                [class.active]="scrambleLength() === 20"
-                (click)="setScrambleLength(20)">20</button>
-              <button
-                class="scramble-option"
-                [class.active]="scrambleLength() === 25"
-                (click)="setScrambleLength(25)">25</button>
-              <button
-                class="scramble-option"
-                [class.active]="scrambleLength() === 30"
-                (click)="setScrambleLength(30)">30</button>
+          @if (scrambleType() !== 'wca') {
+            <div class="scramble-info">
+              <span class="scramble-length-label">{{ getScrambleLengthLabel() }}</span>
             </div>
           }
         </div>
@@ -106,6 +98,10 @@ import { CubeService } from '../../services/cube.service';
       word-break: break-all;
     }
 
+    .scramble-text.with-progress {
+      color: #888;
+    }
+
     .scramble-dropdown-container {
       display: flex;
       flex-direction: column;
@@ -124,6 +120,16 @@ import { CubeService } from '../../services/cube.service';
     .scramble-options {
       display: flex;
       gap: 4px;
+    }
+
+    .scramble-info {
+      padding: 4px 10px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .scramble-length-label {
+      color: #666;
     }
 
     .scramble-option {
@@ -261,6 +267,34 @@ export class TimerComponent implements OnInit {
   isInspecting: Signal<boolean> = computed(() => this.state.isInspecting());
   status: Signal<string> = computed(() => this.state.status());
 
+  // Scramble with progress - show completed moves as * (length of move)
+  scrambleWithProgress: Signal<string> = computed(() => {
+    const scrambleSequence = this.state.scrambleSequence();
+    const progress = this.state.scrambleProgress();
+    const pendingHalfMove = this.state.scramblePendingHalfMove();
+    const currentStatus = this.state.status();
+
+    if (currentStatus !== 'twisting' && currentStatus !== 'twisted') {
+      return this.state.scramble();
+    }
+
+    // Show completed moves as * (repeated by move length)
+    // R -> *, R2 -> **, R' -> **
+    const markedMoves = scrambleSequence.map((move, index) => {
+      if (index < progress) {
+        // Completed: show * for each character in move
+        return '*'.repeat(move.length);
+      } else if (index === progress && pendingHalfMove) {
+        // Currently in progress (half move for F2)
+        // Show partial - first char done, waiting for second
+        return move[0] + '*'.repeat(move.length - 1);
+      }
+      return move;
+    });
+
+    return markedMoves.join(' ');
+  });
+
   inspectionTimeLeft: WritableSignal<string> = signal<string>('');
   showPenaltyBtns: WritableSignal<boolean> = signal<boolean>(false);
 
@@ -283,24 +317,63 @@ export class TimerComponent implements OnInit {
     return this.translations[key] || key;
   }
 
+  getScrambleLengthLabel(): string {
+    const type = this.scrambleType();
+    const length = this.scrambleLength();
+    switch (type) {
+      case 'cross': return '~4-8 moves';
+      case 'f2l': return '~8 moves';
+      case 'oll': return '57 cases';
+      case 'pll': return '21 cases';
+      default: return length + ' moves';
+    }
+  }
+
   ngOnInit(): void {
     this.cubeService.generateScramble();
 
     const checkStatus = setInterval(() => {
-      if (this.state.status() === 'inspection') {
-        if (this.state.inspectionInterval) {
-          const elapsed = Math.floor((Date.now() - this.timerService.inspectionStartTime) / 1000);
-          const left = Math.max(0, this.state.inspectionTime() - elapsed);
-          this.inspectionTimeLeft.set('Inspection: ' + left);
-        }
-      } else if (this.state.status() === 'idle') {
-        this.showPenaltyBtns.set(false);
-        this.inspectionTimeLeft.set('');
-      } else if (this.state.status() === 'ready') {
-        this.inspectionTimeLeft.set('GO!');
-      } else if (this.state.status() === 'solving') {
-        this.inspectionTimeLeft.set('');
-        this.showPenaltyBtns.set(true);
+      const status = this.state.status();
+
+      switch (status) {
+        case 'twisting':
+          // Phase 2: User twisting to match scramble
+          this.inspectionTimeLeft.set('Twist to match scramble');
+          this.showPenaltyBtns.set(false);
+          break;
+
+        case 'twisted':
+          // Scramble matched, starting inspection
+          this.inspectionTimeLeft.set('Matched! Get ready...');
+          this.showPenaltyBtns.set(false);
+          break;
+
+        case 'inspecting':
+          // Phase 3: Inspection timer running
+          if (this.state.inspectionInterval) {
+            const elapsed = Math.floor((Date.now() - this.timerService.inspectionStartTime) / 1000);
+            const left = Math.max(0, this.state.inspectionTime() - elapsed);
+            this.inspectionTimeLeft.set('Inspection: ' + left);
+          }
+          break;
+
+        case 'ready':
+          // Phase 3b: Inspection done, waiting for first move
+          this.inspectionTimeLeft.set('GO!');
+          this.showPenaltyBtns.set(false);
+          break;
+
+        case 'solving':
+          // Phase 4: Timer running
+          this.inspectionTimeLeft.set('');
+          this.showPenaltyBtns.set(true);
+          break;
+
+        case 'idle':
+        default:
+          this.showPenaltyBtns.set(false);
+          this.inspectionTimeLeft.set('');
+          break;
       }
     }, 100);
   }

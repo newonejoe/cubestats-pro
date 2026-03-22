@@ -51,7 +51,13 @@ export interface Session {
   createdAt?: string;
 }
 
-export type TimerStatus = 'idle' | 'inspection' | 'ready' | 'solving';
+export type TimerStatus =
+  | 'idle'           // No solve in progress
+  | 'twisting'       // Phase 2: User twisting cube to match scramble
+  | 'twisted'        // Cube matches scramble, waiting for inspection to start
+  | 'inspecting'     // Phase 3: Inspection timer counting down
+  | 'ready'          // Phase 3b: Inspection done, waiting for first move
+  | 'solving';       // Phase 4: Timer running, solving
 
 @Injectable({
   providedIn: 'root'
@@ -76,6 +82,12 @@ export class StateService {
   readonly scrambleSequence: WritableSignal<string[]> = signal<string[]>([]);
   readonly scrambleIndex: WritableSignal<number> = signal<number>(0);
 
+  // Twisting phase: user moves during twist phase
+  readonly userTwistMoves: WritableSignal<string[]> = signal<string[]>([]);
+  readonly scrambleProgress: WritableSignal<number> = signal<number>(0);
+  readonly scramblePendingHalfMove: WritableSignal<string | null> = signal<string | null>(null);
+  readonly matchedUserMoves: WritableSignal<string[]> = signal<string[]>([]);
+
   // Solves and session
   readonly solves: WritableSignal<Solve[]> = signal<Solve[]>([]);
   readonly currentSession: WritableSignal<Session | null> = signal<Session | null>(null);
@@ -95,6 +107,19 @@ export class StateService {
     B: Array(9).fill('blue')
   });
 
+  // Scramble target state (cube state after applying scramble)
+  readonly scrambleTargetState: WritableSignal<CubeState | null> = signal<CubeState | null>(null);
+
+  // Solved state for comparison (standard solved state)
+  readonly solvedState: CubeState = {
+    U: Array(9).fill('white'),
+    D: Array(9).fill('yellow'),
+    R: Array(9).fill('red'),
+    L: Array(9).fill('orange'),
+    F: Array(9).fill('green'),
+    B: Array(9).fill('blue')
+  };
+
   readonly cubeRotation: WritableSignal<{ x: number; y: number }> = signal<{ x: number; y: number }>({ x: -25, y: -45 });
 
   // Settings
@@ -109,7 +134,7 @@ export class StateService {
 
   // Computed values
   readonly isSolving: Signal<boolean> = computed(() => this.status() === 'solving');
-  readonly isInspecting: Signal<boolean> = computed(() => this.status() === 'inspection');
+  readonly isInspecting: Signal<boolean> = computed(() => this.status() === 'inspecting');
   readonly isReady: Signal<boolean> = computed(() => this.status() === 'ready');
 
   constructor() {
