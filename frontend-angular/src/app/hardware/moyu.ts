@@ -336,12 +336,17 @@ export class MoyuDriver extends CubeDriver {
         const facelets = this.parseFacelet(bin.slice(8, 152));
         console.log(`[${nowIso}] [Moyu] facelets: ${facelets}`);
 
-        getCallbackService().notifyCubeState(facelets);
-
-        if (facelets !== getProp('giiSolved', SOLVED_FACELET)) {
-            console.log('[Moyu] Cube does not match saved solved state');
+        const savedSolved = getCallbackService().getSavedSolvedState();
+        const isSolved = facelets === (savedSolved || getProp('giiSolved', SOLVED_FACELET));
+        if (!isSolved) {
+            // Prompt user to confirm if cube is solved
+            console.log('[Moyu] Cube not solved - showing confirm modal');
+            getCallbackService().confirmSolvedState(facelets).then((confirmed) => {
+                console.log('[Moyu] User confirmed cube is solved:', confirmed);
+            });
         } else {
-            console.log('[Moyu] Cube matches saved solved state');
+            getCallbackService().notifyCubeState(SOLVED_FACELET);
+            console.log('[Moyu] Cube is solved');
         }
     }
 

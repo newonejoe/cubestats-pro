@@ -6,6 +6,7 @@ import { TimerComponent } from './components/timer/timer.component';
 import { StatisticsComponent } from './components/statistics/statistics.component';
 import { HistoryComponent } from './components/history/history.component';
 import { MacModalComponent } from './components/mac-modal/mac-modal.component';
+import { SolvedStateModalComponent } from './components/solved-state-modal/solved-state-modal.component';
 import { VirtualCubeComponent } from './components/virtual-cube/virtual-cube.component';
 
 import { StateService } from './services/state.service';
@@ -22,6 +23,7 @@ import { BluetoothService } from './services/bluetooth.service';
     StatisticsComponent,
     HistoryComponent,
     MacModalComponent,
+    SolvedStateModalComponent,
     VirtualCubeComponent
   ],
   template: `
@@ -120,6 +122,7 @@ import { BluetoothService } from './services/bluetooth.service';
 
     <!-- MAC Address Modal -->
     <app-mac-modal></app-mac-modal>
+    <app-solved-state-modal></app-solved-state-modal>
   `,
   styles: [`
     :host {

@@ -133,11 +133,56 @@ export class CubeService {
     this.state.saveCubeState(cubeState);
   }
 
+  // Apply a single move to the virtual cube state (called when Bluetooth moves are received)
+  applyMoveToCube(move: string): void {
+    console.log('[CubeService] applyMoveToCube called with move:', move);
+
+    // Use btCubeState if available (has scrambled state from facelets)
+    let currentState = this.state.btCubeState();
+    console.log('[CubeService] btCubeState:', JSON.stringify(currentState));
+
+    if (!currentState) {
+      // Fall back to cubeState if btCubeState not available
+      currentState = this.state.cubeState();
+      console.log('[CubeService] Using cubeState:', JSON.stringify(currentState));
+    }
+
+    const workingState = currentState ? { ...currentState } : {
+      U: Array(9).fill('white'),
+      D: Array(9).fill('yellow'),
+      R: Array(9).fill('red'),
+      L: Array(9).fill('orange'),
+      F: Array(9).fill('green'),
+      B: Array(9).fill('blue')
+    };
+
+    const newState = this.applyMove(workingState, move);
+    console.log('[CubeService] New state after applyMove:', JSON.stringify(newState));
+
+    // Update both states
+    this.state.saveCubeState(newState);
+    this.state.btCubeState.set(newState);
+
+    console.log('[CubeService] States after save - cubeState:', JSON.stringify(this.state.cubeState()));
+    console.log('[CubeService] States after save - btCubeState:', JSON.stringify(this.state.btCubeState()));
+  }
+
+  // Apply multiple moves to the virtual cube state
+  applyMovesToCube(moves: string[]): void {
+    let cubeState = { ...this.state.cubeState() };
+    for (const move of moves) {
+      cubeState = this.applyMove(cubeState, move);
+    }
+    this.state.saveCubeState(cubeState);
+    console.log('[CubeService] Applied moves:', moves);
+  }
+
   private applyMove(state: CubeState, move: string): CubeState {
     const face = move[0];
     const modifier = move.slice(1);
 
-    const newState: CubeState = {
+    // Create mutable copies
+    const s: CubeState = {
       U: [...state.U],
       D: [...state.D],
       R: [...state.R],
@@ -146,54 +191,173 @@ export class CubeService {
       B: [...state.B]
     };
 
+    // Helper to reverse an array
+    const reverse = (arr: string[]): string[] => [arr[2], arr[1], arr[0]];
+
     switch (face) {
-      case 'U':
-        newState.U = this.rotateFaceClockwise(state.U, modifier);
-        break;
-      case 'D':
-        newState.D = this.rotateFaceClockwise(state.D, modifier);
-        break;
       case 'R':
-        newState.R = this.rotateFaceClockwise(state.R, modifier);
+        if (modifier === "'") {
+          const temp = [s.U[8], s.U[5], s.U[2]];
+          [s.U[8], s.U[5], s.U[2]] = [s.B[0], s.B[3], s.B[6]];
+          [s.B[0], s.B[3], s.B[6]] = reverse([s.D[2], s.D[5], s.D[8]]);
+          [s.D[2], s.D[5], s.D[8]] = [s.F[2], s.F[5], s.F[8]];
+          [s.F[2], s.F[5], s.F[8]] = reverse(temp);
+        } else if (modifier === '2') {
+          const temp = [s.U[8], s.U[5], s.U[2]];
+          [s.U[8], s.U[5], s.U[2]] = reverse([s.D[2], s.D[5], s.D[8]]);
+          [s.D[2], s.D[5], s.D[8]] = reverse(temp);
+          const tempR = [s.B[0], s.B[3], s.B[6]];
+          [s.B[0], s.B[3], s.B[6]] = reverse([s.F[2], s.F[5], s.F[8]]);
+          [s.F[2], s.F[5], s.F[8]] = reverse(tempR);
+        } else {
+          const temp = [s.U[8], s.U[5], s.U[2]];
+          [s.U[8], s.U[5], s.U[2]] = reverse([s.F[2], s.F[5], s.F[8]]);
+          [s.F[2], s.F[5], s.F[8]] = [s.D[2], s.D[5], s.D[8]];
+          [s.D[2], s.D[5], s.D[8]] = reverse([s.B[0], s.B[3], s.B[6]]);
+          [s.B[0], s.B[3], s.B[6]] = temp;
+        }
+        this.rotateFace(s.R, modifier);
         break;
       case 'L':
-        newState.L = this.rotateFaceClockwise(state.L, modifier);
+        if (modifier === "'") {
+          const temp = [s.U[0], s.U[3], s.U[6]];
+          [s.U[0], s.U[3], s.U[6]] = [s.F[0], s.F[3], s.F[6]];
+          [s.F[0], s.F[3], s.F[6]] = reverse([s.D[6], s.D[3], s.D[0]]);
+          [s.D[6], s.D[3], s.D[0]] = [s.B[2], s.B[5], s.B[8]];
+          [s.B[2], s.B[5], s.B[8]] = reverse(temp);
+        } else if (modifier === '2') {
+          const temp = [s.U[0], s.U[3], s.U[6]];
+          [s.U[0], s.U[3], s.U[6]] = reverse([s.D[6], s.D[3], s.D[0]]);
+          [s.D[6], s.D[3], s.D[0]] = reverse(temp);
+          const tempR = [s.F[0], s.F[3], s.F[6]];
+          [s.F[0], s.F[3], s.F[6]] = reverse([s.B[2], s.B[5], s.B[8]]);
+          [s.B[2], s.B[5], s.B[8]] = reverse(tempR);
+        } else {
+          const temp = [s.U[0], s.U[3], s.U[6]];
+          [s.U[0], s.U[3], s.U[6]] = reverse([s.B[2], s.B[5], s.B[8]]);
+          [s.B[2], s.B[5], s.B[8]] = [s.D[6], s.D[3], s.D[0]];
+          [s.D[6], s.D[3], s.D[0]] = reverse([s.F[0], s.F[3], s.F[6]]);
+          [s.F[0], s.F[3], s.F[6]] = temp;
+        }
+        this.rotateFace(s.L, modifier);
+        break;
+      case 'U':
+        if (modifier === "'") {
+          const temp = [s.B[2], s.B[1], s.B[0]];
+          [s.B[2], s.B[1], s.B[0]] = [s.R[2], s.R[1], s.R[0]];
+          [s.R[2], s.R[1], s.R[0]] = reverse([s.F[0], s.F[1], s.F[2]]);
+          [s.F[0], s.F[1], s.F[2]] = [s.L[0], s.L[1], s.L[2]];
+          [s.L[0], s.L[1], s.L[2]] = reverse(temp);
+        } else if (modifier === '2') {
+          const temp = [s.B[2], s.B[1], s.B[0]];
+          [s.B[2], s.B[1], s.B[0]] = reverse([s.F[0], s.F[1], s.F[2]]);
+          [s.F[0], s.F[1], s.F[2]] = reverse(temp);
+          const tempR = [s.R[2], s.R[1], s.R[0]];
+          [s.R[2], s.R[1], s.R[0]] = reverse([s.L[0], s.L[1], s.L[2]]);
+          [s.L[0], s.L[1], s.L[2]] = reverse(tempR);
+        } else {
+          const temp = [s.B[2], s.B[1], s.B[0]];
+          [s.B[2], s.B[1], s.B[0]] = reverse([s.L[0], s.L[1], s.L[2]]);
+          [s.L[0], s.L[1], s.L[2]] = [s.F[0], s.F[1], s.F[2]];
+          [s.F[0], s.F[1], s.F[2]] = reverse([s.R[2], s.R[1], s.R[0]]);
+          [s.R[2], s.R[1], s.R[0]] = temp;
+        }
+        this.rotateFace(s.U, modifier);
+        break;
+      case 'D':
+        if (modifier === "'") {
+          const temp = [s.F[6], s.F[7], s.F[8]];
+          [s.F[6], s.F[7], s.F[8]] = [s.R[6], s.R[7], s.R[8]];
+          [s.R[6], s.R[7], s.R[8]] = reverse([s.B[8], s.B[7], s.B[6]]);
+          [s.B[8], s.B[7], s.B[6]] = [s.L[8], s.L[7], s.L[6]];
+          [s.L[8], s.L[7], s.L[6]] = reverse(temp);
+        } else if (modifier === '2') {
+          const temp = [s.F[6], s.F[7], s.F[8]];
+          [s.F[6], s.F[7], s.F[8]] = reverse([s.B[8], s.B[7], s.B[6]]);
+          [s.B[8], s.B[7], s.B[6]] = reverse(temp);
+          const tempR = [s.R[6], s.R[7], s.R[8]];
+          [s.R[6], s.R[7], s.R[8]] = reverse([s.L[8], s.L[7], s.L[6]]);
+          [s.L[8], s.L[7], s.L[6]] = reverse(tempR);
+        } else {
+          const temp = [s.F[6], s.F[7], s.F[8]];
+          [s.F[6], s.F[7], s.F[8]] = reverse([s.L[8], s.L[7], s.L[6]]);
+          [s.L[8], s.L[7], s.L[6]] = [s.B[8], s.B[7], s.B[6]];
+          [s.B[8], s.B[7], s.B[6]] = reverse([s.R[6], s.R[7], s.R[8]]);
+          [s.R[6], s.R[7], s.R[8]] = temp;
+        }
+        this.rotateFace(s.D, modifier);
         break;
       case 'F':
-        newState.F = this.rotateFaceClockwise(state.F, modifier);
+        if (modifier === "'") {
+          const temp = [s.U[6], s.U[7], s.U[8]];
+          [s.U[6], s.U[7], s.U[8]] = [s.R[0], s.R[3], s.R[6]];
+          [s.R[0], s.R[3], s.R[6]] = reverse([s.D[0], s.D[1], s.D[2]]);
+          [s.D[0], s.D[1], s.D[2]] = [s.L[2], s.L[5], s.L[8]];
+          [s.L[2], s.L[5], s.L[8]] = reverse(temp);
+        } else if (modifier === '2') {
+          const temp = [s.U[6], s.U[7], s.U[8]];
+          [s.U[6], s.U[7], s.U[8]] = reverse([s.D[0], s.D[1], s.D[2]]);
+          [s.D[0], s.D[1], s.D[2]] = reverse(temp);
+          const tempR = [s.R[0], s.R[3], s.R[6]];
+          [s.R[0], s.R[3], s.R[6]] = reverse([s.L[2], s.L[5], s.L[8]]);
+          [s.L[2], s.L[5], s.L[8]] = reverse(tempR);
+        } else {
+          const temp = [s.U[6], s.U[7], s.U[8]];
+          [s.U[6], s.U[7], s.U[8]] = reverse([s.L[2], s.L[5], s.L[8]]);
+          [s.L[2], s.L[5], s.L[8]] = [s.D[0], s.D[1], s.D[2]];
+          [s.D[0], s.D[1], s.D[2]] = reverse([s.R[0], s.R[3], s.R[6]]);
+          [s.R[0], s.R[3], s.R[6]] = temp;
+        }
+        this.rotateFace(s.F, modifier);
         break;
       case 'B':
-        newState.B = this.rotateFaceClockwise(state.B, modifier);
+        if (modifier === "'") {
+          const temp = [s.U[2], s.U[1], s.U[0]];
+          [s.U[2], s.U[1], s.U[0]] = [s.L[0], s.L[3], s.L[6]];
+          [s.L[0], s.L[3], s.L[6]] = reverse([s.D[8], s.D[7], s.D[6]]);
+          [s.D[8], s.D[7], s.D[6]] = [s.R[2], s.R[5], s.R[8]];
+          [s.R[2], s.R[5], s.R[8]] = reverse(temp);
+        } else if (modifier === '2') {
+          const temp = [s.U[2], s.U[1], s.U[0]];
+          [s.U[2], s.U[1], s.U[0]] = reverse([s.D[8], s.D[7], s.D[6]]);
+          [s.D[8], s.D[7], s.D[6]] = reverse(temp);
+          const tempR = [s.L[0], s.L[3], s.L[6]];
+          [s.L[0], s.L[3], s.L[6]] = reverse([s.R[2], s.R[5], s.R[8]]);
+          [s.R[2], s.R[5], s.R[8]] = reverse(tempR);
+        } else {
+          const temp = [s.U[2], s.U[1], s.U[0]];
+          [s.U[2], s.U[1], s.U[0]] = reverse([s.R[2], s.R[5], s.R[8]]);
+          [s.R[2], s.R[5], s.R[8]] = [s.D[8], s.D[7], s.D[6]];
+          [s.D[8], s.D[7], s.D[6]] = reverse([s.L[0], s.L[3], s.L[6]]);
+          [s.L[0], s.L[3], s.L[6]] = temp;
+        }
+        this.rotateFace(s.B, modifier);
         break;
     }
 
-    return newState;
+    return s;
   }
 
-  private rotateFaceClockwise(face: string[], modifier: string): string[] {
-    const result = [...face];
-    let times = 1;
-
-    if (modifier === '2') {
-      times = 2;
-    } else if (modifier === "'") {
-      times = 3;
+  private rotateFace(face: string[], modifier: string): void {
+    if (modifier === "'") {
+      // Counter-clockwise
+      const temp = [...face];
+      face[0] = temp[2]; face[1] = temp[5]; face[2] = temp[8];
+      face[3] = temp[1]; face[4] = temp[4]; face[5] = temp[7];
+      face[6] = temp[0]; face[7] = temp[3]; face[8] = temp[6];
+    } else if (modifier === '2') {
+      // 180 degrees
+      const temp = [...face];
+      face[0] = temp[8]; face[1] = temp[7]; face[2] = temp[6];
+      face[3] = temp[5]; face[4] = temp[4]; face[5] = temp[3];
+      face[6] = temp[2]; face[7] = temp[1]; face[8] = temp[0];
+    } else {
+      // Clockwise
+      const temp = [...face];
+      face[0] = temp[6]; face[1] = temp[3]; face[2] = temp[0];
+      face[3] = temp[7]; face[4] = temp[4]; face[5] = temp[1];
+      face[6] = temp[8]; face[7] = temp[5]; face[8] = temp[2];
     }
-
-    for (let t = 0; t < times; t++) {
-      const temp = [...result];
-      result[0] = temp[6];
-      result[1] = temp[3];
-      result[2] = temp[0];
-      result[3] = temp[7];
-      result[4] = temp[4];
-      result[5] = temp[1];
-      result[6] = temp[8];
-      result[7] = temp[5];
-      result[8] = temp[2];
-    }
-
-    return result;
   }
 
   // Get CSS color for a face color name

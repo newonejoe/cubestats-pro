@@ -32,6 +32,8 @@ export class TimerService {
     for (const move of moves) {
       this.currentMoveCount++;
       this.cubeState.push(move);
+      // Apply move to virtual cube state
+      this.cube.applyMoveToCube(move);
     }
 
     // Check if cube is solved (simplified check - could be enhanced)
@@ -68,11 +70,11 @@ export class TimerService {
 
   async startSolve(): Promise<void> {
     if (this.state.status() === 'idle') {
-      // Create session if not exists
-      if (!this.state.currentSession()) {
-        const session = await this.api.createSession();
-        this.state.currentSession.set(session);
-      }
+      // Create session if not exists (disabled for testing)
+      // if (!this.state.currentSession()) {
+      //   const session = await this.api.createSession();
+      //   this.state.currentSession.set(session);
+      // }
 
       // Start inspection
       this.state.status.set('inspection');
@@ -178,12 +180,10 @@ export class TimerService {
     // Save to localStorage
     this.addSolveToLocalStorage(solveTime, currentSolve.scramble || this.state.scramble(), currentSolve.moveCount || 0, isDNF, isPlus2);
 
-    // Save to API
-    await this.api.saveSolve(currentSolve);
-
-    // Reload data
-    await this.loadSolves();
-    await this.loadStatistics();
+    // Save to API (disabled for testing)
+    // await this.api.saveSolve(currentSolve);
+    // await this.loadSolves();
+    // await this.loadStatistics();
 
     // Generate new scramble after delay
     setTimeout(() => {
@@ -213,33 +213,16 @@ export class TimerService {
     const isPlus2 = penalty === '+2';
     this.addSolveToLocalStorage(currentSolve.time, currentSolve.scramble || this.state.scramble(), currentSolve.moveCount || 0, isDNF, isPlus2);
 
-    // Get CFOP analysis
-    const analysis = await this.api.analyzeSolve(currentSolve.time);
-    if (analysis) {
-      currentSolve.crossTime = analysis.cross?.time;
-      currentSolve.crossEfficiency = analysis.cross?.efficiency;
-      currentSolve.f2lTime = analysis.f2l?.time;
-      currentSolve.f2lEfficiency = analysis.f2l?.efficiency;
-      currentSolve.ollTime = analysis.oll?.time;
-      currentSolve.ollCase = analysis.oll?.caseName;
-      currentSolve.ollAlgorithm = analysis.oll?.algorithm;
-      currentSolve.ollRecognitionTime = analysis.oll?.recognitionTime;
-      currentSolve.ollEfficiency = analysis.oll?.efficiency;
-      currentSolve.PLLTime = analysis.PLL?.time;
-      currentSolve.PLLCase = analysis.PLL?.caseName;
-      currentSolve.PLLAlgorithm = analysis.PLL?.algorithm;
-      currentSolve.pllRecognitionTime = analysis.PLL?.recognitionTime;
-      currentSolve.pllEfficiency = analysis.PLL?.efficiency;
-    }
+    // Get CFOP analysis (disabled for testing)
+    // const analysis = await this.api.analyzeSolve(currentSolve.time);
+    // if (analysis) { ... }
 
     currentSolve.sessionId = this.state.currentSession()?.id;
 
-    // Save to API
-    await this.api.saveSolve(currentSolve);
-
-    // Reload data
-    await this.loadSolves();
-    await this.loadStatistics();
+    // Save to API (disabled for testing)
+    // await this.api.saveSolve(currentSolve);
+    // await this.loadSolves();
+    // await this.loadStatistics();
 
     this.state.currentSolve.set(null);
     this.state.timer.set(0);
@@ -259,14 +242,15 @@ export class TimerService {
   }
 
   async loadSolves(): Promise<void> {
-    const solves = await this.api.getSolves();
-    this.state.solves.set(solves);
+    // API disabled for testing
+    // const solves = await this.api.getSolves();
+    // this.state.solves.set(solves);
   }
 
   async loadStatistics(): Promise<void> {
-    const stats = await this.api.getStatistics();
-    // Statistics will be handled by the statistics component
-    window.dispatchEvent(new CustomEvent('statisticsLoaded', { detail: stats }));
+    // API disabled for testing
+    // const stats = await this.api.getStatistics();
+    // window.dispatchEvent(new CustomEvent('statisticsLoaded', { detail: stats }));
   }
 
   // For keyboard shortcuts

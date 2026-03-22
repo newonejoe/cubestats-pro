@@ -573,23 +573,25 @@ export class GanDriver extends CubeDriver {
     }
 
     initialCubeState(facelets: string): void {
-        getCallbackService().notifyCubeState(facelets);
 
-        if (facelets !== getProp('giiSolved', SOLVED_FACELET)) {
-            console.log('[gancube] Cube does not match saved solved state');
-        } else {
-            console.log('[gancube] Cube matches saved solved state');
-        }
+        const savedSolved = getCallbackService().getSavedSolvedState();
+        const isSolved = facelets === (savedSolved || getProp('giiSolved', SOLVED_FACELET));
+        if (!isSolved) {
+            // Prompt user to confirm if cube is not solved
+            console.log('[gancube] Cube not solved - showing confirm modal');
+            getCallbackService().confirmSolvedState(facelets).then((confirmed) => {
+                console.log('[gancube] User confirmed cube is solved:', confirmed);
+            });
+        }else {
+            // set the cube state as solved
+            facelets = SOLVED_FACELET;
+            getCallbackService().notifyCubeState(facelets);
+        } 
     }
 
     parseCubieStateV3(bin: string): string {
         console.log('[gancube] parseCubieStateV3 not fully implemented');
         return '';
-    }
-
-    private async promptForMac(deviceName: string | null): Promise<string> {
-        const mac = await getCallbackService().promptForMac();
-        return mac || '';
     }
 }
 

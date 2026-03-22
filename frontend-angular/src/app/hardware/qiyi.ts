@@ -251,11 +251,16 @@ export class QiyiDriver extends CubeDriver {
             const facelets = this.parseFacelet(faceletData);
             console.log(`[qiyicube] Initial facelets: ${facelets}`);
 
-            if (facelets != getProp('giiSolved', SOLVED_FACELET)) {
-                console.log('[qiyicube] Cube does not match saved solved state');
-                getCallbackService().notifyCubeState(facelets);
+            const savedSolved = getCallbackService().getSavedSolvedState();
+            const isSolved = facelets === (savedSolved || getProp('giiSolved', SOLVED_FACELET));
+            if (!isSolved) {
+                console.log('[qiyicube] Cube not solved - showing confirm modal');
+                getCallbackService().confirmSolvedState(facelets).then((confirmed) => {
+                    console.log('[qiyicube] User confirmed to start:', confirmed);
+                });
             } else {
-                console.log('[qiyicube] Cube matches saved solved state');
+                console.log('[qiyicube] Cube is solved');
+                getCallbackService().notifyCubeState(SOLVED_FACELET);
             }
 
             this.lastTs = ts;
