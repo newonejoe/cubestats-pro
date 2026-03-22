@@ -89,13 +89,14 @@ export class BluetoothService {
       }
     });
 
-    bluetoothManager.setOnConnect((name: string) => {
-      console.log('[BluetoothService] Connected to:', name);
+    bluetoothManager.setOnConnect((name: string, mac: string | null) => {
+      console.log('[BluetoothService] Connected to:', name, 'MAC:', mac);
       this.deviceName = name;
+      this.lastMac = mac;
       this.state.cubeConnected.set(true);
       this.isConnecting.set(false);
       if (this.onConnectCallback) {
-        this.onConnectCallback(name);
+        this.onConnectCallback(name, mac);
       }
     });
 
@@ -209,8 +210,18 @@ export class BluetoothService {
     return this.deviceName;
   }
 
+  // Get connected device info (name and MAC)
+  getConnectedDeviceInfo(): { name: string | null; mac: string | null } {
+    return bluetoothManager.getConnectedDeviceInfo();
+  }
+
   // Check if Web Bluetooth is available
   isSupported(): boolean {
     return !!navigator.bluetooth;
+  }
+
+  // Get last MAC address used
+  getLastMac(): string | null {
+    return this.lastMac;
   }
 }

@@ -10,7 +10,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
-    <script src="./js/cube-bluetooth.js"></script>
   <script type="module" crossorigin src="./js/index.js"></script>
   <link rel="stylesheet" crossorigin href="./css/index.css">
 </head>
@@ -340,6 +339,45 @@
             </div>
             <div id="coachContent">
                 <!-- Populated by API -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cube State Confirmation Modal -->
+    <div class="modal-overlay" id="resetModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Cube State</span>
+                <button class="modal-close" onclick="closeResetModal(false)">&times;</button>
+            </div>
+            <p style="margin: 20px 0; text-align: center;">
+                The cube does not match the saved solved state.<br>
+                Is the cube currently solved?
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-danger" onclick="closeResetModal(false)" style="flex: 1;">No, it's Scrambled</button>
+                <button class="btn btn-primary" onclick="closeResetModal(true)" style="flex: 1;">Yes, Save Solved State</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAC Address Input Modal -->
+    <div class="modal-overlay" id="macModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Enter MAC Address</span>
+                <button class="modal-close" onclick="closeMacModal(null)">&times;</button>
+            </div>
+            <p style="margin: 20px 0; text-align: center;">
+                Could not find MAC address for this cube.<br>
+                Please enter the MAC address manually.
+            </p>
+            <div style="margin: 20px 0;">
+                <input type="text" id="macInput" placeholder="AA:BB:CC:DD:EE:FF" style="width: 100%; padding: 10px; font-size: 16px; text-transform: uppercase;">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-danger" onclick="closeMacModal(null)" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="submitMacAddress()" style="flex: 1;">Submit</button>
             </div>
         </div>
     </div>

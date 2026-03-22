@@ -16,7 +16,7 @@ import './qiyi.js';
 import './moyu.js';
 
 export type MoveCallback = (moves: string[]) => void;
-export type ConnectCallback = (name: string) => void;
+export type ConnectCallback = (name: string, mac: string | null) => void;
 export type DisconnectCallback = () => void;
 
 export class BluetoothManager {
@@ -24,9 +24,18 @@ export class BluetoothManager {
     onMoveCallback: MoveCallback | null = null;
     onConnectCallback: ConnectCallback | null = null;
     onDisconnectCallback: DisconnectCallback | null = null;
+    currentDeviceName: string | null = null;
+    currentMac: string | null = null;
 
     constructor() {
         // Drivers are auto-registered when their modules are imported
+    }
+
+    getConnectedDeviceInfo(): { name: string | null; mac: string | null } {
+        return {
+            name: this.currentDeviceName,
+            mac: this.currentMac
+        };
     }
 
     setOnMove(callback: MoveCallback): void {
@@ -294,8 +303,12 @@ export class BluetoothManager {
             }
         });
 
+        // Store current device info for caching
+        this.currentDeviceName = device.name || 'Unknown';
+        this.currentMac = mac || this.driver.mac;
+
         if (this.onConnectCallback) {
-            this.onConnectCallback(device.name || 'Unknown');
+            this.onConnectCallback(device.name || 'Unknown', this.driver.mac);
         }
 
         return this.driver;
@@ -306,6 +319,8 @@ export class BluetoothManager {
             this.driver.disconnect();
             this.driver = null;
         }
+        this.currentDeviceName = null;
+        this.currentMac = null;
     }
 
     isConnected(): boolean {

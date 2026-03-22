@@ -8,6 +8,7 @@ import { HistoryComponent } from './components/history/history.component';
 import { MacModalComponent } from './components/mac-modal/mac-modal.component';
 import { SolvedStateModalComponent } from './components/solved-state-modal/solved-state-modal.component';
 import { VirtualCubeComponent } from './components/virtual-cube/virtual-cube.component';
+import { BluetoothManagerComponent } from './components/bluetooth-manager/bluetooth-manager.component';
 
 import { StateService } from './services/state.service';
 import { CubeService } from './services/cube.service';
@@ -24,12 +25,24 @@ import { BluetoothService } from './services/bluetooth.service';
     HistoryComponent,
     MacModalComponent,
     SolvedStateModalComponent,
-    VirtualCubeComponent
+    VirtualCubeComponent,
+    BluetoothManagerComponent
   ],
   template: `
-    <app-header></app-header>
+    <!-- Bluetooth Connection Modal (always on top until connected) -->
+    <div class="bt-modal-overlay" [class.hidden]="cubeConnected()">
+      <div class="bt-modal">
+        <app-bluetooth-manager></app-bluetooth-manager>
+      </div>
+    </div>
 
-    <main class="app-container">
+    <!-- Main App Content (only when connected) -->
+    @if (cubeConnected()) {
+      <app-header></app-header>
+    }
+
+    <main class="app-container" [class.blurred]="!cubeConnected()">
+      @if (cubeConnected()) {
       <!-- Timer Section -->
       <div class="timer-section">
         <div class="card">
@@ -37,17 +50,6 @@ import { BluetoothService } from './services/bluetooth.service';
         </div>
 
         <app-statistics></app-statistics>
-
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">{{ t('bluetoothCube') }}</span>
-          </div>
-          <div class="bluetooth-controls">
-            <button class="btn btn-secondary" (click)="scanForCubes()" style="width: 100%;">
-              <span>📡</span> {{ t('scanForCubes') }}
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Analysis Section -->
@@ -89,9 +91,11 @@ import { BluetoothService } from './services/bluetooth.service';
       <div class="history-section">
         <app-history></app-history>
       </div>
+      }
     </main>
 
-    <!-- Settings Modal -->
+    <!-- Settings Modal (only when connected) -->
+    @if (cubeConnected()) {
     <div class="modal-overlay" [class.visible]="showSettings()" (click)="closeSettingsModal($event)">
       <div class="modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
@@ -114,6 +118,7 @@ import { BluetoothService } from './services/bluetooth.service';
         <button class="btn btn-danger" (click)="clearAllData()" style="width: 100%; margin-top: 12px;">{{ t('clearAllData') }}</button>
       </div>
     </div>
+    }
 
     <!-- Toast -->
     <div class="toast" [class.visible]="toastMessage()">
@@ -314,6 +319,42 @@ import { BluetoothService } from './services/bluetooth.service';
     .bluetooth-controls {
       width: 100%;
     }
+
+    /* Bluetooth Modal Overlay */
+    .bt-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.3s ease;
+    }
+
+    .bt-modal-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .bt-modal {
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px;
+      width: 90%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    /* Blur background when not connected */
+    .app-container.blurred {
+      filter: blur(10px);
+      pointer-events: none;
+      opacity: 0.3;
+    }
   `]
 })
 export class App implements OnInit {
@@ -326,6 +367,7 @@ export class App implements OnInit {
 
   inspectionTime: Signal<number> = computed(() => this.state.settings().inspectionTime);
   soundEnabled: Signal<boolean> = computed(() => this.state.settings().sound);
+  cubeConnected: Signal<boolean> = computed(() => this.state.cubeConnected());
 
   private translations: Record<string, string> = {
     bluetoothCube: 'Bluetooth Cube',

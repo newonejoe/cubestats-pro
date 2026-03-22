@@ -11,7 +11,7 @@ import { BluetoothService } from '../../services/bluetooth.service';
   template: `
     <header class="header">
       <div class="logo">
-        <div class="logo-icon">🎲</div>
+        <div class="logo-icon">🧊</div>
         <div class="logo-text">Cube<span>Stats</span> Pro</div>
       </div>
       <div class="header-controls">
@@ -25,11 +25,16 @@ import { BluetoothService } from '../../services/bluetooth.service';
           <option value="2">User</option>
         </select>
         <div class="connection-status">
-          <span class="status-dot" [class.connected]="cubeConnected()"></span>
-          <span id="connectionText">{{ cubeConnected() ? t('connected') : t('disconnected') }}</span>
-          <button class="btn-bt-scan" (click)="scanForCubes()" [disabled]="isScanning()">
-            <span>📡</span>
-          </button>
+          @if (isScanning()) {
+            <div class="scanning-indicator">
+              <div class="scanner-pulse-small"></div>
+              <span class="status-dot scanning"></span>
+            </div>
+            <span id="connectionText">{{ t('scanning') }}</span>
+          } @else {
+            <span class="status-dot" [class.connected]="cubeConnected()"></span>
+            <span id="connectionText">{{ cubeConnected() ? t('connected') : t('disconnected') }}</span>
+          }
         </div>
       </div>
     </header>
@@ -99,22 +104,35 @@ import { BluetoothService } from '../../services/bluetooth.service';
       background: #4caf50;
     }
 
-    .btn-bt-scan {
-      background: #e9ecef;
-      border: none;
-      border-radius: 6px;
-      padding: 8px 12px;
-      cursor: pointer;
-      transition: all 0.2s;
+    .status-dot.scanning {
+      background: #007bff;
+      animation: pulse-dot 1s ease-in-out infinite;
     }
 
-    .btn-bt-scan:hover:not(:disabled) {
-      background: #dee2e6;
+    .scanning-indicator {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .btn-bt-scan:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .scanner-pulse-small {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(0, 123, 255, 0.3);
+      animation: pulse-small 1s ease-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes pulse-small {
+      0% { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(1.5); opacity: 0; }
     }
   `]
 })
@@ -132,7 +150,8 @@ export class HeaderComponent {
 
   private translations: Record<string, string> = {
     disconnected: 'Disconnected',
-    connected: 'Connected'
+    connected: 'Connected',
+    scanning: 'Scanning...'
   };
 
   t(key: string): string {
