@@ -153,3 +153,54 @@ ${arrowSvg}
 export function clearLlImageCache(): void {
   cache.clear();
 }
+
+/**
+ * csTimer image.face3Image-equivalent for F2L (Last Slot + Last Layer) previews.
+ * pieces order: U1..U9 R1..R9 F1..F9
+ */
+export function buildFace3ImageDataUrl(pieces: string): string {
+  if (pieces.length < 27) {
+    return '';
+  }
+  const key = `face3:${pieces}`;
+  const hit = cache.get(key);
+  if (hit) {
+    return hit;
+  }
+
+  const hsq3 = Math.sqrt(3) / 2;
+  const width = 20;
+  const gap = 1;
+  const ftrans = [
+    [width * hsq3, -width * hsq3, (width * 3 + gap) * hsq3, width / 2, width / 2, 0],
+    [width * hsq3, 0, (width * 3 + gap * 2) * hsq3, -width / 2, width, width * 3 + gap * 1.5],
+    [width * hsq3, 0, 0, width / 2, width, width * 1.5 + gap * 1.5],
+  ];
+  const svgW = (6 * width + gap * 2) * hsq3;
+  const svgH = 6 * width + gap * 1.5;
+
+  const polys: string[] = [];
+  for (let i = 0; i < 27; i++) {
+    const x = i % 3;
+    const y = Math.floor(i / 3) % 3;
+    const face = Math.floor(i / 9);
+    const base: [number[], number[]] = [
+      [x, x + 1, x + 1, x],
+      [y, y, y + 1, y + 1],
+    ];
+    const pts = ctxTransform(base, ftrans[face]!);
+    polys.push(
+      `<polygon points="${polygonPoints(pts)}" fill="${escapeXml(llCharColor(pieces[i]!))}" stroke="#1a1a1a" stroke-width="0.6"/>`
+    );
+  }
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}">
+<rect width="100%" height="100%" fill="#ffffff"/>
+${polys.join('')}
+</svg>`;
+
+  const url = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+  cache.set(key, url);
+  return url;
+}

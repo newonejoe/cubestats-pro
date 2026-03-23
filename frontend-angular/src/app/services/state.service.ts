@@ -104,6 +104,11 @@ export class StateService {
   );
   readonly lastPllCaseIndex: WritableSignal<number | null> = signal<number | null>(null);
 
+  /** F2L (csTimer lsll2 = Last Slot + Last Layer): full vs custom */
+  readonly f2lSubsetMode: WritableSignal<'full' | 'subset'> = signal<'full' | 'subset'>('full');
+  readonly f2lEnabledIndices: WritableSignal<ReadonlySet<number>> = signal<ReadonlySet<number>>(new Set());
+  readonly lastF2lCaseIndex: WritableSignal<number | null> = signal<number | null>(null);
+
   // Twisting phase: user moves during twist phase
   readonly userTwistMoves: WritableSignal<string[]> = signal<string[]>([]);
   readonly scrambleProgress: WritableSignal<number> = signal<number>(0);
@@ -188,6 +193,17 @@ export class StateService {
           this.pllEnabledIndices.set(new Set(arr.filter((n) => typeof n === 'number')));
         }
       }
+      const fm = localStorage.getItem('f2lSubsetMode');
+      if (fm === 'full' || fm === 'subset') {
+        this.f2lSubsetMode.set(fm);
+      }
+      const fe = localStorage.getItem('f2lEnabledIndices');
+      if (fe) {
+        const arr = JSON.parse(fe) as number[];
+        if (Array.isArray(arr)) {
+          this.f2lEnabledIndices.set(new Set(arr.filter((n) => typeof n === 'number')));
+        }
+      }
     } catch {
       // defaults
     }
@@ -201,6 +217,11 @@ export class StateService {
   persistPllSubsetPrefs(): void {
     localStorage.setItem('pllSubsetMode', this.pllSubsetMode());
     localStorage.setItem('pllEnabledIndices', JSON.stringify([...this.pllEnabledIndices()]));
+  }
+
+  persistF2lSubsetPrefs(): void {
+    localStorage.setItem('f2lSubsetMode', this.f2lSubsetMode());
+    localStorage.setItem('f2lEnabledIndices', JSON.stringify([...this.f2lEnabledIndices()]));
   }
 
   private initializeCubeState(): void {

@@ -173,12 +173,16 @@ export class CubeService {
   private generateF2LScramble(): string[] {
     if (this.cstimerScramble.isReady()) {
       try {
-        const s = this.cstimerScramble.scrambleString('f2l', 0);
+        const pool = this.pickF2LCasePool();
+        const idx = pool[Math.floor(Math.random() * pool.length)]!;
+        this.state.lastF2lCaseIndex.set(idx);
+        const s = this.cstimerScramble.scrambleString('lsll2', 0, { cases: idx });
         return this.tokenizeScramble(s);
       } catch (e) {
         console.warn('[CubeService] cstimer F2L failed, using mega fallback', e);
       }
     }
+    this.state.lastF2lCaseIndex.set(null);
     return this.mega333o(8);
   }
 
@@ -232,6 +236,24 @@ export class CubeService {
     const s = this.state.pllEnabledIndices();
     const arr = [...s].filter((i) => i >= 0 && i <= 20);
     return arr.length > 0 ? arr : [...ALL_PLL_INDICES];
+  }
+
+  /** csTimer lsll2 indices from scramble_333_edit f2l_map */
+  private pickF2LCasePool(): number[] {
+    const meta = this.cstimerScramble.getLsll2Meta();
+    const all = meta ? meta.filters.map((_, i) => i) : [];
+    if (all.length === 0) {
+      return [0];
+    }
+    if (this.state.f2lSubsetMode() === 'full') {
+      if (this.state.f2lEnabledIndices().size === 0) {
+        this.state.f2lEnabledIndices.set(new Set(all));
+        this.state.persistF2lSubsetPrefs();
+      }
+      return all;
+    }
+    const selected = [...this.state.f2lEnabledIndices()].filter((i) => i >= 0 && i < all.length);
+    return selected.length > 0 ? selected : all;
   }
 
   private tokenizeScramble(s: string): string[] {

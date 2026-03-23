@@ -7,6 +7,7 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
 import { ScrambleTargetVizComponent } from '../../components/scramble-target-viz/scramble-target-viz.component';
 import { OllCasePickerComponent } from '../../components/oll-case-picker/oll-case-picker.component';
 import { PllCasePickerComponent } from '../../components/pll-case-picker/pll-case-picker.component';
+import { F2lCasePickerComponent } from '../../components/f2l-case-picker/f2l-case-picker.component';
 import { OllPllCaseVizComponent } from '../../components/oll-pll-case-viz/oll-pll-case-viz.component';
 import { rotateCubeX2 } from '../../lib/cube-orientation';
 
@@ -19,6 +20,7 @@ import { rotateCubeX2 } from '../../lib/cube-orientation';
     ScrambleTargetVizComponent,
     OllCasePickerComponent,
     PllCasePickerComponent,
+    F2lCasePickerComponent,
     OllPllCaseVizComponent
   ],
   template: `
@@ -30,60 +32,106 @@ import { rotateCubeX2 } from '../../lib/cube-orientation';
       </header>
 
       <section class="panel">
-        <h2>Settings</h2>
-        <div class="row">
+        <h2>Controls</h2>
+        <div class="toolbar-row">
           <label for="stype">Scramble type</label>
           <select id="stype" [value]="scrambleType()" (change)="onTypeChange($event)">
             <option value="wca">WCA (25 moves, 333o mega)</option>
             <option value="cross">Cross (easyc)</option>
-            <option value="f2l">F2L</option>
+            <option value="f2l">F2L (Last slot+last layer)</option>
             <option value="oll">OLL</option>
             <option value="pll">PLL</option>
           </select>
+          @if (scrambleType() === 'cross' || scrambleType() === 'f2l' || scrambleType() === 'oll' || scrambleType() === 'pll') {
+            <button
+              type="button"
+              class="btn-mid icon-btn"
+              (click)="openCaseModal()"
+              [attr.aria-label]="scrambleType() === 'cross'
+                ? 'Cross options'
+                : (scrambleType() === 'f2l'
+                  ? 'F2L options'
+                  : (scrambleType() === 'oll' ? 'OLL options' : 'PLL options'))"
+              title="Options"
+            >
+              <svg class="settings-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path d="M7.5 10.5C8.9 10.5 10 9.4 10 8S8.9 5.5 7.5 5.5S5 6.6 5 8S6.2 10.5 7.5 10.5zM7.5 11.5C5.6 11.5 4 9.9 4 8S5.6 4.5 7.5 4.5S11 6.1 11 8S9.5 11.5 7.5 11.5z"/>
+                <path d="M6.3 2.6L6 2.7C5.3 2.9 4.7 3.2 4.1 3.7L3.9 3.9L2.5 3.1L1.2 4.9L2.4 6L2.3 6.2C2.1 6.8 2 7.4 2 8c0 .3 0 .7.1 1l.1.3L1 10.3l1.2 1.7l1.1-.6l.3.3C4.2 12.5 5 13 6 13.3l.3.1L6.5 15h2.1l.2-1.6l.3-.1c.8-.2 1.6-.7 2.2-1.3l.3-.2l1.1.6l1.2-1.7l-1.1-1l.1-.3C13 8.9 13 8.4 13 8c0-.5-.1-1.1-.2-1.6l-.1-.3l1.2-1l-1.2-1.7L11.3 4l-.3-.2c-.6-.5-1.3-.9-2-1.1L8.8 2.6L8.6 1H6.5L6.3 2.6zM5.5.9C5.5.4 6 0 6.5 0h2.1c.5 0 .9.4 1 .9l.1 1c.6.2 1.2.5 1.8 1l.7-.4c.4-.2 1-.1 1.3.3l1.2 1.7c.3.4.2 1-.1 1.3l-.7.6C14 6.9 14 7.5 14 8c0 .4 0 .8-.1 1.3l.6.6c.4.3.4.9.1 1.3l-1.2 1.7c-.3.4-.8.5-1.3.3l-.8-.4c-.6.5-1.3.9-2 1.2l-.1 1c-.1.5-.5.9-1 .9H6.5c-.5 0-.9-.4-1-.9l-.1-1c-.8-.3-1.6-.8-2.3-1.4l-.4.2c-.4.2-1 .1-1.3-.3l-1.2-1.7c-.3-.4-.2-1 .1-1.3l.8-.7C1.1 8.6 1 8.3 1 8c0-.6.1-1.2.2-1.8L.6 5.6C.2 5.3.1 4.7.4 4.3l1.2-1.7C1.9 2.1 2.5 2 2.9 2.2l.9.5c.5-.3 1-.6 1.6-.8L5.5.9z"/>
+              </svg>
+            </button>
+          }
+          <button type="button" class="btn-mid" [disabled]="!canGoLast()" (click)="lastScramble()">Last</button>
+          <button type="button" class="btn-next" (click)="nextScramble()">Next scramble</button>
         </div>
-        @if (scrambleType() === 'cross') {
-          <div class="row cross-bounds">
-            <label>Easy cross bounds (≤8 each)</label>
-            <div class="bounds-group">
-              <span class="bounds-label">Lower</span>
-              <input type="number" min="0" max="8" step="1" class="bounds-digit"
-                     [value]="crossLower()" (change)="onCrossLowerChange($event)">
-              <span class="bounds-label">Upper</span>
-              <input type="number" min="0" max="8" step="1" class="bounds-digit"
-                     [value]="crossUpper()" (change)="onCrossUpperChange($event)">
-            </div>
-            <span class="hint">
-              Bounds apply only to <strong>cross</strong> (csTimer <code>cross.js</code> pruning / HTM to finish the cross),
-              not to the total number of moves in the scramble. The full scramble is still from
-              <code>getAnyScramble</code> + min2phase (random corners + long solution, typically ~15–21 moves).
-              Encoded as <code>upper×10 + lower</code> (digits ≤8). Old default <code>20</code> meant cross-only 0–2 — use 0–8 for full range.
-            </span>
-          </div>
-        } @else {
+        <pre class="scramble-line">{{ scramble() || '(empty — click Next scramble)' }}</pre>
+        @if (scrambleType() !== 'cross' && scrambleType() !== 'oll' && scrambleType() !== 'pll') {
           <div class="row">
             <span class="hint muted">
               WCA: fixed 25 moves (333o). F2L / OLL / PLL: cstimer subsets. Length encoding applies only to Cross above.
             </span>
           </div>
         }
-        @if (scrambleType() === 'oll') {
-          <div class="oll-pll-settings">
-            <h3 class="subh">OLL case pool</h3>
-            <p class="hint small">
-              Matches csTimer <code>oll_map</code>: random case is drawn only from enabled indices when “Custom subset” is on.
-            </p>
-            <app-oll-case-picker />
-          </div>
-        }
-        @if (scrambleType() === 'pll') {
-          <div class="oll-pll-settings">
-            <h3 class="subh">PLL case pool</h3>
-            <p class="hint small">csTimer <code>pll_map</code> (21 named perms).</p>
-            <app-pll-case-picker />
-          </div>
-        }
-        <button type="button" class="btn-next" (click)="nextScramble()">Next scramble</button>
       </section>
+
+      @if (caseModalOpen()) {
+        <div class="backdrop" (click)="closeCaseModal()"></div>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
+          <div class="modal-inner">
+            <header class="modal-head">
+              <h2 id="case-modal-title">
+                @if (scrambleType() === 'cross') {
+                  Cross options
+                } @else if (scrambleType() === 'f2l') {
+                  F2L options
+                } @else {
+                  {{ scrambleType() === 'oll' ? 'OLL options' : 'PLL options' }}
+                }
+              </h2>
+              <button type="button" class="icon-close" (click)="closeCaseModal()" aria-label="Close">×</button>
+            </header>
+            <div class="modal-body">
+              @if (scrambleType() === 'cross') {
+                <div class="cross-modal">
+                  <div class="bounds-group">
+                    <span class="bounds-label">Lower</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="8"
+                      step="1"
+                      class="bounds-digit"
+                      [value]="crossLower()"
+                      (change)="onCrossLowerChange($event)"
+                    >
+                    <span class="bounds-label">Upper</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="8"
+                      step="1"
+                      class="bounds-digit"
+                      [value]="crossUpper()"
+                      (change)="onCrossUpperChange($event)"
+                    >
+                  </div>
+                  <p class="hint small cross-hint">
+                    Bounds apply only to <strong>cross</strong> (csTimer <code>cross.js</code> pruning / HTM to finish the cross),
+                    not to the total scramble length. The full scramble is still from
+                    <code>getAnyScramble</code> + min2phase (usually ~15–21 moves).
+                    Encoded as <code>upper×10 + lower</code> (digits ≤8). Old default <code>20</code> meant cross-only 0–2.
+                  </p>
+                </div>
+              } @else if (scrambleType() === 'f2l') {
+                <app-f2l-case-picker [inline]="true" />
+              } @else if (scrambleType() === 'oll') {
+                <app-oll-case-picker [inline]="true" />
+              } @else if (scrambleType() === 'pll') {
+                <app-pll-case-picker [inline]="true" />
+              }
+            </div>
+          </div>
+        </div>
+      }
 
       @if (scrambleType() === 'oll' || scrambleType() === 'pll') {
         <section class="panel">
@@ -104,11 +152,6 @@ import { rotateCubeX2 } from '../../lib/cube-orientation';
           </p>
         }
         <app-scramble-target-viz [cubeState]="scrambleTargetDisplay()" />
-      </section>
-
-      <section class="panel">
-        <h2>Scramble string</h2>
-        <pre class="scramble-line">{{ scramble() || '(empty — click Next scramble)' }}</pre>
       </section>
 
       <section class="panel">
@@ -198,15 +241,55 @@ import { rotateCubeX2 } from '../../lib/cube-orientation';
       flex: 1 1 100%;
       margin-left: 212px;
     }
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .toolbar-row label {
+      min-width: auto;
+      font-size: 14px;
+      color: #333;
+    }
+    .btn-mid,
     .btn-next {
       padding: 10px 20px;
       font-size: 15px;
       font-weight: 600;
-      color: #fff;
-      background: #0d6efd;
-      border: none;
       border-radius: 8px;
       cursor: pointer;
+      border: 1px solid #d0d7de;
+      background: #fff;
+      color: #1f2328;
+    }
+    .btn-mid:hover {
+      background: #f6f8fa;
+    }
+    .icon-btn {
+      padding: 9px 10px;
+      min-width: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .settings-icon {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+      display: block;
+    }
+    .btn-mid:disabled {
+      cursor: not-allowed;
+      color: #8c959f;
+      border-color: #d8dee4;
+      background: #f6f8fa;
+    }
+    .btn-next {
+      color: #fff;
+      background: #0d6efd;
+      border-color: #0d6efd;
     }
     .btn-next:hover {
       background: #0b5ed7;
@@ -271,20 +354,79 @@ import { rotateCubeX2 } from '../../lib/cube-orientation';
       font-size: 0.95rem;
       color: #495057;
     }
-    .oll-pll-settings {
-      margin: 16px 0;
-      padding-top: 12px;
-      border-top: 1px solid #e9ecef;
-    }
     .net-hint {
       margin: 0 0 12px;
+    }
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1040;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      pointer-events: none;
+    }
+    .modal-inner {
+      pointer-events: auto;
+      background: #fff;
+      border-radius: 14px;
+      width: min(960px, 100%);
+      max-height: min(90vh, 900px);
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .modal-head h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #2f363d;
+    }
+    .icon-close {
+      border: none;
+      background: transparent;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+      color: #6c757d;
+      padding: 0 4px;
+    }
+    .modal-body {
+      padding: 12px 18px 18px;
+      overflow: auto;
+      flex: 1;
+    }
+    .cross-modal {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cross-hint {
+      margin: 0;
     }
   `]
 })
 export class ScrambleTestComponent implements OnInit {
+  private readonly history: ScrambleSnapshot[] = [];
+  private readonly historyIndex = signal(-1);
   private state = inject(StateService);
   private cube = inject(CubeService);
   private cstimer = inject(CstimerScrambleService);
+  readonly caseModalOpen = signal(false);
 
   scramble: Signal<string> = computed(() => this.state.scramble());
   sequence: Signal<string[]> = computed(() => this.state.scrambleSequence());
@@ -310,6 +452,7 @@ export class ScrambleTestComponent implements OnInit {
   /** Easy cross: lower/upper HTM bounds (0–8), encoded into state.scrambleLength as upper×10+lower. */
   crossLower: WritableSignal<number> = signal(0);
   crossUpper: WritableSignal<number> = signal(8);
+  readonly canGoLast: Signal<boolean> = computed(() => this.historyIndex() > 0);
 
   ngOnInit(): void {
     this.decodeCrossBoundsFromState();
@@ -323,6 +466,14 @@ export class ScrambleTestComponent implements OnInit {
       this.decodeCrossBoundsFromState();
     }
     this.nextScramble();
+  }
+
+  openCaseModal(): void {
+    this.caseModalOpen.set(true);
+  }
+
+  closeCaseModal(): void {
+    this.caseModalOpen.set(false);
   }
 
   onCrossLowerChange(event: Event): void {
@@ -372,7 +523,60 @@ export class ScrambleTestComponent implements OnInit {
     this.nextScramble();
   }
 
+  lastScramble(): void {
+    if (this.historyIndex() <= 0) {
+      return;
+    }
+    const nextIndex = this.historyIndex() - 1;
+    this.historyIndex.set(nextIndex);
+    this.applySnapshot(this.history[nextIndex]!);
+  }
+
   nextScramble(): void {
     this.cube.generateScramble();
+    this.pushCurrentStateToHistory();
   }
+
+  private pushCurrentStateToHistory(): void {
+    const current = this.captureSnapshot();
+    if (!current.scramble) {
+      return;
+    }
+    const currentIndex = this.historyIndex();
+    if (currentIndex < this.history.length - 1) {
+      this.history.splice(currentIndex + 1);
+    }
+    this.history.push(current);
+    this.historyIndex.set(this.history.length - 1);
+  }
+
+  private captureSnapshot(): ScrambleSnapshot {
+    const target = this.state.scrambleTargetState();
+    return {
+      scramble: this.state.scramble(),
+      sequence: [...this.state.scrambleSequence()],
+      target: target ? structuredClone(target) : null,
+      lastOllCase: this.state.lastOllCaseIndex(),
+      lastF2lCase: this.state.lastF2lCaseIndex(),
+      lastPllCase: this.state.lastPllCaseIndex(),
+    };
+  }
+
+  private applySnapshot(snapshot: ScrambleSnapshot): void {
+    this.state.scramble.set(snapshot.scramble);
+    this.state.scrambleSequence.set([...snapshot.sequence]);
+    this.state.scrambleTargetState.set(snapshot.target ? structuredClone(snapshot.target) : null);
+    this.state.lastOllCaseIndex.set(snapshot.lastOllCase);
+    this.state.lastF2lCaseIndex.set(snapshot.lastF2lCase);
+    this.state.lastPllCaseIndex.set(snapshot.lastPllCase);
+  }
+}
+
+interface ScrambleSnapshot {
+  scramble: string;
+  sequence: string[];
+  target: CubeState | null;
+  lastOllCase: number | null;
+  lastF2lCase: number | null;
+  lastPllCase: number | null;
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService } from '../../services/state.service';
 import { OLL_GROUPS, ALL_OLL_INDICES } from '../../data/oll-cases';
@@ -32,7 +32,7 @@ import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
           Custom subset
         </label>
       </div>
-      @if (state.ollSubsetMode() === 'subset') {
+      @if (state.ollSubsetMode() === 'subset' && !inline()) {
         <div class="subset-bar">
           <button type="button" class="btn primary" (click)="openModal()">Choose cases…</button>
           <span class="count">{{ enabledCount() }} / {{ ALL_OLL_INDICES.length }} selected</span>
@@ -40,7 +40,48 @@ import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
       }
     </div>
 
-    @if (modalOpen()) {
+    @if (inline()) {
+      <div class="modal-toolbar inline-toolbar">
+        <button type="button" class="btn" (click)="selectAll()">Select all</button>
+        <button type="button" class="btn" (click)="clearAll()">Clear all</button>
+      </div>
+      <div class="inline-body">
+        @for (g of OLL_GROUPS; track g.id) {
+          <section class="group">
+            <header class="group-head">
+              <span class="group-title">{{ g.title }}</span>
+              <button type="button" class="btn tiny" (click)="selectGroup(g)">All</button>
+              <button type="button" class="btn tiny" (click)="clearGroup(g)">None</button>
+            </header>
+            <div class="case-grid">
+              @for (c of g.cases; track c.index) {
+                <label class="case-tile" [class.on]="isOn(c.index)">
+                  <input
+                    class="sr-only"
+                    type="checkbox"
+                    [checked]="isOn(c.index)"
+                    (change)="toggle(c.index, $any($event.target).checked)"
+                  />
+                  @if (ollImgUrl(c.index); as src) {
+                    <img
+                      class="ll-thumb"
+                      [src]="src"
+                      width="120"
+                      height="120"
+                      [attr.alt]="c.cstimerName + ' OLL shape'"
+                      loading="lazy"
+                    />
+                  } @else {
+                    <div class="ll-fallback">…</div>
+                  }
+                  <span class="case-name">{{ c.cstimerName }}</span>
+                </label>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    } @else if (modalOpen()) {
       <div class="backdrop" (click)="closeModal()"></div>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="oll-modal-title">
         <div class="modal-inner">
@@ -192,6 +233,14 @@ import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
       padding: 14px 18px;
       flex: 1;
     }
+    .inline-toolbar {
+      border-top: 1px solid #f1f3f5;
+    }
+    .inline-body {
+      padding: 14px 0 0;
+      max-height: min(72vh, 760px);
+      overflow-y: auto;
+    }
     .modal-foot {
       padding: 12px 18px;
       border-top: 1px solid #e9ecef;
@@ -269,6 +318,7 @@ import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
   `]
 })
 export class OllCasePickerComponent {
+  readonly inline = input<boolean>(false);
   readonly state = inject(StateService);
   readonly OLL_GROUPS = OLL_GROUPS;
   readonly ALL_OLL_INDICES = ALL_OLL_INDICES;
@@ -303,6 +353,10 @@ export class OllCasePickerComponent {
   setMode(mode: 'full' | 'subset'): void {
     this.state.ollSubsetMode.set(mode);
     this.state.persistOllSubsetPrefs();
+    if (this.inline()) {
+      this.closeModal();
+      return;
+    }
     if (mode === 'subset') {
       this.openModal();
     } else {
