@@ -17,6 +17,7 @@ import { BluetoothService } from '../../services/bluetooth.service';
       </div>
       <div class="header-controls">
         <a routerLink="/scramble-test" class="dev-link">Scramble test</a>
+        <a routerLink="/analysis" class="dev-link">Analysis</a>
         <select class="lang-select" [value]="currentLanguage()" (change)="onLanguageChange($event)">
           @for (lang of availableLanguages; track lang.code) {
             <option [value]="lang.code">{{ lang.name }}</option>

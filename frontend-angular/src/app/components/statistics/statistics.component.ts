@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed, type WritableSignal, type Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StateService, Solve } from '../../services/state.service';
-import { ApiService, Statistics } from '../../services/api.service';
+import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { formatMs } from '../../lib/analysis-selectors';
 
 @Component({
   selector: 'app-statistics',
@@ -92,8 +92,7 @@ import { ApiService, Statistics } from '../../services/api.service';
   `]
 })
 export class StatisticsComponent implements OnInit {
-  private state = inject(StateService);
-  private api = inject(ApiService);
+  private store = inject(LocalSolveStoreService);
 
   currentTime: WritableSignal<string> = signal<string>('--');
   ao5: WritableSignal<string> = signal<string>('--');
@@ -101,17 +100,6 @@ export class StatisticsComponent implements OnInit {
   ao100: WritableSignal<string> = signal<string>('--');
   bestTime: WritableSignal<string> = signal<string>('--');
   solveCount: WritableSignal<string> = signal<string>('0');
-
-  private formatTime = (ms: number | undefined): string => {
-    if (!ms) return '--';
-    const minutes = Math.floor(ms / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
-    const milliseconds = Math.floor(ms % 1000);
-    if (minutes > 0) {
-      return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
-    }
-    return `${seconds}.${milliseconds.toString().padStart(3, '0')}`;
-  };
 
   private translations: Record<string, string> = {
     sessionStats: 'Session Statistics',
@@ -136,20 +124,15 @@ export class StatisticsComponent implements OnInit {
   }
 
   async loadStatistics(): Promise<void> {
-    try {
-      const stats = await this.api.getStatistics();
-      this.updateStatistics(stats);
-    } catch (e) {
-      console.error('Failed to load statistics:', e);
-    }
+    this.updateStatistics(this.store.getStatistics());
   }
 
-  private updateStatistics(stats: Statistics): void {
-    this.currentTime.set(this.formatTime(stats.currentTime));
-    this.ao5.set(this.formatTime(stats.ao5));
-    this.ao12.set(this.formatTime(stats.ao12));
-    this.ao100.set(this.formatTime(stats.ao100));
-    this.bestTime.set(this.formatTime(stats.bestTime));
+  private updateStatistics(stats: { currentTime?: number | null; ao5?: number | null; ao12?: number | null; ao100?: number | null; bestTime?: number | null; solveCount?: number }): void {
+    this.currentTime.set(formatMs(stats.currentTime ?? null));
+    this.ao5.set(formatMs(stats.ao5 ?? null));
+    this.ao12.set(formatMs(stats.ao12 ?? null));
+    this.ao100.set(formatMs(stats.ao100 ?? null));
+    this.bestTime.set(formatMs(stats.bestTime ?? null));
     this.solveCount.set(String(stats.solveCount || 0));
   }
 }

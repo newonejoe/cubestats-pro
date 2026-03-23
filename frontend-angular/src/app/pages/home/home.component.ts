@@ -13,6 +13,7 @@ import { BluetoothManagerComponent } from '../../components/bluetooth-manager/bl
 import { StateService } from '../../services/state.service';
 import { CubeService } from '../../services/cube.service';
 import { BluetoothService } from '../../services/bluetooth.service';
+import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 
 @Component({
   selector: 'app-home',
@@ -361,6 +362,7 @@ export class HomeComponent implements OnInit {
   private state = inject(StateService);
   private cube = inject(CubeService);
   private bluetooth = inject(BluetoothService);
+  private localStore = inject(LocalSolveStoreService);
 
   showSettings: WritableSignal<boolean> = signal<boolean>(false);
   toastMessage: WritableSignal<string> = signal<string>('');
@@ -388,6 +390,11 @@ export class HomeComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    const sessions = this.localStore.getSessions();
+    if (sessions.length > 0) {
+      this.state.currentSession.set(sessions[0]!);
+    }
+    this.state.solves.set(this.localStore.getSolves());
     window.addEventListener('openSettings', () => {
       this.showSettings.set(true);
     });

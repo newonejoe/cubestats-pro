@@ -1,17 +1,17 @@
 import { Injectable, inject, signal, type WritableSignal } from '@angular/core';
 import { StateService, Solve } from './state.service';
-import { ApiService } from './api.service';
 import { CubeService } from './cube.service';
 import { BluetoothService } from './bluetooth.service';
+import { LocalSolveStoreService } from './local-solve-store.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TimerService {
   private state = inject(StateService);
-  private api = inject(ApiService);
   private cube = inject(CubeService);
   private bluetooth = inject(BluetoothService);
+  private localStore = inject(LocalSolveStoreService);
 
   private currentSolveStartTime = 0;
   private inspectionStart = 0;
@@ -422,8 +422,23 @@ export class TimerService {
     const isPlus2 = currentSolve.penalty === 1;
     const finalTime = isDNF ? null : (isPlus2 ? solveTime + 2000 : solveTime);
 
-    // Save to localStorage
-    this.addSolveToLocalStorage(solveTime, currentSolve.scramble || this.state.scramble(), currentSolve.moveCount || 0, isDNF, isPlus2);
+    const saved = this.localStore.saveSolve({
+      ...currentSolve,
+      time: solveTime,
+      finalTime,
+      scramble: currentSolve.scramble || this.state.scramble(),
+      moveCount: this.currentMoveCount,
+      dnf: isDNF,
+      plus2: isPlus2,
+      scrambleType: this.state.scrambleType(),
+      ollCaseIndex: this.state.lastOllCaseIndex(),
+      pllCaseIndex: this.state.lastPllCaseIndex(),
+      f2lCaseIndex: this.state.lastF2lCaseIndex(),
+      date: new Date(endTime).toISOString(),
+      sessionId: currentSolve.sessionId ?? this.state.currentSession()?.id ?? 1,
+    });
+    this.state.currentSolve.set(saved);
+    this.state.solves.update((s) => [saved, ...s.filter((x) => x.id !== saved.id)]);
 
     // Save to API (disabled for testing)
     // await this.api.saveSolve(currentSolve);
@@ -452,17 +467,24 @@ export class TimerService {
     }
 
     currentSolve.finalTime = finalTime;
-
-    // Save to localStorage
-    const isDNF = penalty === 'DNF';
-    const isPlus2 = penalty === '+2';
-    this.addSolveToLocalStorage(currentSolve.time, currentSolve.scramble || this.state.scramble(), currentSolve.moveCount || 0, isDNF, isPlus2);
+    currentSolve.dnf = penalty === 'DNF';
+    currentSolve.plus2 = penalty === '+2';
 
     // Get CFOP analysis (disabled for testing)
     // const analysis = await this.api.analyzeSolve(currentSolve.time);
     // if (analysis) { ... }
 
-    currentSolve.sessionId = this.state.currentSession()?.id;
+    currentSolve.sessionId = this.state.currentSession()?.id ?? currentSolve.sessionId ?? 1;
+    currentSolve.scrambleType = currentSolve.scrambleType ?? this.state.scrambleType();
+    if (currentSolve.scrambleType === 'oll') {
+      currentSolve.ollCaseIndex = this.state.lastOllCaseIndex();
+    } else if (currentSolve.scrambleType === 'pll') {
+      currentSolve.pllCaseIndex = this.state.lastPllCaseIndex();
+    } else if (currentSolve.scrambleType === 'f2l') {
+      currentSolve.f2lCaseIndex = this.state.lastF2lCaseIndex();
+    }
+    const saved = this.localStore.saveSolve(currentSolve);
+    this.state.solves.update((s) => [saved, ...s.filter((x) => x.id !== saved.id)]);
 
     // Save to API (disabled for testing)
     // await this.api.saveSolve(currentSolve);
@@ -473,29 +495,13 @@ export class TimerService {
     this.state.timer.set(0);
   }
 
-  private addSolveToLocalStorage(time: number, scramble: string, moveCount: number, isDNF: boolean, isPlus2: boolean): void {
-    const solves = JSON.parse(localStorage.getItem('solves') || '[]');
-    solves.unshift({
-      time,
-      scramble,
-      moveCount,
-      dnf: isDNF,
-      plus2: isPlus2,
-      date: new Date().toISOString()
-    });
-    localStorage.setItem('solves', JSON.stringify(solves));
-  }
-
   async loadSolves(): Promise<void> {
-    // API disabled for testing
-    // const solves = await this.api.getSolves();
-    // this.state.solves.set(solves);
+    this.state.solves.set(this.localStore.getSolves());
   }
 
   async loadStatistics(): Promise<void> {
-    // API disabled for testing
-    // const stats = await this.api.getStatistics();
-    // window.dispatchEvent(new CustomEvent('statisticsLoaded', { detail: stats }));
+    const stats = this.localStore.getStatistics();
+    window.dispatchEvent(new CustomEvent('statisticsLoaded', { detail: stats }));
   }
 
   // For keyboard shortcuts

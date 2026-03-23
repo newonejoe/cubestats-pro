@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed, type WritableSignal, type Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService, Solve, Session } from '../../services/state.service';
-import { ApiService } from '../../services/api.service';
+import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 
 @Component({
   selector: 'app-history',
@@ -13,6 +13,7 @@ import { ApiService } from '../../services/api.service';
         <span class="card-title">{{ t('solveHistory') }}</span>
         <div class="history-controls">
           <select class="session-select" (change)="onSessionChange($event)">
+            <option value="all">All sessions</option>
             @for (session of sessions(); track session.id) {
               <option [value]="session.id">{{ session.name }}</option>
             }
@@ -202,9 +203,17 @@ import { ApiService } from '../../services/api.service';
 })
 export class HistoryComponent implements OnInit {
   private state = inject(StateService);
-  private api = inject(ApiService);
+  private store = inject(LocalSolveStoreService);
 
-  solves: Signal<Solve[]> = computed(() => this.state.solves());
+  selectedSessionId: WritableSignal<number | 'all'> = signal<number | 'all'>('all');
+  solves: Signal<Solve[]> = computed(() => {
+    const selected = this.selectedSessionId();
+    const all = this.state.solves();
+    if (selected === 'all') {
+      return all;
+    }
+    return all.filter((s) => (s.sessionId ?? 1) === selected);
+  });
   sessions: WritableSignal<Session[]> = signal<Session[]>([]);
 
   private translations: Record<string, string> = {
@@ -241,26 +250,30 @@ export class HistoryComponent implements OnInit {
   }
 
   async loadSolves(): Promise<void> {
-    const solves = await this.api.getSolves();
-    this.state.solves.set(solves);
+    this.state.solves.set(this.store.getSolves());
   }
 
   async loadSessions(): Promise<void> {
-    const sessions = await this.api.getSessions();
-    this.sessions.set(sessions);
+    this.sessions.set(this.store.getSessions());
   }
 
   onSessionChange(event: Event): void {
-    const sessionId = parseInt((event.target as HTMLSelectElement).value);
+    const raw = (event.target as HTMLSelectElement).value;
+    if (raw === 'all') {
+      this.selectedSessionId.set('all');
+      return;
+    }
+    const sessionId = parseInt(raw, 10);
+    this.selectedSessionId.set(Number.isNaN(sessionId) ? 'all' : sessionId);
   }
 
   async createNewSession(): Promise<void> {
-    const session = await this.api.createSession();
+    const session = this.store.createSession();
     this.sessions.update(s => [...s, session]);
   }
 
   async exportData(): Promise<void> {
-    const data = await this.api.exportData();
+    const data = this.store.exportCsv();
     const blob = new Blob([data], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -272,7 +285,7 @@ export class HistoryComponent implements OnInit {
 
   async deleteSolve(solveId?: number): Promise<void> {
     if (!solveId) return;
-    await this.api.deleteSolve(solveId);
+    this.store.deleteSolve(solveId);
     this.loadSolves();
   }
 }

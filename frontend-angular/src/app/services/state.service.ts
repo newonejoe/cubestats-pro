@@ -19,9 +19,14 @@ export interface Settings {
 export interface Solve {
   id?: number;
   time: number;
+  date?: string;
   displayTime?: number;
   finalTime?: number | null;
   scramble: string;
+  scrambleType?: string;
+  ollCaseIndex?: number | null;
+  pllCaseIndex?: number | null;
+  f2lCaseIndex?: number | null;
   moveCount?: number;
   startTime?: string;
   endTime?: string;
