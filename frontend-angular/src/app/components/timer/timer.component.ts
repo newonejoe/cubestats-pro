@@ -321,11 +321,20 @@ export class TimerComponent implements OnInit {
     const type = this.scrambleType();
     const length = this.scrambleLength();
     switch (type) {
-      case 'cross': return '~4-8 moves';
-      case 'f2l': return '~8 moves';
-      case 'oll': return '57 cases';
-      case 'pll': return '21 cases';
-      default: return length + ' moves';
+      case 'wca':
+        // cstimer megascramble 333o style (25 random quarter/half turns), not TNoodle random-state
+        return '25 moves (333o)';
+      case 'cross':
+        // cstimer easyc: difficulty from length (see cross.getEasyCross)
+        return 'easyc · len ' + length;
+      case 'f2l':
+        return 'cstimer F2L subset';
+      case 'oll':
+        return '57 cases (cstimer)';
+      case 'pll':
+        return '21 cases (cstimer)';
+      default:
+        return length + ' moves';
     }
   }
 

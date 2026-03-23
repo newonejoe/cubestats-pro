@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, type WritableSignal, type Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { StateService } from '../../services/state.service';
 import { I18nService, Language } from '../../services/i18n.service';
 import { BluetoothService } from '../../services/bluetooth.service';
@@ -7,7 +8,7 @@ import { BluetoothService } from '../../services/bluetooth.service';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   template: `
     <header class="header">
       <div class="logo">
@@ -15,6 +16,7 @@ import { BluetoothService } from '../../services/bluetooth.service';
         <div class="logo-text">Cube<span>Stats</span> Pro</div>
       </div>
       <div class="header-controls">
+        <a routerLink="/scramble-test" class="dev-link">Scramble test</a>
         <select class="lang-select" [value]="currentLanguage()" (change)="onLanguageChange($event)">
           @for (lang of availableLanguages; track lang.code) {
             <option [value]="lang.code">{{ lang.name }}</option>
@@ -74,6 +76,20 @@ import { BluetoothService } from '../../services/bluetooth.service';
       display: flex;
       align-items: center;
       gap: 16px;
+    }
+
+    .dev-link {
+      font-size: 13px;
+      color: #6c757d;
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #dee2e6;
+    }
+
+    .dev-link:hover {
+      color: #0d6efd;
+      border-color: #0d6efd;
     }
 
     .lang-select,

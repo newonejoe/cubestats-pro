@@ -1,5 +1,9 @@
 import { Injectable, inject, signal, type WritableSignal } from '@angular/core';
 import { StateService, CubeState } from './state.service';
+import { CstimerScrambleService } from './cstimer-scramble.service';
+import { ALL_OLL_INDICES } from '../data/oll-cases';
+import { ALL_PLL_INDICES } from '../data/pll-cases';
+/** @see ../data/cstimer-reference.ts — OLL/PLL indices match csTimer oll_map / pll_map */
 
 // Standard WCA colors
 const COLORS: Record<string, string> = {
@@ -16,30 +20,10 @@ const COLORS: Record<string, string> = {
 })
 export class CubeService {
   private state = inject(StateService);
+  private cstimerScramble = inject(CstimerScrambleService);
 
   // Signals
   scrambleGenerated = signal<string>('');
-
-  // Scramble generation - cstimer style
-  // Moves grouped by axis: [U/D axis, R/L axis, F/B axis]
-  // Each axis has 3 move types: [face, face2, face']
-  private scrambleAxes: string[][] = [
-    ['U', 'U2', "U'"],  // axis 0: U face moves
-    ['D', 'D2', "D'"],  // axis 1: D face moves (but handled as axis in mega)
-    ['R', 'R2', "R'"],  // axis 2: R face moves
-    ['L', 'L2', "L'"],  // axis 3: L face moves
-    ['F', 'F2', "F'"],  // axis 4: F face moves
-    ['B', 'B2', "B'"],  // axis 5: B face moves
-  ];
-
-  // For mega function - proper 3-axis grouping: [U/D, R/L, F/B]
-  private scrambleAxesGrouped: string[][][] = [
-    [['U', 'U2', "U'"], ['D', 'D2', "D'"]],   // axis 0: U/D
-    [['R', 'R2', "R'"], ['L', 'L2', "L'"]],   // axis 1: R/L
-    [['F', 'F2', "F'"], ['B', 'B2', "B'"]],   // axis 2: F/B
-  ];
-
-  private modifiers = ['', "'", '2'];
 
   generateScramble(): void {
     const type = this.state.scrambleType();
@@ -121,120 +105,137 @@ export class CubeService {
   }
 
   /**
-   * cstimer-style mega scramble generator
-   * Generates random moves while avoiding:
-   * - Same face consecutive moves (e.g., R R)
-   * - Same axis moves that would be redundant (e.g., U then U')
-   * - Consecutive opposite face moves (cstimer specific)
+   * WCA-style 25-move random-turn scramble: cstimer megascramble "333o"
+   * ([["U","D"],["R","L"],["F","B"]], cubesuff) — NOT the same as cstimer's
+   * default menu "333", which uses min2phase random-state (getRandomScramble).
    */
   private generateWCAScramble(_length: number): string[] {
-    // WCA scrambles are fixed at 25 moves (cstimer standard)
-    const length = 25;
-    return this.mega(length);
+    return this.mega333o(25);
   }
 
   /**
-   * Core mega function - cstimer's scramble generation algorithm
-   * @param length Number of moves to generate
-   * @param axes Optional custom axes (defaults to 3-axis grouping for 3x3)
+   * cstimer scramble.js mega() — bitmask applies to face slot within axis (second),
+   * then a random suffix from cubesuff is appended (same as megascramble.js "333o").
    */
-  private mega(length: number, axes?: string[][][]): string[] {
-    const useAxes = axes || this.scrambleAxesGrouped;
+  private mega333o(length: number): string[] {
+    const turns = [
+      ['U', 'D'],
+      ['R', 'L'],
+      ['F', 'B']
+    ];
+    const suffixes = ['', '2', "'"];
     const sequence: string[] = [];
-    let donemoves = 0;  // bitmask: tracks which moves on current axis are used
-    let lastAxis = -1;
+    let donemoves = 0;
+    let lastaxis = -1;
 
     for (let i = 0; i < length; i++) {
-      let axis: number;
-      let faceIdx: number;
-      let moveIdx: number;
-      let move: string;
-
-      // Keep picking until we find a valid move
+      let first: number;
+      let second: number;
       do {
-        // Pick random axis (U/D, R/L, or F/B)
-        axis = Math.floor(Math.random() * useAxes.length);
-
-        // Within the axis, pick one of the face groups (e.g., U or D for U/D axis)
-        const faceGroup = useAxes[axis];
-        faceIdx = Math.floor(Math.random() * faceGroup.length);
-        const movesOnFace = faceGroup[faceIdx];
-
-        // Within that face, pick a move modifier ('', '2', "'")
-        moveIdx = Math.floor(Math.random() * movesOnFace.length);
-        move = movesOnFace[moveIdx];
-
-        // If we changed axis, reset donemoves
-        if (axis !== lastAxis) {
+        first = Math.floor(Math.random() * turns.length);
+        second = Math.floor(Math.random() * turns[first].length);
+        if (first !== lastaxis) {
           donemoves = 0;
-          lastAxis = axis;
+          lastaxis = first;
         }
-      } while (((donemoves >> moveIdx) & 1) !== 0);
-
-      // Mark this move (modifier) as used on current axis
-      donemoves |= 1 << moveIdx;
-
-      sequence.push(move);
+      } while (((donemoves >> second) & 1) !== 0);
+      donemoves |= 1 << second;
+      const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+      sequence.push(turns[first][second] + suffix);
     }
-
     return sequence;
   }
 
+  /** Setup moves for cross training — same mega as cstimer 333o. */
+  private mega333oSetup(length: number): string[] {
+    return this.mega333o(length);
+  }
+
+  /**
+   * cstimer easyc: cross.getEasyCross(length) picks a cross edge pattern whose *cross-only*
+   * HTM distance lies between min/max of the two digits (see cross.js); getAnyScramble then
+   * builds a full-cube random state with random corners — scramble length is from min2phase (~15–21),
+   * not the cross bound.
+   */
   private generateCrossScramble(): string[] {
-    // Cross scrambles should set up a cube state where solving the cross
-    // requires specific moves. We use predefined cross cases that represent
-    // common solved-cross states, then apply random setup moves using mega.
-
-    // Predefined cross setups - each creates a specific cross to solve
-    // These are the moves that SOLVE a cross (so applying them as scramble
-    // creates a cross that needs those moves to solve)
-    const crossCases = [
-      // Cross on R face
-      'R U R\'', 'R U2 R\'', 'R U R2', 'R\' D R', 'R\' D2 R',
-      // Cross on L face
-      'L U L\'', 'L U2 L\'', 'L U L2', 'L\' D\' L', 'L\' D2 L',
-      // Cross on U face (already on top)
-      'U', 'U2', 'U\'',
-      // Cross on F face
-      'F U F\'', 'F U2 F\'', 'F R U R\'',
-      // Cross on B face
-      'B U B\'', 'B U2 B\'', 'B U\' B\'',
-    ];
-
-    // Select a random cross case
-    const baseCase = crossCases[Math.floor(Math.random() * crossCases.length)];
-    const baseMoves = baseCase.split(' ');
-
-    // Apply setup moves using mega algorithm
-    const numSetupMoves = Math.floor(Math.random() * 3) + 1; // 1-3 setup moves
-    const setupMoves = this.mega(numSetupMoves);
-
-    // Combine: setup moves + base case
-    // The user will need to undo setup + solve cross
-    return [...setupMoves, ...baseMoves];
+    if (this.cstimerScramble.isReady()) {
+      try {
+        const s = this.cstimerScramble.scrambleString('easyc', this.state.scrambleLength());
+        return this.tokenizeScramble(s);
+      } catch (e) {
+        console.warn('[CubeService] cstimer easy cross failed, using mega fallback', e);
+      }
+    }
+    // Match WCA-ish length if cstimer unavailable (do not use 1–3 moves — that only looks like “easy cross”)
+    return this.mega333o(25);
   }
 
   private generateF2LScramble(): string[] {
-    return this.generateWCAScramble(8);
+    if (this.cstimerScramble.isReady()) {
+      try {
+        const s = this.cstimerScramble.scrambleString('f2l', 0);
+        return this.tokenizeScramble(s);
+      } catch (e) {
+        console.warn('[CubeService] cstimer F2L failed, using mega fallback', e);
+      }
+    }
+    return this.mega333o(8);
   }
 
   private generateOLLScramble(): string[] {
-    // 57 OLL cases - simplified random selection
-    const ollCases = [
-      'R U2 R2 U R2 U R2 U2 R', 'R U R U R U2 R2',
-      'R2 D R U2 R D R U2 R', 'M U R U R U R U2 M',
-      'R U R U R U2 R', 'R U2 R2 U R2 U R'
-    ];
-    return [ollCases[Math.floor(Math.random() * ollCases.length)]];
+    if (this.cstimerScramble.isReady()) {
+      try {
+        const pool = this.pickOllCasePool();
+        const idx = pool[Math.floor(Math.random() * pool.length)]!;
+        this.state.lastOllCaseIndex.set(idx);
+        const s = this.cstimerScramble.scrambleString('oll', 0, { cases: idx });
+        return this.tokenizeScramble(s);
+      } catch (e) {
+        console.warn('[CubeService] cstimer OLL failed, using mega fallback', e);
+      }
+    }
+    this.state.lastOllCaseIndex.set(null);
+    return this.mega333o(8);
   }
 
   private generatePLLScramble(): string[] {
-    // 21 PLL cases - simplified random selection
-    const pllCases = [
-      'R U R U R U2 R', 'R U2 R2 U R2 U R',
-      'M2 U M2 U2 M2 U M2', 'R U R U R2 D R U2 R D R2'
-    ];
-    return [pllCases[Math.floor(Math.random() * pllCases.length)]];
+    if (this.cstimerScramble.isReady()) {
+      try {
+        const pool = this.pickPllCasePool();
+        const idx = pool[Math.floor(Math.random() * pool.length)]!;
+        this.state.lastPllCaseIndex.set(idx);
+        const s = this.cstimerScramble.scrambleString('pll', 0, { cases: idx });
+        return this.tokenizeScramble(s);
+      } catch (e) {
+        console.warn('[CubeService] cstimer PLL failed, using mega fallback', e);
+      }
+    }
+    this.state.lastPllCaseIndex.set(null);
+    return this.mega333o(8);
+  }
+
+  /** csTimer oll_map indices 0–57 */
+  private pickOllCasePool(): number[] {
+    if (this.state.ollSubsetMode() === 'full') {
+      return [...ALL_OLL_INDICES];
+    }
+    const s = this.state.ollEnabledIndices();
+    const arr = [...s].filter((i) => i >= 0 && i <= 57);
+    return arr.length > 0 ? arr : [...ALL_OLL_INDICES];
+  }
+
+  /** csTimer pll_map indices 0–20 */
+  private pickPllCasePool(): number[] {
+    if (this.state.pllSubsetMode() === 'full') {
+      return [...ALL_PLL_INDICES];
+    }
+    const s = this.state.pllEnabledIndices();
+    const arr = [...s].filter((i) => i >= 0 && i <= 20);
+    return arr.length > 0 ? arr : [...ALL_PLL_INDICES];
+  }
+
+  private tokenizeScramble(s: string): string[] {
+    return s.trim().split(/\s+/).filter(Boolean);
   }
 
   // Cube state manipulation

@@ -1,4 +1,6 @@
 import { Injectable, signal, computed, type WritableSignal, type Signal } from '@angular/core';
+import { ALL_OLL_INDICES } from '../data/oll-cases';
+import { ALL_PLL_INDICES } from '../data/pll-cases';
 
 export interface CubeState {
   U: string[];
@@ -76,11 +78,31 @@ export class StateService {
   readonly inspectionTime: WritableSignal<number> = signal<number>(15);
 
   // Scramble state
-  readonly scrambleLength: WritableSignal<number> = signal<number>(20);
+  /**
+   * For cstimer easyc (Cross): cross.getEasyCross(length) uses lenA = min(length%10,8),
+   * lenB = min(⌊length/10⌋,8); cross HTM band is [min(lenA,lenB), max(lenA,lenB)] (see cross.js).
+   * Value 80 ⇒ 0 and 8 ⇒ full 0–8 band. Default 20 ⇒ 0 and 2 ⇒ only easy crosses.
+   */
+  readonly scrambleLength: WritableSignal<number> = signal<number>(80);
   readonly scrambleType: WritableSignal<string> = signal<string>('wca');
   readonly scramble: WritableSignal<string> = signal<string>('');
   readonly scrambleSequence: WritableSignal<string[]> = signal<string[]>([]);
   readonly scrambleIndex: WritableSignal<number> = signal<number>(0);
+
+  /** OLL: full csTimer pool (58 indices) vs custom enabled set */
+  readonly ollSubsetMode: WritableSignal<'full' | 'subset'> = signal<'full' | 'subset'>('full');
+  readonly ollEnabledIndices: WritableSignal<ReadonlySet<number>> = signal<ReadonlySet<number>>(
+    new Set(ALL_OLL_INDICES)
+  );
+  /** Last generated OLL case index (csTimer oll_map), for recognition UI */
+  readonly lastOllCaseIndex: WritableSignal<number | null> = signal<number | null>(null);
+
+  /** PLL: full 21 cases vs custom */
+  readonly pllSubsetMode: WritableSignal<'full' | 'subset'> = signal<'full' | 'subset'>('full');
+  readonly pllEnabledIndices: WritableSignal<ReadonlySet<number>> = signal<ReadonlySet<number>>(
+    new Set(ALL_PLL_INDICES)
+  );
+  readonly lastPllCaseIndex: WritableSignal<number | null> = signal<number | null>(null);
 
   // Twisting phase: user moves during twist phase
   readonly userTwistMoves: WritableSignal<string[]> = signal<string[]>([]);
@@ -138,8 +160,47 @@ export class StateService {
   readonly isReady: Signal<boolean> = computed(() => this.status() === 'ready');
 
   constructor() {
-    // Initialize cube state in localStorage for reference
     this.initializeCubeState();
+    this.loadSubsetTrainingPrefs();
+  }
+
+  private loadSubsetTrainingPrefs(): void {
+    try {
+      const om = localStorage.getItem('ollSubsetMode');
+      if (om === 'full' || om === 'subset') {
+        this.ollSubsetMode.set(om);
+      }
+      const oe = localStorage.getItem('ollEnabledIndices');
+      if (oe) {
+        const arr = JSON.parse(oe) as number[];
+        if (Array.isArray(arr)) {
+          this.ollEnabledIndices.set(new Set(arr.filter((n) => typeof n === 'number')));
+        }
+      }
+      const pm = localStorage.getItem('pllSubsetMode');
+      if (pm === 'full' || pm === 'subset') {
+        this.pllSubsetMode.set(pm);
+      }
+      const pe = localStorage.getItem('pllEnabledIndices');
+      if (pe) {
+        const arr = JSON.parse(pe) as number[];
+        if (Array.isArray(arr)) {
+          this.pllEnabledIndices.set(new Set(arr.filter((n) => typeof n === 'number')));
+        }
+      }
+    } catch {
+      // defaults
+    }
+  }
+
+  persistOllSubsetPrefs(): void {
+    localStorage.setItem('ollSubsetMode', this.ollSubsetMode());
+    localStorage.setItem('ollEnabledIndices', JSON.stringify([...this.ollEnabledIndices()]));
+  }
+
+  persistPllSubsetPrefs(): void {
+    localStorage.setItem('pllSubsetMode', this.pllSubsetMode());
+    localStorage.setItem('pllEnabledIndices', JSON.stringify([...this.pllEnabledIndices()]));
   }
 
   private initializeCubeState(): void {
