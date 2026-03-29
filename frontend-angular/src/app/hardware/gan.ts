@@ -363,11 +363,15 @@ export class GanDriver extends CubeDriver {
                 }
             }
 
-            for (let i = 0; i < movesToEmit.length; i++) {
-                const move = movesToEmit[i];
-                const timeOffs = timeOffsToEmit[i];
-                console.log(`[${nowIso}] [gancube] move ${move}  ${timeOffs}`);
-                this.onMove([move]);
+            const cubeMoves = movesToEmit.map((move, i) => ({
+                notation: move,
+                hwMs: timeOffsToEmit[i],
+            }));
+            for (const cm of cubeMoves) {
+                console.log(`[${nowIso}] [gancube] move ${cm.notation}  ${cm.hwMs}`);
+            }
+            if (cubeMoves.length > 0) {
+                this.onMove(cubeMoves);
             }
 
             this.prevMoveCnt = moveCnt;
@@ -529,7 +533,7 @@ export class GanDriver extends CubeDriver {
 
             if (axis !== -1) {
                 const moveStr = "URFDLB".charAt(axis) + " '".charAt(pow);
-                this.onMove([moveStr]);
+                this.onMove([{ notation: moveStr }]);
             }
 
             this.prevMoveCnt = moveCnt;
@@ -559,7 +563,7 @@ export class GanDriver extends CubeDriver {
 
             if (axis !== -1) {
                 const moveStr = "URFDLB".charAt(axis) + " '".charAt(pow);
-                this.onMove([moveStr]);
+                this.onMove([{ notation: moveStr }]);
             }
 
             this.prevMoveCnt = moveCnt;

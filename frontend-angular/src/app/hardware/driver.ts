@@ -1,5 +1,7 @@
 // Base driver interface for Bluetooth cube drivers
 
+import type { CubeMove } from './cube-move.js';
+
 export interface CubeDriverOptions {
     device: BluetoothDevice | null;
     gattServer: BluetoothRemoteGATTServer | null;
@@ -23,7 +25,7 @@ export abstract class CubeDriver {
     type: string = 'unknown';
 
     // Callback for move events
-    onMoveCallback?: (moves: string[]) => void;
+    onMoveCallback?: (moves: CubeMove[]) => void;
 
     constructor() {}
 
@@ -73,7 +75,7 @@ export abstract class CubeDriver {
         throw new Error('Not implemented');
     }
 
-    onMove(moves: string[]): void {
+    onMove(moves: CubeMove[]): void {
         console.log('[CubeDriver] Move:', moves);
         if (this.onMoveCallback) {
             this.onMoveCallback(moves);

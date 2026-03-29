@@ -282,13 +282,18 @@ export class QiyiDriver extends CubeDriver {
                 console.log('[qiyicube] miss history moves', JSON.stringify(todoMoves), this.lastTs);
             }
 
+            const emitted: { notation: string; hwMs: number }[] = [];
             for (let i = todoMoves.length - 1; i >= 0; i--) {
                 const mv = todoMoves[i][0];
                 const axis = [4, 1, 3, 0, 2, 5][(mv - 1) >> 1];
                 const power = [0, 2][mv & 1];
                 const moveStr = "URFDLB".charAt(axis) + " 2'".charAt(power);
+                const ts = todoMoves[i][1];
                 console.log(`[qiyicube] Move: ${moveStr}`);
-                this.onMove([moveStr]);
+                emitted.push({ notation: moveStr, hwMs: ts });
+            }
+            if (emitted.length > 0) {
+                this.onMove(emitted);
             }
 
             const faceletData = msg.slice(7, 34);

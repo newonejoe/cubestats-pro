@@ -7,6 +7,7 @@ import { GoCubeDriver } from './gocube.js';
 import { QiyiDriver } from './qiyi.js';
 import { MoyuDriver } from './moyu.js';
 import type { BluetoothDeviceEx, BluetoothAdvertisingEvent } from './types.js';
+import type { CubeMove } from './cube-move.js';
 
 // Import drivers to register them
 import './giiker.js';
@@ -15,7 +16,7 @@ import './gocube.js';
 import './qiyi.js';
 import './moyu.js';
 
-export type MoveCallback = (moves: string[]) => void;
+export type MoveCallback = (moves: CubeMove[]) => void;
 export type ConnectCallback = (name: string, mac: string | null) => void;
 export type DisconnectCallback = () => void;
 
@@ -291,7 +292,7 @@ export class BluetoothManager {
             }
         }
 
-        this.driver.onMove = (moves: string[]) => {
+        this.driver.onMove = (moves: CubeMove[]) => {
             if (this.onMoveCallback) {
                 this.onMoveCallback(moves);
             }

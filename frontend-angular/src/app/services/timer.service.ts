@@ -3,6 +3,8 @@ import { StateService, Solve } from './state.service';
 import { CubeService } from './cube.service';
 import { BluetoothService } from './bluetooth.service';
 import { LocalSolveStoreService } from './local-solve-store.service';
+import type { CubeMove } from '../hardware/cube-move';
+import { buildMoveAtMsTrace } from '../lib/cstimer-storage';
 
 @Injectable({
   providedIn: 'root'
@@ -18,18 +20,40 @@ export class TimerService {
   inspectionStartTime = 0;
   private currentMoveCount = 0;
   private cubeState: string[] = [];
+  private solvePerfOrigin = 0;
+  private moveTraceHwAnchor: number | null = null;
+  private moveTraceBuffer: { notation: string; offsetMs: number }[] = [];
 
   constructor() {
     // Set up Bluetooth move callback
-    this.bluetooth.setOnMove((moves: string[]) => {
+    this.bluetooth.setOnMove((moves: CubeMove[]) => {
       this.handleCubeMoves(moves);
     });
   }
 
-  private handleCubeMoves(moves: string[]): void {
-    console.log('[TimerService] Cube moves:', moves, 'Current status:', this.state.status());
+  private recordSolvingTrace(cm: CubeMove): void {
+    const notation = cm.notation.trim();
+    if (!notation) {
+      return;
+    }
+    let offsetMs: number;
+    if (cm.hwMs !== undefined) {
+      if (this.moveTraceHwAnchor === null) {
+        this.moveTraceHwAnchor = cm.hwMs;
+      }
+      offsetMs = Math.max(0, Math.round(cm.hwMs - this.moveTraceHwAnchor));
+    } else {
+      offsetMs = Math.round(performance.now() - this.solvePerfOrigin);
+    }
+    const last = this.moveTraceBuffer[this.moveTraceBuffer.length - 1];
+    if (last && offsetMs < last.offsetMs) {
+      offsetMs = last.offsetMs;
+    }
+    this.moveTraceBuffer.push({ notation, offsetMs });
+  }
 
-    const currentStatus = this.state.status();
+  private handleCubeMoves(moves: CubeMove[]): void {
+    console.log('[TimerService] Cube moves:', moves, 'Current status:', this.state.status());
 
     // Only process moves if Bluetooth is connected and we're in an active solve phase
     if (!this.bluetooth.isConnected()) {
@@ -37,21 +61,34 @@ export class TimerService {
       return;
     }
 
+    let currentStatus = this.state.status();
+    if (currentStatus === 'ready') {
+      this.startTimer();
+      currentStatus = 'solving';
+    }
+
     const scrambleSequence = this.state.scrambleSequence();
     let userMoves: string[] = [...this.state.userTwistMoves()].map(m => m.trim());
 
-    // Trim each move to remove trailing spaces
-    const trimmedMoves = moves.map(m => m.trim());
+    const trimmedMoves = moves.map((m) => m.notation.trim());
 
     // Track user moves for scramble navigation (decoupled from cube state)
-    for (const move of trimmedMoves) {
-      if (!move) continue; // Skip empty moves
+    for (let i = 0; i < moves.length; i++) {
+      const move = trimmedMoves[i]!;
+      if (!move) {
+        continue;
+      }
+      const cm = moves[i]!;
       userMoves.push(move);
       this.currentMoveCount++;
       this.cubeState.push(move);
 
       // Apply move to virtual cube state (Bluetooth cube state updates separately)
       this.cube.applyMoveToCube(move);
+
+      if (this.state.status() === 'solving') {
+        this.recordSolvingTrace(cm);
+      }
     }
 
     // Update user twist moves and calculate progress
@@ -97,7 +134,7 @@ export class TimerService {
         console.log('[TimerService] Idle -> Starting solve (twisting phase)');
         this.startTwistingPhase();
         // Re-process moves in new context - set user moves and calculate progress
-        userMoves = [...moves].map(m => m.trim());
+        userMoves = [...trimmedMoves];
         this.state.userTwistMoves.set(userMoves);
         // Calculate progress for all moves
         const result = this.calculateScrambleProgress(userMoves, scrambleSequence);
@@ -129,12 +166,6 @@ export class TimerService {
         // Inspection timer running - moves don't affect it
         break;
 
-      case 'ready':
-        // First move after inspection starts the timer
-        console.log('[TimerService] First move -> Starting solve timer');
-        this.startTimer();
-        break;
-
       case 'solving':
         // Update move count during solve
         console.log('[TimerService] Solving, move count:', this.currentMoveCount);
@@ -147,6 +178,8 @@ export class TimerService {
   }
 
   private startTwistingPhase(): void {
+    this.moveTraceBuffer = [];
+    this.moveTraceHwAnchor = null;
     // Reset move count and user twist moves
     this.currentMoveCount = 0;
     this.cubeState = [];
@@ -370,6 +403,9 @@ export class TimerService {
     this.clearInspectionInterval();
 
     this.state.status.set('solving');
+    this.solvePerfOrigin = performance.now();
+    this.moveTraceHwAnchor = null;
+    this.moveTraceBuffer = [];
     this.currentSolveStartTime = Date.now();
     this.state.timer.set(0);
 
@@ -422,7 +458,8 @@ export class TimerService {
     const isPlus2 = currentSolve.penalty === 1;
     const finalTime = isDNF ? null : (isPlus2 ? solveTime + 2000 : solveTime);
 
-    const saved = this.localStore.saveSolve({
+    const moveTrace = buildMoveAtMsTrace(this.moveTraceBuffer);
+    const saved = await this.localStore.saveSolve({
       ...currentSolve,
       time: solveTime,
       finalTime,
@@ -436,6 +473,7 @@ export class TimerService {
       f2lCaseIndex: this.state.lastF2lCaseIndex(),
       date: new Date(endTime).toISOString(),
       sessionId: currentSolve.sessionId ?? this.state.currentSession()?.id ?? 1,
+      moveTrace,
     });
     this.state.currentSolve.set(saved);
     this.state.solves.update((s) => [saved, ...s.filter((x) => x.id !== saved.id)]);
@@ -480,10 +518,11 @@ export class TimerService {
       currentSolve.ollCaseIndex = this.state.lastOllCaseIndex();
     } else if (currentSolve.scrambleType === 'pll') {
       currentSolve.pllCaseIndex = this.state.lastPllCaseIndex();
-    } else if (currentSolve.scrambleType === 'f2l') {
+    } else     if (currentSolve.scrambleType === 'f2l') {
       currentSolve.f2lCaseIndex = this.state.lastF2lCaseIndex();
     }
-    const saved = this.localStore.saveSolve(currentSolve);
+    currentSolve.moveTrace = buildMoveAtMsTrace(this.moveTraceBuffer);
+    const saved = await this.localStore.saveSolve(currentSolve);
     this.state.solves.update((s) => [saved, ...s.filter((x) => x.id !== saved.id)]);
 
     // Save to API (disabled for testing)

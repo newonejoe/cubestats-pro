@@ -430,7 +430,7 @@ export class MoyuDriver extends CubeDriver {
                 for (let i = moveDiff - 1; i >= 0; i--) {
                     const moveStr = this.prevMoves[i];
                     console.log(`[${nowIso}] [Moyu] Move: ${moveStr}, time offset: ${this.timeOffs[i]}`);
-                    this.onMove([moveStr]);
+                    this.onMove([{ notation: moveStr, hwMs: this.timeOffs[i] }]);
                 }
             }
         }

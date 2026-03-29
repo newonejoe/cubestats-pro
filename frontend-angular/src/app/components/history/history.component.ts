@@ -285,7 +285,7 @@ export class HistoryComponent implements OnInit {
 
   async deleteSolve(solveId?: number): Promise<void> {
     if (!solveId) return;
-    this.store.deleteSolve(solveId);
-    this.loadSolves();
+    await this.store.deleteSolve(solveId);
+    await this.loadSolves();
   }
 }

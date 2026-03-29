@@ -50,6 +50,8 @@ export interface Solve {
   PLLAlgorithm?: string;
   pllRecognitionTime?: number;
   pllEfficiency?: number;
+  /** csTimer-style `U@0 R@120` move trace (optional; full history in IndexedDB) */
+  moveTrace?: string;
 }
 
 export interface Session {

@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, type WritableSignal } from '@angular/core';
 import { StateService } from './state.service';
 import { bluetoothManager, type MoveCallback, type ConnectCallback, type DisconnectCallback } from '../hardware';
+import type { CubeMove } from '../hardware/cube-move';
 
 // Web Bluetooth types
 declare global {
@@ -82,7 +83,7 @@ export class BluetoothService {
 
   private setupManagerCallbacks(): void {
     // Set up callbacks from the BluetoothManager
-    bluetoothManager.setOnMove((moves: string[]) => {
+    bluetoothManager.setOnMove((moves: CubeMove[]) => {
       console.log('[BluetoothService] Moves received:', moves);
       if (this.onMoveCallback) {
         this.onMoveCallback(moves);

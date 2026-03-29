@@ -1,5 +1,6 @@
 // Hardware module exports
 
+export type { CubeMove } from './cube-move.js';
 export { CubeDriver, registerDriver, getDriverRegistry, findDriver } from './driver.js';
 export type { CubeDriverOptions } from './driver.js';
 

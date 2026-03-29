@@ -72,7 +72,7 @@ export class GiikerDriver extends CubeDriver {
 
         if (moves.length > 0) {
             console.log('[Giiker] Moves:', moves);
-            this.onMove(moves);
+            this.onMove(moves.map((notation) => ({ notation })));
         }
     }
 }
