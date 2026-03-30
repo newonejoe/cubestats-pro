@@ -8,10 +8,8 @@ export class KeyboardDriver extends CubeDriver {
     static override serviceUUIDs: string[] = [];
     static override cics: number[] = [];
 
-    private boundOnKeyDown: (e: KeyboardEvent) => void;
-
     // Standard csTimer virtual cube keyboard mapping
-    private keyMap: Record<string, string> = {
+    static DEFAULT_MAPPING: Record<string, string> = {
         'j': 'U',
         'f': "U'",
         's': 'D',
@@ -26,10 +24,34 @@ export class KeyboardDriver extends CubeDriver {
         'o': "B'"
     };
 
+    static getMapping(): Record<string, string> {
+        try {
+            const saved = localStorage.getItem('cubestats_keyboard_mapping');
+            if (saved) {
+                return { ...this.DEFAULT_MAPPING, ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.error('Failed to parse keyboard mapping', e);
+        }
+        return { ...this.DEFAULT_MAPPING };
+    }
+
+    static saveMapping(mapping: Record<string, string>): void {
+        localStorage.setItem('cubestats_keyboard_mapping', JSON.stringify(mapping));
+    }
+
+    private boundOnKeyDown: (e: KeyboardEvent) => void;
+    private keyMap: Record<string, string>;
+
     constructor() {
         super();
         this.type = 'Keyboard';
         this.boundOnKeyDown = this.onKeyDown.bind(this);
+        this.keyMap = KeyboardDriver.getMapping();
+    }
+
+    public reloadMapping(): void {
+        this.keyMap = KeyboardDriver.getMapping();
     }
 
     override async connect(
