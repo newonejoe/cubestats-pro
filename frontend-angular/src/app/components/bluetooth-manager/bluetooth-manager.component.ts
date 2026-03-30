@@ -2,7 +2,6 @@ import { Component, inject, signal, computed, type WritableSignal, type Signal, 
 import { CommonModule } from '@angular/common';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { StateService } from '../../services/state.service';
-import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
 
 export interface CachedDevice {
   name: string;
@@ -16,7 +15,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
 @Component({
   selector: 'app-bluetooth-manager',
   standalone: true,
-  imports: [CommonModule, KeyboardMappingComponent],
+  imports: [CommonModule],
   template: `
     <div class="bluetooth-manager">
       <!-- Initial Prompt (cstimer-style popup) -->
@@ -66,10 +65,6 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
           <button class="btn btn-secondary btn-disconnect" (click)="disconnect()">
             {{ t('disconnect') }}
           </button>
-
-          @if (deviceName() === 'Keyboard Simulator') {
-            <app-keyboard-mapping></app-keyboard-mapping>
-          }
         </div>
       }
 
@@ -639,6 +634,11 @@ export class BluetoothManagerComponent implements OnInit {
   }
 
   private cacheDevice(name: string, mac?: string): void {
+    // Do not cache the keyboard simulator
+    if (name === 'Keyboard Simulator') {
+      return;
+    }
+
     try {
       // Use provided MAC or get from service
       const deviceMac = mac || this.bluetooth.getLastMac() || '';

@@ -4,11 +4,13 @@ import { RouterLink } from '@angular/router';
 import { StateService } from '../../services/state.service';
 import { I18nService, Language } from '../../services/i18n.service';
 import { BluetoothService } from '../../services/bluetooth.service';
+import { AppModalComponent } from '../shared/app-modal.component';
+import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AppModalComponent, KeyboardMappingComponent],
   template: `
     <header class="header">
       <div class="logo">
@@ -28,6 +30,9 @@ import { BluetoothService } from '../../services/bluetooth.service';
           <option value="2">User</option>
         </select>
         <div class="connection-status">
+          @if (isKeyboardSimulator()) {
+            <button class="btn btn-secondary btn-keyboard" (click)="openKeyboardMapping()">⌨️ Mapping</button>
+          }
           @if (isScanning()) {
             <div class="scanning-indicator">
               <div class="scanner-pulse-small"></div>
@@ -41,6 +46,14 @@ import { BluetoothService } from '../../services/bluetooth.service';
         </div>
       </div>
     </header>
+
+    <app-modal
+      [isVisible]="showKeyboardMapping()"
+      title="Keyboard Mapping"
+      (closed)="closeKeyboardMapping()"
+      maxWidth="500px">
+      <app-keyboard-mapping></app-keyboard-mapping>
+    </app-modal>
   `,
   styles: [`
     .header {
@@ -151,6 +164,24 @@ import { BluetoothService } from '../../services/bluetooth.service';
       0% { transform: scale(0.8); opacity: 1; }
       100% { transform: scale(1.5); opacity: 0; }
     }
+
+    .btn-keyboard {
+      background: transparent;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #333;
+    }
+
+    .btn-keyboard:hover {
+      background: #f8f9fa;
+      border-color: #ccc;
+    }
   `]
 })
 export class HeaderComponent {
@@ -162,6 +193,9 @@ export class HeaderComponent {
   currentUserId: Signal<number> = computed(() => this.state.currentUserId());
   cubeConnected: Signal<boolean> = computed(() => this.state.cubeConnected());
   isScanning: Signal<boolean> = computed(() => this.bluetooth.isScanning());
+  isKeyboardSimulator: Signal<boolean> = computed(() => this.bluetooth.currentDeviceName() === 'Keyboard Simulator');
+  
+  showKeyboardMapping: WritableSignal<boolean> = signal(false);
 
   availableLanguages = this.i18n.getAvailableLanguages();
 
@@ -183,6 +217,14 @@ export class HeaderComponent {
   onUserChange(event: Event): void {
     const userId = parseInt((event.target as HTMLSelectElement).value);
     this.state.currentUserId.set(userId);
+  }
+
+  openKeyboardMapping(): void {
+    this.showKeyboardMapping.set(true);
+  }
+
+  closeKeyboardMapping(): void {
+    this.showKeyboardMapping.set(false);
   }
 
   async scanForCubes(): Promise<void> {

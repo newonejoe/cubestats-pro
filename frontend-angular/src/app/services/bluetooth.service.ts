@@ -67,6 +67,7 @@ export class BluetoothService {
   readonly isScanning: WritableSignal<boolean> = signal<boolean>(false);
   readonly isConnecting: WritableSignal<boolean> = signal<boolean>(false);
   readonly lastError: WritableSignal<string | null> = signal<string | null>(null);
+  readonly currentDeviceName: WritableSignal<string | null> = signal<string | null>(null);
 
   // Callbacks (to be forwarded to the app)
   private onMoveCallback: MoveCallback | null = null;
@@ -93,6 +94,7 @@ export class BluetoothService {
     bluetoothManager.setOnConnect((name: string, mac: string | null) => {
       console.log('[BluetoothService] Connected to:', name, 'MAC:', mac);
       this.deviceName = name;
+      this.currentDeviceName.set(name);
       this.lastMac = mac;
       this.state.cubeConnected.set(true);
       this.isConnecting.set(false);
@@ -104,6 +106,7 @@ export class BluetoothService {
     bluetoothManager.setOnDisconnect(() => {
       console.log('[BluetoothService] Disconnected');
       this.deviceName = null;
+      this.currentDeviceName.set(null);
       this.state.cubeConnected.set(false);
       if (this.onDisconnectCallback) {
         this.onDisconnectCallback();
