@@ -1,8 +1,13 @@
 import { Component, inject, OnInit, HostListener, signal, computed, type WritableSignal, type Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { StateService } from '../../services/state.service';
 import { TimerService } from '../../services/timer.service';
 import { CubeService } from '../../services/cube.service';
+import {
+  buildScrambleTwistHighlightHtml,
+  escapeHtml,
+} from '../../lib/scramble-twist-display';
 
 @Component({
   selector: 'app-timer',
@@ -15,7 +20,7 @@ import { CubeService } from '../../services/cube.service';
           <div class="scramble-label">{{ t('scramble') }}</div>
           <div class="scramble-text"
                [class.with-progress]="status() === 'twisting' || status() === 'twisted'"
-               [innerHTML]="scrambleWithProgress()">
+               [innerHTML]="scrambleHtml()">
           </div>
         </div>
         <div class="scramble-dropdown-container">
@@ -96,10 +101,45 @@ import { CubeService } from '../../services/cube.service';
       font-size: 18px;
       color: #333;
       word-break: break-all;
+      line-height: 1.5;
     }
 
     .scramble-text.with-progress {
-      color: #888;
+      color: #495057;
+    }
+
+    :host ::ng-deep .scramble-text .scrm-seg {
+      display: inline-block;
+      margin-right: 0.35em;
+    }
+
+    /* csTimer-like: done = muted; current = strong highlight; todo = normal */
+    :host ::ng-deep .scramble-text .scrm-done {
+      color: #adb5bd;
+      font-weight: 500;
+    }
+
+    :host ::ng-deep .scramble-text .scrm-cur {
+      color: #0d47a1;
+      font-weight: 700;
+      background: linear-gradient(180deg, #fff9c4 0%, #ffeb3b 55%, #fdd835 100%);
+      padding: 2px 8px 3px;
+      border-radius: 6px;
+      box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.55), 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    :host ::ng-deep .scramble-text .scrm-todo {
+      color: #212529;
+      font-weight: 600;
+    }
+
+    :host ::ng-deep .scramble-text .scrm-undo {
+      color: #fff;
+      font-weight: 800;
+      background: linear-gradient(180deg, #e35d6a 0%, #c82333 100%);
+      padding: 2px 8px 3px;
+      border-radius: 6px;
+      box-shadow: 0 0 0 2px rgba(200, 35, 51, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15);
     }
 
     .scramble-dropdown-container {
@@ -258,6 +298,7 @@ export class TimerComponent implements OnInit {
   private state = inject(StateService);
   private timerService = inject(TimerService);
   private cubeService = inject(CubeService);
+  private sanitizer = inject(DomSanitizer);
 
   // Computed values
   scramble: Signal<string> = computed(() => this.state.scramble());
@@ -267,32 +308,19 @@ export class TimerComponent implements OnInit {
   isInspecting: Signal<boolean> = computed(() => this.state.isInspecting());
   status: Signal<string> = computed(() => this.state.status());
 
-  // Scramble with progress - show completed moves as * (length of move)
-  scrambleWithProgress: Signal<string> = computed(() => {
-    const scrambleSequence = this.state.scrambleSequence();
-    const progress = this.state.scrambleProgress();
-    const pendingHalfMove = this.state.scramblePendingHalfMove();
+  /**
+   * Twist phase: csTimer scrHinter override (wrong face → regen list + todo highlight) or original prefix progress.
+   */
+  scrambleHtml: Signal<SafeHtml> = computed(() => {
     const currentStatus = this.state.status();
-
+    const twist = this.state.twistScrambleDisplay();
+    const seq = twist?.sequence ?? this.state.scrambleSequence();
+    const progress = twist?.progress ?? this.state.scrambleProgress();
     if (currentStatus !== 'twisting' && currentStatus !== 'twisted') {
-      return this.state.scramble();
+      return this.sanitizer.bypassSecurityTrustHtml(escapeHtml(this.state.scramble()));
     }
-
-    // Show completed moves as * (repeated by move length)
-    // R -> *, R2 -> **, R' -> **
-    const markedMoves = scrambleSequence.map((move, index) => {
-      if (index < progress) {
-        // Completed: show * for each character in move
-        return '*'.repeat(move.length);
-      } else if (index === progress && pendingHalfMove) {
-        // Currently in progress (half move for F2)
-        // Show partial - first char done, waiting for second
-        return move[0] + '*'.repeat(move.length - 1);
-      }
-      return move;
-    });
-
-    return markedMoves.join(' ');
+    const html = buildScrambleTwistHighlightHtml(seq, progress, null);
+    return this.sanitizer.bypassSecurityTrustHtml(html);
   });
 
   inspectionTimeLeft: WritableSignal<string> = signal<string>('');

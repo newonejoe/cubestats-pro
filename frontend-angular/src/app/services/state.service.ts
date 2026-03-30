@@ -96,6 +96,13 @@ export class StateService {
   readonly scrambleSequence: WritableSignal<string[]> = signal<string[]>([]);
   readonly scrambleIndex: WritableSignal<number> = signal<number>(0);
 
+  /**
+   * Bluetooth twist phase: csTimer scrHinter-style display (regenerated move list + done count).
+   * When null, UI uses scrambleSequence + scrambleProgress (prefix on original scramble).
+   */
+  readonly twistScrambleDisplay: WritableSignal<{ sequence: string[]; progress: number } | null> =
+    signal(null);
+
   /** OLL: full csTimer pool (58 indices) vs custom enabled set */
   readonly ollSubsetMode: WritableSignal<'full' | 'subset'> = signal<'full' | 'subset'>('full');
   readonly ollEnabledIndices: WritableSignal<ReadonlySet<number>> = signal<ReadonlySet<number>>(

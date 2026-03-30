@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal, computed, type WritableSignal, type 
 import { CommonModule } from '@angular/common';
 import { StateService, Solve, Session } from '../../services/state.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { sortSolvesByMetric } from '../../lib/analysis-selectors';
 
 @Component({
   selector: 'app-history',
@@ -209,10 +210,9 @@ export class HistoryComponent implements OnInit {
   solves: Signal<Solve[]> = computed(() => {
     const selected = this.selectedSessionId();
     const all = this.state.solves();
-    if (selected === 'all') {
-      return all;
-    }
-    return all.filter((s) => (s.sessionId ?? 1) === selected);
+    const filtered =
+      selected === 'all' ? all : all.filter((s) => (s.sessionId ?? 1) === selected);
+    return sortSolvesByMetric(filtered, 'timestamp');
   });
   sessions: WritableSignal<Session[]> = signal<Session[]>([]);
 
@@ -245,11 +245,18 @@ export class HistoryComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadSolves();
-    this.loadSessions();
+    void this.bootstrapHistory();
+  }
+
+  /** Ensures IDB hydration/migration before reading solves (not only via APP_INITIALIZER). */
+  private async bootstrapHistory(): Promise<void> {
+    await this.store.init();
+    this.state.solves.set(this.store.getSolves());
+    this.sessions.set(this.store.getSessions());
   }
 
   async loadSolves(): Promise<void> {
+    await this.store.init();
     this.state.solves.set(this.store.getSolves());
   }
 
@@ -273,6 +280,7 @@ export class HistoryComponent implements OnInit {
   }
 
   async exportData(): Promise<void> {
+    await this.store.init();
     const data = this.store.exportCsv();
     const blob = new Blob([data], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

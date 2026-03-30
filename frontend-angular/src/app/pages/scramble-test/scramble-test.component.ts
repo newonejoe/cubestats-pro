@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, computed, signal, type Signal, type WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StateService, type CubeState } from '../../services/state.service';
 import { CubeService } from '../../services/cube.service';
 import { CstimerScrambleService } from '../../services/cstimer-scramble.service';
@@ -426,6 +426,8 @@ export class ScrambleTestComponent implements OnInit {
   private state = inject(StateService);
   private cube = inject(CubeService);
   private cstimer = inject(CstimerScrambleService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   readonly caseModalOpen = signal(false);
 
   scramble: Signal<string> = computed(() => this.state.scramble());
@@ -456,7 +458,30 @@ export class ScrambleTestComponent implements OnInit {
 
   ngOnInit(): void {
     this.decodeCrossBoundsFromState();
-    this.nextScramble();
+    const qp = this.route.snapshot.queryParamMap;
+    const fromQuery = qp.get('scramble');
+    const type = qp.get('type');
+    if (
+      type &&
+      (type === 'wca' || type === 'cross' || type === 'f2l' || type === 'oll' || type === 'pll')
+    ) {
+      this.state.scrambleType.set(type);
+      if (type === 'cross') {
+        this.decodeCrossBoundsFromState();
+      }
+    }
+    if (fromQuery) {
+      this.cube.applySavedScramble(fromQuery);
+      this.pushCurrentStateToHistory();
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { scramble: null, type: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    } else {
+      this.nextScramble();
+    }
   }
 
   onTypeChange(event: Event): void {

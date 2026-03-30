@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Session, Solve } from './state.service';
 import { computeAverageOfN, computeBest } from '../lib/analysis-selectors';
 import {
@@ -25,11 +25,17 @@ export class LocalSolveStoreService {
   private memorySolves: Solve[] | null = null;
   private initDone = false;
 
+  /** Bump after solves/sessions change so computed() readers re-run. */
+  readonly storeRevision = signal(0);
+
   constructor() {
     this.migrateLegacySolvesKeyIntoAnalysisKey();
   }
 
-  /** Called from APP_INITIALIZER before first read. */
+  /**
+   * Hydrates from IndexedDB and runs LS→IDB migration. Invoked via APP_INITIALIZER
+   * in normal app bootstrap; await before any `getSolves()` if init may not have finished (e.g. tests).
+   */
   async init(): Promise<void> {
     if (this.initDone) {
       return;
@@ -40,6 +46,7 @@ export class LocalSolveStoreService {
     this.initDone = true;
   }
 
+  /** Uses IDB-backed memory after `init()`; otherwise legacy JSON from localStorage only. */
   getSolves(): Solve[] {
     if (this.memorySolves !== null) {
       return [...this.memorySolves].sort((a, b) => this.timeOf(b) - this.timeOf(a));
@@ -68,6 +75,7 @@ export class LocalSolveStoreService {
     const merged: Solve = { ...saved, moveTrace: moveTrace || undefined };
     const prev = this.memorySolves ?? [];
     this.memorySolves = [merged, ...prev.filter((s) => s.id !== merged.id)];
+    this.bumpStoreRevision();
     return merged;
   }
 
@@ -95,6 +103,7 @@ export class LocalSolveStoreService {
     };
     sessions.push(session);
     this.writeJson(SESSIONS_KEY, sessions);
+    this.bumpStoreRevision();
     return session;
   }
 
@@ -141,6 +150,11 @@ export class LocalSolveStoreService {
     const flat = await this.idb.getAllRecordsFlat();
     const solves: Solve[] = flat.map(({ sessionId, record }) => solveFromRecord(record, sessionId));
     this.memorySolves = solves;
+    this.bumpStoreRevision();
+  }
+
+  private bumpStoreRevision(): void {
+    this.storeRevision.update((n) => n + 1);
   }
 
   private migrateLegacySolvesKeyIntoAnalysisKey(): void {

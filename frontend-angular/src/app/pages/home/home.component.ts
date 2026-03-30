@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal, computed, type WritableSignal, type Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { HeaderComponent } from '../../components/header/header.component';
 import { TimerComponent } from '../../components/timer/timer.component';
@@ -363,6 +364,8 @@ export class HomeComponent implements OnInit {
   private cube = inject(CubeService);
   private bluetooth = inject(BluetoothService);
   private localStore = inject(LocalSolveStoreService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   showSettings: WritableSignal<boolean> = signal<boolean>(false);
   toastMessage: WritableSignal<string> = signal<string>('');
@@ -395,6 +398,44 @@ export class HomeComponent implements OnInit {
       this.state.currentSession.set(sessions[0]!);
     }
     this.state.solves.set(this.localStore.getSolves());
+
+    const q = this.route.snapshot.queryParamMap;
+    const launchScramble = q.get('launchScramble');
+    const launchSession = q.get('launchSession');
+    const launchType = q.get('launchType');
+    if (
+      launchType &&
+      (launchType === 'wca' ||
+        launchType === 'cross' ||
+        launchType === 'f2l' ||
+        launchType === 'oll' ||
+        launchType === 'pll')
+    ) {
+      this.state.scrambleType.set(launchType);
+    }
+    if (launchSession) {
+      const sid = Number.parseInt(launchSession, 10);
+      const sess = this.localStore.getSessions().find((s) => s.id === sid);
+      if (sess) {
+        this.state.currentSession.set(sess);
+      }
+    }
+    if (launchScramble) {
+      this.cube.applySavedScramble(launchScramble);
+    }
+    if (launchScramble || launchSession || launchType) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {
+          launchScramble: null,
+          launchSession: null,
+          launchType: null,
+        },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+
     window.addEventListener('openSettings', () => {
       this.showSettings.set(true);
     });

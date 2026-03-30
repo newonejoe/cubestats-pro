@@ -1,10 +1,16 @@
 import { Injectable, inject, signal, type WritableSignal } from '@angular/core';
-import { StateService, Solve } from './state.service';
+import { StateService, Solve, type CubeState } from './state.service';
 import { CubeService } from './cube.service';
 import { BluetoothService } from './bluetooth.service';
 import { LocalSolveStoreService } from './local-solve-store.service';
 import type { CubeMove } from '../hardware/cube-move';
 import { buildMoveAtMsTrace } from '../lib/cstimer-storage';
+import { cubeStateToCstimerFacelet } from '../lib/cstimer/cstimer-giiker-scramble';
+import {
+  computeTwistScrHinterDisplay,
+  type TwistScrHinterCache,
+} from '../lib/cstimer/cstimer-scr-hinter';
+import { getMathlib, isMathlibLoaded } from '../lib/cstimer/cstimer-mathlib';
 
 @Injectable({
   providedIn: 'root'
@@ -23,6 +29,8 @@ export class TimerService {
   private solvePerfOrigin = 0;
   private moveTraceHwAnchor: number | null = null;
   private moveTraceBuffer: { notation: string; offsetMs: number }[] = [];
+  /** csTimer scrHinter genState / genScr cache between BLE updates (bluetoothutil.js). */
+  private twistScrHinterCache: TwistScrHinterCache | null = null;
 
   constructor() {
     // Set up Bluetooth move callback
@@ -65,6 +73,13 @@ export class TimerService {
     if (currentStatus === 'ready') {
       this.startTimer();
       currentStatus = 'solving';
+    } else if (
+      currentStatus === 'inspecting' &&
+      moves.some((m) => m.notation && m.notation.trim().length > 0)
+    ) {
+      // WCA: first face turn ends inspection (was no-op in switch below)
+      this.startTimer();
+      currentStatus = 'solving';
     }
 
     const scrambleSequence = this.state.scrambleSequence();
@@ -72,48 +87,32 @@ export class TimerService {
 
     const trimmedMoves = moves.map((m) => m.notation.trim());
 
-    // Track user moves for scramble navigation (decoupled from cube state)
+    // Idle: do not apply here — startTwistingPhase() resets the cube, then case 'idle' replays
+    // this batch once. Applying in the loop would duplicate work and leave wrong intermediate
+    // btCubeState before the switch runs.
+    const deferCubeApply = currentStatus === 'idle';
+
     for (let i = 0; i < moves.length; i++) {
       const move = trimmedMoves[i]!;
       if (!move) {
         continue;
       }
       const cm = moves[i]!;
-      userMoves.push(move);
-      this.currentMoveCount++;
-      this.cubeState.push(move);
-
-      // Apply move to virtual cube state (Bluetooth cube state updates separately)
-      this.cube.applyMoveToCube(move);
+      if (!deferCubeApply) {
+        userMoves.push(move);
+        this.currentMoveCount++;
+        this.cubeState.push(move);
+        this.cube.applyMoveToCube(move);
+      }
 
       if (this.state.status() === 'solving') {
         this.recordSolvingTrace(cm);
       }
     }
 
-    // Update user twist moves and calculate progress
-    // This is decoupled from cube state - just tracks move sequence
+    // Facelet-based progress (csTimer-style): survives wrong moves once the cube matches a valid prefix again
     if (currentStatus === 'twisting') {
-      // Get previously matched user moves (as prefix)
-      const prevMatched = this.state.matchedUserMoves();
-
-      // Get unmatched user moves as suffix after prevMatched prefix
-      const unmatchedMoves = userMoves.slice(prevMatched.length);
-      console.log('[TimerService] Previous matched:', prevMatched);
-      console.log('[TimerService] User moves:', userMoves);
-      console.log('[TimerService] Unmatched moves for calculation:', unmatchedMoves);
-
-      // Calculate and update progress
-      const result = this.calculateScrambleProgress(unmatchedMoves, scrambleSequence);
-      this.state.scrambleProgress.set(result.progress);
-
-      // Update matched user moves
-      const newMatched = [...prevMatched, ...result.matchedUserMoves];
-      this.state.matchedUserMoves.set(newMatched);
-      console.log('[TimerService] New matched:', newMatched);
-
-      this.state.userTwistMoves.set(userMoves);
-      console.log('[TimerService] Scramble progress:', result.progress, '/', scrambleSequence.length);
+      this.syncTwistProgressFromCubeState();
     }
 
     // Get current cube state
@@ -133,15 +132,19 @@ export class TimerService {
         // Start new solve when cube moves - enter twisting phase
         console.log('[TimerService] Idle -> Starting solve (twisting phase)');
         this.startTwistingPhase();
-        // Re-process moves in new context - set user moves and calculate progress
-        userMoves = [...trimmedMoves];
-        this.state.userTwistMoves.set(userMoves);
-        // Calculate progress for all moves
-        const result = this.calculateScrambleProgress(userMoves, scrambleSequence);
-        this.state.scrambleProgress.set(result.progress);
-        this.state.matchedUserMoves.set(result.matchedUserMoves);
-        console.log('[TimerService] Scramble progress:', result.progress, '/', scrambleSequence.length);
-        console.log('[TimerService] User twist moves:', userMoves);
+        // Moves were applied before reset; replay on fresh solved cube
+        for (const m of trimmedMoves) {
+          if (m) {
+            this.cube.applyMoveToCube(m);
+          }
+        }
+        this.syncTwistProgressFromCubeState();
+        console.log(
+          '[TimerService] Scramble progress:',
+          this.state.scrambleProgress(),
+          '/',
+          scrambleSequence.length,
+        );
         break;
 
       case 'twisting':
@@ -163,7 +166,7 @@ export class TimerService {
         break;
 
       case 'inspecting':
-        // Inspection timer running - moves don't affect it
+        // Start is handled above when moves arrive; interval/timeout still clear on startTimer
         break;
 
       case 'solving':
@@ -187,6 +190,9 @@ export class TimerService {
     this.state.scrambleProgress.set(0);
     this.state.scramblePendingHalfMove.set(null);
     this.state.matchedUserMoves.set([]);
+    this.state.twistScrambleDisplay.set(null);
+    this.twistScrHinterCache = null;
+    this.state.btCubeState.set(null);
 
     // Reset cube to solved state for twisting
     this.cube.resetCube();
@@ -196,119 +202,67 @@ export class TimerService {
     console.log('[TimerService] Entered twisting phase - waiting for user to match scramble');
   }
 
-  // Get inverse of a move (R -> R', R' -> R, R2 -> R2)
-  private getInverseMove(move: string): string {
-    const face = move[0];
-    const modifier = move.slice(1);
-
-    if (modifier === '2') {
-      return face + '2'; // R2 inverse is R2
-    } else if (modifier === "'") {
-      return face; // R' inverse is R
-    } else {
-      return face + "'"; // R inverse is R'
+  /**
+   * Progress + UI: csTimer scrHinter.checkState when mathlib is available (wrong face → regen + ':' progress),
+   * else prefix match on original scramble.
+   */
+  private syncTwistProgressFromCubeState(): void {
+    const seq = this.state.scrambleSequence();
+    const cur = this.state.btCubeState() ?? this.state.cubeState();
+    const target = this.state.scrambleTargetState();
+    if (target && this.cube.statesEqual(cur, target)) {
+      this.twistScrHinterCache = null;
+      this.state.twistScrambleDisplay.set(null);
+      this.state.scrambleProgress.set(seq.length);
+      this.state.scramblePendingHalfMove.set(null);
+      this.state.matchedUserMoves.set(seq);
+      this.state.userTwistMoves.set(seq);
+      return;
     }
+
+    const joined = this.state.scramble();
+    if (!isMathlibLoaded()) {
+      this.fallbackTwistPrefixSync(seq, cur);
+      return;
+    }
+
+    const facelet = cubeStateToCstimerFacelet(cur);
+    if (facelet.includes('?')) {
+      this.fallbackTwistPrefixSync(seq, cur);
+      return;
+    }
+
+    const ml = getMathlib();
+    const curCubie = new ml.CubieCube();
+    if (curCubie.fromFacelet(facelet) === -1) {
+      this.fallbackTwistPrefixSync(seq, cur);
+      return;
+    }
+
+    const res = computeTwistScrHinterDisplay(joined, curCubie, this.twistScrHinterCache);
+    if (res) {
+      this.twistScrHinterCache = res.nextCache;
+      this.state.twistScrambleDisplay.set(res.display);
+      this.state.scrambleProgress.set(res.display.progress);
+      this.state.scramblePendingHalfMove.set(null);
+      const matched = res.display.sequence.slice(0, res.display.progress);
+      this.state.matchedUserMoves.set(matched);
+      this.state.userTwistMoves.set(matched);
+      return;
+    }
+
+    this.twistScrHinterCache = null;
+    this.fallbackTwistPrefixSync(seq, cur);
   }
 
-  // Calculate progress by comparing each user move sequentially against scramble
-  // Returns: { progress: number, matchedUserMoves: string[] }
-  private calculateScrambleProgress(userMoves: string[], scrambleSequence: string[]): { progress: number, matchedUserMoves: string[] } {
-    if (userMoves.length === 0 || scrambleSequence.length === 0) {
-      console.log('[TimerService] Empty userMoves or scrambleSequence');
-      return { progress: 0, matchedUserMoves: [] };
-    }
-
-    console.log('[TimerService] User moves:', userMoves);
-    console.log('[TimerService] Scramble sequence:', scrambleSequence);
-
-    // Get current progress to start from
-    const currentProgress = this.state.scrambleProgress();
-    const pendingHalfMove = this.state.scramblePendingHalfMove();
-    const matchedUserMoves: string[] = [];
-
-    // Start from current progress index
-    let scrambleIndex = currentProgress;
-    let pendingHalf: string | null = pendingHalfMove;
-    let pendingHalfCount: number = 0;
-
-    console.log('[TimerService] Starting from index:', scrambleIndex, 'pendingHalf:', pendingHalf);
-
-    // Process each user move sequentially
-    for (let i = 0; i < userMoves.length && scrambleIndex < scrambleSequence.length; i++) {
-      const userMove = userMoves[i];
-      const expectedMove = scrambleSequence[scrambleIndex];
-      const userFace = userMove[0];
-      const expectedFace = expectedMove[0];
-      const expectedMod = expectedMove.length > 1 ? expectedMove.slice(1) : '';
-      const userMod = userMove.length > 1 ? userMove.slice(1) : '';
-
-      console.log('[TimerService] Comparing userMove:', userMove, 'with expected:', expectedMove, 'at scramble index:', scrambleIndex);
-
-      // Handle pending half move completion (need 2 for R2)
-      if (pendingHalf) {
-        if (userFace === pendingHalf && expectedMod === '2') {
-          pendingHalfCount++;
-          console.log('[TimerService] Half move count:', pendingHalfCount);
-
-          if (pendingHalfCount >= 2 || userMod === '2') {
-            // Add both the pending move (first R) and current move (second R)
-            matchedUserMoves.push(pendingHalf);
-            scrambleIndex++;
-            matchedUserMoves.push(userMove);
-            console.log('[TimerService] Half move completed, progress:', scrambleIndex);
-            pendingHalf = null;
-            pendingHalfCount = 0;
-          } else {
-            console.log('[TimerService] Waiting for second half');
-          }
-          continue;
-        } else {
-          pendingHalf = null;
-          pendingHalfCount = 0;
-        }
-      }
-
-      // Check if faces match
-      if (userFace !== expectedFace) {
-        console.log('[TimerService] Different face, no progress');
-        continue;
-      }
-
-      // Check exact match
-      if (userMove === expectedMove) {
-        scrambleIndex++;
-        matchedUserMoves.push(userMove);
-        console.log('[TimerService] Exact match, progress:', scrambleIndex);
-        continue;
-      }
-
-      // Check inverse cancel
-      const isInverse = (userMod === '' && expectedMod === "'") ||
-                       (userMod === "'" && expectedMod === '') ||
-                       (userMod === '2' && expectedMod === '2');
-
-      if (isInverse) {
-        // Cancel - don't advance progress
-        console.log('[TimerService] Inverse cancel');
-        continue;
-      }
-
-      // Check half move (expected B2, user did B)
-      if (expectedMod === '2' && userMod === '') {
-        pendingHalf = userFace;
-        pendingHalfCount = 1;
-        console.log('[TimerService] Half move pending, count:', pendingHalfCount);
-        continue;
-      }
-
-      console.log('[TimerService] No match');
-    }
-
-    // Save pending half move state
-    this.state.scramblePendingHalfMove.set(pendingHalf);
-
-    console.log('[TimerService] Final progress:', scrambleIndex, 'pendingHalf:', pendingHalf);
-    return { progress: scrambleIndex, matchedUserMoves };
+  private fallbackTwistPrefixSync(seq: string[], cur: CubeState): void {
+    this.state.twistScrambleDisplay.set(null);
+    const progress = this.cube.scrambleProgressFromCubeState(cur, seq);
+    this.state.scrambleProgress.set(progress);
+    this.state.scramblePendingHalfMove.set(null);
+    const matched = seq.slice(0, progress);
+    this.state.matchedUserMoves.set(matched);
+    this.state.userTwistMoves.set(matched);
   }
 
   private startInspection(): void {
@@ -364,10 +318,17 @@ export class TimerService {
     } else if (this.state.status() === 'solving') {
       this.stopTimer();
     } else if (this.state.status() === 'twisting' || this.state.status() === 'twisted') {
-      // User pressed space during twisting - skip to inspection
+      // csTimer giiker markScrambled: if cube ≠ scramble target, regen from genFacelet + getConjMoves(gen, true)
+      if (this.bluetooth.isConnected()) {
+        this.cube.regenerateScrambleIfCstimerMismatch();
+        this.syncTwistProgressFromCubeState();
+      }
       this.startInspection();
     } else if (this.state.status() === 'ready') {
       // Start timer immediately
+      this.startTimer();
+    } else if (this.state.status() === 'inspecting') {
+      // Keyboard / stackmat-style: end inspection early
       this.startTimer();
     }
   }
@@ -547,8 +508,9 @@ export class TimerService {
   handleKeyDown(event: KeyboardEvent): void {
     if (event.code === 'Space') {
       event.preventDefault();
-      if (this.state.status() === 'idle' || this.state.status() === 'solving') {
-        this.startSolve();
+      const st = this.state.status();
+      if (st === 'idle' || st === 'solving' || st === 'inspecting' || st === 'ready') {
+        void this.startSolve();
       }
     } else if (event.code === 'Enter') {
       event.preventDefault();

@@ -1,6 +1,10 @@
 import { Injectable, inject, signal, type WritableSignal } from '@angular/core';
 import { StateService, CubeState } from './state.service';
 import { CstimerScrambleService } from './cstimer-scramble.service';
+import {
+  cstimerGiikerCheckScramble,
+  cstimerRegenScrambleFromCubeState,
+} from '../lib/cstimer/cstimer-giiker-scramble';
 import { ALL_OLL_INDICES } from '../data/oll-cases';
 import { ALL_PLL_INDICES } from '../data/pll-cases';
 /** @see ../data/cstimer-reference.ts — OLL/PLL indices match csTimer oll_map / pll_map */
@@ -56,6 +60,7 @@ export class CubeService {
     this.state.scramble.set(scramble);
     this.state.scrambleSequence.set(sequence);
     this.state.scrambleIndex.set(0);
+    this.state.twistScrambleDisplay.set(null);
 
     // Reset cube to solved state first, then apply scramble
     // This creates the "scramble target" state that user must match
@@ -64,6 +69,43 @@ export class CubeService {
     this.state.scrambleTargetState.set(scrambleTargetState);
 
     this.scrambleGenerated.set(scramble);
+  }
+
+  /** Apply an explicit scramble string (e.g. Retry from analysis); mirrors generateScramble state updates. */
+  applySavedScramble(scramble: string): void {
+    const sequence = this.tokenizeScramble(scramble);
+    const joined = sequence.join(' ');
+    this.state.scramble.set(joined);
+    this.state.scrambleSequence.set(sequence);
+    this.state.scrambleIndex.set(0);
+    this.state.twistScrambleDisplay.set(null);
+    this.state.resetCubeState();
+    const scrambleTargetState = this.applyScrambleGetState(sequence);
+    this.state.scrambleTargetState.set(scrambleTargetState);
+    this.scrambleGenerated.set(joined);
+  }
+
+  /** Inverse of one WCA-style token (U, U', U2, r, r', etc.). */
+  invertMoveNotation(move: string): string {
+    const t = move.trim();
+    if (!t) {
+      return t;
+    }
+    const face = t[0];
+    const mod = t.slice(1);
+    if (mod === '2') {
+      return face + '2';
+    }
+    if (mod === "'") {
+      return face;
+    }
+    return face + "'";
+  }
+
+  /** Space-separated moves that undo the given scramble (last move inverted first). */
+  inverseScrambleNotation(scramble: string): string {
+    const seq = this.tokenizeScramble(scramble);
+    return [...seq].reverse().map((m) => this.invertMoveNotation(m)).join(' ');
   }
 
   // Apply scramble and return the resulting state (without saving)
@@ -87,6 +129,50 @@ export class CubeService {
       F: Array(9).fill('green'),
       B: Array(9).fill('blue')
     };
+  }
+
+  /**
+   * csTimer giiker.js markScrambled (giiMode 'n'): if !giikerutil.checkScramble(), replace scramble with
+   * cubeutil.getConjMoves(scramble_333.genFacelet(facelet), true). Returns true when the sequence was updated.
+   */
+  regenerateScrambleIfCstimerMismatch(): boolean {
+    const cur = this.state.btCubeState() ?? this.state.cubeState();
+    const joined = this.state.scramble();
+    if (cstimerGiikerCheckScramble(cur, joined)) {
+      return false;
+    }
+    const next = cstimerRegenScrambleFromCubeState(cur);
+    if (!next) {
+      return false;
+    }
+    this.applySavedScramble(next);
+    return true;
+  }
+
+  /**
+   * Scramble progress from facelet state (csTimer-style): largest k such that
+   * current == apply(solved, sequence[0..k-1]). Wrong moves can be undone; progress
+   * catches up when the cube matches a valid prefix again.
+   */
+  scrambleProgressFromCubeState(
+    current: CubeState | null | undefined,
+    sequence: string[],
+  ): number {
+    if (!current || sequence.length === 0) {
+      return 0;
+    }
+    let acc = this.getSolvedState();
+    let best = 0;
+    if (this.statesEqual(acc, current)) {
+      best = 0;
+    }
+    for (let k = 0; k < sequence.length; k++) {
+      acc = this.applyMove(acc, sequence[k]!);
+      if (this.statesEqual(acc, current)) {
+        best = k + 1;
+      }
+    }
+    return best;
   }
 
   // Compare two cube states

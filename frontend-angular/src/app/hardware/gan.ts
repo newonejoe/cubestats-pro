@@ -369,9 +369,8 @@ export class GanDriver extends CubeDriver {
             }));
             for (const cm of cubeMoves) {
                 console.log(`[${nowIso}] [gancube] move ${cm.notation}  ${cm.hwMs}`);
-            }
-            if (cubeMoves.length > 0) {
-                this.onMove(cubeMoves);
+                // Match v3/v4 / Moyu: one callback per move for per-step hwMs and downstream hooks.
+                this.onMove([cm]);
             }
 
             this.prevMoveCnt = moveCnt;
