@@ -37,9 +37,12 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
             </div>
           }
 
-          <div class="prompt-actions">
+          <div class="prompt-actions-vertical">
             <button class="btn btn-primary btn-scan-prompt" (click)="startScan()">
               <span>📡</span> {{ t('scanForCubes') }}
+            </button>
+            <button class="btn btn-secondary" (click)="startKeyboardSimulator()">
+              <span>⌨️</span> Keyboard Simulator
             </button>
             <button class="btn btn-secondary" (click)="skipPrompt()">
               {{ t('skip') }}
@@ -111,9 +114,14 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
             </div>
           }
 
-          <button class="btn btn-primary btn-scan" (click)="startScan()">
-            <span>📡</span> {{ t('scanForCubes') }}
-          </button>
+          <div class="prompt-actions-vertical">
+            <button class="btn btn-primary btn-scan" (click)="startScan()">
+              <span>📡</span> {{ t('scanForCubes') }}
+            </button>
+            <button class="btn btn-secondary" (click)="startKeyboardSimulator()">
+              <span>⌨️</span> Keyboard Simulator
+            </button>
+          </div>
         </div>
       }
 
@@ -159,6 +167,18 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
       font-size: 14px;
       color: #666;
       margin: 0;
+    }
+
+    .prompt-actions-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .prompt-actions-vertical .btn {
+      width: 100%;
+      justify-content: center;
     }
 
     .quick-connect {
@@ -573,6 +593,18 @@ export class BluetoothManagerComponent implements OnInit {
       } else {
         this.connectionState.set('disconnected');
       }
+    }
+  }
+
+  async startKeyboardSimulator(): Promise<void> {
+    this.connectionState.set('connecting');
+    this.connectingToDevice.set('Keyboard Simulator');
+    this.errorMessage.set('');
+
+    const success = await this.bluetooth.connectKeyboardSimulator();
+    if (!success) {
+      this.connectionState.set('error');
+      this.errorMessage.set(this.bluetooth.lastError() || 'Failed to start keyboard simulator');
     }
   }
 

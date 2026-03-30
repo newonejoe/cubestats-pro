@@ -10,12 +10,14 @@ import { PllCasePickerComponent } from '../../components/pll-case-picker/pll-cas
 import { F2lCasePickerComponent } from '../../components/f2l-case-picker/f2l-case-picker.component';
 import { OllPllCaseVizComponent } from '../../components/oll-pll-case-viz/oll-pll-case-viz.component';
 import { rotateCubeX2 } from '../../lib/cube-orientation';
+import { AppModalComponent } from '../../components/shared/app-modal.component';
 
 @Component({
   selector: 'app-scramble-test',
   standalone: true,
   imports: [
     CommonModule,
+    AppModalComponent,
     RouterLink,
     ScrambleTargetVizComponent,
     OllCasePickerComponent,
@@ -74,63 +76,51 @@ import { rotateCubeX2 } from '../../lib/cube-orientation';
       </section>
 
       @if (caseModalOpen()) {
-        <div class="backdrop" (click)="closeCaseModal()"></div>
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
-          <div class="modal-inner">
-            <header class="modal-head">
-              <h2 id="case-modal-title">
-                @if (scrambleType() === 'cross') {
-                  Cross options
-                } @else if (scrambleType() === 'f2l') {
-                  F2L options
-                } @else {
-                  {{ scrambleType() === 'oll' ? 'OLL options' : 'PLL options' }}
-                }
-              </h2>
-              <button type="button" class="icon-close" (click)="closeCaseModal()" aria-label="Close">×</button>
-            </header>
-            <div class="modal-body">
-              @if (scrambleType() === 'cross') {
-                <div class="cross-modal">
-                  <div class="bounds-group">
-                    <span class="bounds-label">Lower</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="8"
-                      step="1"
-                      class="bounds-digit"
-                      [value]="crossLower()"
-                      (change)="onCrossLowerChange($event)"
-                    >
-                    <span class="bounds-label">Upper</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="8"
-                      step="1"
-                      class="bounds-digit"
-                      [value]="crossUpper()"
-                      (change)="onCrossUpperChange($event)"
-                    >
-                  </div>
-                  <p class="hint small cross-hint">
-                    Bounds apply only to <strong>cross</strong> (csTimer <code>cross.js</code> pruning / HTM to finish the cross),
-                    not to the total scramble length. The full scramble is still from
-                    <code>getAnyScramble</code> + min2phase (usually ~15–21 moves).
-                    Encoded as <code>upper×10 + lower</code> (digits ≤8). Old default <code>20</code> meant cross-only 0–2.
-                  </p>
-                </div>
-              } @else if (scrambleType() === 'f2l') {
-                <app-f2l-case-picker [inline]="true" />
-              } @else if (scrambleType() === 'oll') {
-                <app-oll-case-picker [inline]="true" />
-              } @else if (scrambleType() === 'pll') {
-                <app-pll-case-picker [inline]="true" />
-              }
+        <app-modal
+          [isVisible]="true"
+          [title]="scrambleType() === 'cross' ? 'Cross options' : (scrambleType() === 'f2l' ? 'F2L options' : (scrambleType() === 'oll' ? 'OLL options' : 'PLL options'))"
+          maxWidth="960px"
+          theme="light"
+          (closed)="closeCaseModal()">
+          @if (scrambleType() === 'cross') {
+            <div class="cross-modal">
+              <div class="bounds-group">
+                <span class="bounds-label">Lower</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="8"
+                  step="1"
+                  class="bounds-digit"
+                  [value]="crossLower()"
+                  (change)="onCrossLowerChange($event)"
+                >
+                <span class="bounds-label">Upper</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="8"
+                  step="1"
+                  class="bounds-digit"
+                  [value]="crossUpper()"
+                  (change)="onCrossUpperChange($event)"
+                >
+              </div>
+              <p class="hint small cross-hint">
+                Bounds apply only to <strong>cross</strong> (csTimer <code>cross.js</code> pruning / HTM to finish the cross),
+                not to the total scramble length. The full scramble is still from
+                <code>getAnyScramble</code> + min2phase (usually ~15–21 moves).
+                Encoded as <code>upper×10 + lower</code> (digits ≤8). Old default <code>20</code> meant cross-only 0–2.
+              </p>
             </div>
-          </div>
-        </div>
+          } @else if (scrambleType() === 'f2l') {
+            <app-f2l-case-picker [inline]="true" />
+          } @else if (scrambleType() === 'oll') {
+            <app-oll-case-picker [inline]="true" />
+          } @else if (scrambleType() === 'pll') {
+            <app-pll-case-picker [inline]="true" />
+          }
+        </app-modal>
       }
 
       @if (scrambleType() === 'oll' || scrambleType() === 'pll') {
@@ -356,64 +346,6 @@ import { rotateCubeX2 } from '../../lib/cube-orientation';
     }
     .net-hint {
       margin: 0 0 12px;
-    }
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      z-index: 1040;
-    }
-    .modal {
-      position: fixed;
-      inset: 0;
-      z-index: 1050;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      pointer-events: none;
-    }
-    .modal-inner {
-      pointer-events: auto;
-      background: #fff;
-      border-radius: 14px;
-      width: min(960px, 100%);
-      max-height: min(90vh, 900px);
-      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
-    }
-    .modal-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      border-bottom: 1px solid #e9ecef;
-    }
-    .modal-head h2 {
-      margin: 0;
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #2f363d;
-    }
-    .icon-close {
-      border: none;
-      background: transparent;
-      font-size: 28px;
-      line-height: 1;
-      cursor: pointer;
-      color: #6c757d;
-      padding: 0 4px;
-    }
-    .modal-body {
-      padding: 12px 18px 18px;
-      overflow: auto;
-      flex: 1;
-    }
-    .cross-modal {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
     }
     .cross-hint {
       margin: 0;

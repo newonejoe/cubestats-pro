@@ -15,6 +15,7 @@ import './gan.js';
 import './gocube.js';
 import './qiyi.js';
 import './moyu.js';
+import './keyboard.js';
 
 export type MoveCallback = (moves: CubeMove[]) => void;
 export type ConnectCallback = (name: string, mac: string | null) => void;
@@ -207,6 +208,33 @@ export class BluetoothManager {
         }
 
         return { device, mac };
+    }
+
+    async connectKeyboardSimulator(): Promise<void> {
+        console.log('[Bluetooth] Connecting to Keyboard Simulator');
+        // Type assertion since KeyboardDriver is in the registry but not imported explicitly here
+        const registry = getDriverRegistry();
+        const DriverClass = registry.find(d => d.getName() === 'KeyboardSimulator') as any;
+        if (DriverClass) {
+            this.driver = new DriverClass();
+            // Connect dummy device
+            await this.driver!.connect({} as BluetoothDevice, '', '');
+            
+            this.currentDeviceName = 'Keyboard Simulator';
+            this.currentMac = '00:00:00:00:00:00';
+            
+            this.driver!.onMove = (moves: CubeMove[]) => {
+                if (this.onMoveCallback) {
+                    this.onMoveCallback(moves);
+                }
+            };
+
+            if (this.onConnectCallback) {
+                this.onConnectCallback('Keyboard Simulator', this.currentMac);
+            }
+        } else {
+            console.error('[Bluetooth] KeyboardSimulator driver not found');
+        }
     }
 
     async connect(device: BluetoothDevice, mac: string | null): Promise<CubeDriver> {

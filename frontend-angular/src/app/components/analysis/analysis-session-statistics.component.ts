@@ -98,8 +98,6 @@ import type { Solve } from '../../services/state.service';
     .session-tools label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6c757d; }
     .session-tools select { padding: 8px 10px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 13px; }
     .sort-hint { font-size: 12px; color: #868e96; }
-    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .tbl th, .tbl td { border-bottom: 1px solid #eef2f4; padding: 8px; text-align: left; }
     .solves-tbl .solve-row { cursor: pointer; }
     .solves-tbl .solve-row:hover { background: #f8f9fa; }
     .scramble-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; }

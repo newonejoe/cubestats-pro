@@ -3,15 +3,14 @@ import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { formatMs } from '../../lib/analysis-selectors';
 
+import { AppCardComponent } from '../shared/app-card.component';
+
 @Component({
   selector: 'app-statistics',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AppCardComponent],
   template: `
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">{{ t('sessionStats') }}</span>
-      </div>
+    <app-card [title]="t('sessionStats')">
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-value">{{ currentTime() }}</div>
@@ -38,28 +37,9 @@ import { formatMs } from '../../lib/analysis-selectors';
           <div class="stat-label">{{ t('solves') }}</div>
         </div>
       </div>
-    </div>
+    </app-card>
   `,
   styles: [`
-    .card {
-      background: var(--card-bg, #fff);
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .card-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
-    }
-
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);

@@ -11,14 +11,26 @@ frontend-angular/
 ├── src/
 │   ├── app/
 │   │   ├── components/          # Angular standalone components
+│   │   │   ├── shared/               # Reusable UI components
+│   │   │   │   ├── app-modal.component.ts
+│   │   │   │   ├── app-card.component.ts
+│   │   │   │   ├── app-empty-state.component.ts
+│   │   │   │   └── algorithm-case-picker.component.ts
 │   │   │   ├── header/
 │   │   │   ├── timer/
+│   │   │   │   ├── timer.component.ts
+│   │   │   │   └── scramble-display.component.ts
 │   │   │   ├── statistics/
 │   │   │   ├── history/
+│   │   │   ├── analysis/             # Advanced statistics and solve details
 │   │   │   ├── bluetooth-manager/    # Bluetooth connection modal & device caching
 │   │   │   ├── mac-modal/            # MAC address input modal
-│   │   │   ├── solved-state-modal/    # Solved state confirmation modal
-│   │   │   ├── virtual-cube/          # Three.js 3D cube rendering
+│   │   │   ├── solved-state-modal/   # Solved state confirmation modal
+│   │   │   ├── settings-modal/       # User preferences modal
+│   │   │   ├── virtual-cube/         # Three.js 3D cube rendering
+│   │   │   ├── oll-case-picker/      # OLL subset configuration
+│   │   │   ├── pll-case-picker/      # PLL subset configuration
+│   │   │   └── f2l-case-picker/      # F2L subset configuration
 │   │   ├── services/                 # Angular services
 │   │   │   ├── state.service.ts      # App state management
 │   │   │   ├── timer.service.ts      # Timer logic
@@ -35,6 +47,7 @@ frontend-angular/
 │   │   │   ├── gocube.ts        # GoCube driver
 │   │   │   ├── qiyi.ts          # Qiyi driver
 │   │   │   ├── moyu.ts          # Moyu driver
+│   │   │   ├── keyboard.ts      # Keyboard Simulator driver
 │   │   │   ├── types.ts         # TypeScript types
 │   │   │   └── index.ts         # Module exports
 │   │   ├── app.ts               # Root component (App)
@@ -63,7 +76,7 @@ frontend-angular/
 
 The hardware drivers are copied from the vanilla frontend and integrated with minimal changes:
 
-1. **Driver Pattern**: Each driver (GAN, Giiker, Qiyi, Moyu, GoCube) extends `CubeDriver` base class
+1. **Driver Pattern**: Each driver (GAN, Giiker, Qiyi, Moyu, GoCube, Keyboard Simulator) extends `CubeDriver` base class
 2. **Driver Registry**: Static registration via `registerDriver()` for dynamic matching
 3. **Manager**: `BluetoothManager` coordinates scanning, driver selection, and connection
 
@@ -156,6 +169,11 @@ interface CachedDevice {
 
 ### Recently Completed
 
+- [x] **Component Consolidation & UI Refactoring**
+  - Created shared UI components (`AppModalComponent`, `AppCardComponent`, `AppEmptyStateComponent`)
+  - Unified `AlgorithmCasePickerComponent` for OLL, PLL, and F2L selection
+  - Abstracted `.tbl` styles into global `styles.scss`
+  - Split monolithic components (`ScrambleDisplayComponent`, `SettingsModalComponent`)
 - [x] Virtual cube 3D rendering with Three.js (27 cubies, transparent, double-side stickers)
 - [x] Fix applyMove for proper cube rotation (face + adjacent edges)
 - [x] Solved state confirmation modal - shows when cube is NOT solved
@@ -179,7 +197,6 @@ interface CachedDevice {
 
 - [ ] Re-enable API calls (currently disabled for testing)
 - [ ] Test Giiker and GoCube drivers (GAN, Qiyi, Moyu tested)
-- [ ] Full CFOP analysis implementation (Cross, F2L, OLL, PLL timing)
 
 ## Scramble Generation & Inspection Timer
 

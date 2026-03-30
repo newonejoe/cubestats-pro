@@ -16,6 +16,11 @@ import { CubeService } from '../../services/cube.service';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 
+import { AppCardComponent } from '../../components/shared/app-card.component';
+import { AppEmptyStateComponent } from '../../components/shared/app-empty-state.component';
+
+import { SettingsModalComponent } from '../../components/settings-modal/settings-modal.component';
+
 @Component({
   selector: 'app-home',
   standalone: true,
@@ -28,7 +33,10 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
     MacModalComponent,
     SolvedStateModalComponent,
     VirtualCubeComponent,
-    BluetoothManagerComponent
+    BluetoothManagerComponent,
+    AppCardComponent,
+    AppEmptyStateComponent,
+    SettingsModalComponent
   ],
   template: `
     <!-- Bluetooth Connection Modal (always on top until connected) -->
@@ -57,12 +65,9 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       <!-- Analysis Section -->
       <div class="analysis-section">
         <!-- Virtual Cube -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">{{ t('virtualCube') }}</span>
-          </div>
+        <app-card [title]="t('virtualCube')">
           <app-virtual-cube></app-virtual-cube>
-        </div>
+        </app-card>
 
         <div class="card">
           <div class="card-header">
@@ -76,17 +81,12 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">{{ t('lastSolveDetails') }}</span>
-          </div>
+        <!-- Last Solve Details Placeholder -->
+        <app-card [title]="t('lastSolveDetails')">
           <div id="lastSolveDetails">
-            <div class="no-data">
-              <div class="no-data-icon">🎯</div>
-              <p>No solve data yet</p>
-            </div>
+            <app-empty-state icon="🎯" message="No solve data yet"></app-empty-state>
           </div>
-        </div>
+        </app-card>
       </div>
 
       <!-- History Section -->
@@ -98,28 +98,7 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
 
     <!-- Settings Modal (only when connected) -->
     @if (cubeConnected()) {
-    <div class="modal-overlay" [class.visible]="showSettings()" (click)="closeSettingsModal($event)">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <span class="modal-title">{{ t('settings') }}</span>
-          <button class="modal-close" (click)="closeSettings()">&times;</button>
-        </div>
-        <div class="setting-group">
-          <label class="setting-label">{{ t('inspectionSec') }}</label>
-          <input type="number" class="setting-input" [value]="inspectionTime()" min="0" max="30"
-                 (change)="onInspectionTimeChange($event)">
-        </div>
-        <div class="setting-group">
-          <label class="setting-label">{{ t('timerSound') }}</label>
-          <select class="setting-input" (change)="onSoundChange($event)">
-            <option value="on" [selected]="soundEnabled()">On</option>
-            <option value="off" [selected]="!soundEnabled()">Off</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" (click)="saveSettings()" style="width: 100%;">{{ t('save') }}</button>
-        <button class="btn btn-danger" (click)="clearAllData()" style="width: 100%; margin-top: 12px;">{{ t('clearAllData') }}</button>
-      </div>
-    </div>
+      <app-settings-modal [(isVisible)]="showSettingsVisible"></app-settings-modal>
     }
 
     <!-- Toast -->
@@ -163,26 +142,6 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       grid-column: 1 / -1;
     }
 
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .card-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
-    }
-
     .btn {
       padding: 12px 24px;
       border: none;
@@ -220,82 +179,6 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
 
     .btn-danger:hover {
       background: #c82333;
-    }
-
-    .no-data {
-      text-align: center;
-      padding: 40px;
-      color: #999;
-    }
-
-    .no-data-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .modal-overlay.visible {
-      display: flex;
-    }
-
-    .modal {
-      background: #fff;
-      border-radius: 12px;
-      padding: 24px;
-      width: 90%;
-      max-width: 400px;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .modal-title {
-      font-size: 20px;
-      font-weight: 600;
-    }
-
-    .modal-close {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #999;
-    }
-
-    .setting-group {
-      margin-bottom: 16px;
-    }
-
-    .setting-label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
-      color: #666;
-    }
-
-    .setting-input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
     }
 
     /* Toast */
@@ -367,7 +250,8 @@ export class HomeComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
-  showSettings: WritableSignal<boolean> = signal<boolean>(false);
+  showSettingsVisible = false;
+
   toastMessage: WritableSignal<string> = signal<string>('');
 
   inspectionTime: Signal<number> = computed(() => this.state.settings().inspectionTime);
@@ -437,7 +321,7 @@ export class HomeComponent implements OnInit {
     }
 
     window.addEventListener('openSettings', () => {
-      this.showSettings.set(true);
+      this.showSettingsVisible = true;
     });
   }
 
@@ -445,42 +329,6 @@ export class HomeComponent implements OnInit {
     const device = await this.bluetooth.scan();
     if (device) {
       await this.bluetooth.connect(device);
-    }
-  }
-
-  closeSettings(): void {
-    this.showSettings.set(false);
-  }
-
-  closeSettingsModal(event: Event): void {
-    if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
-      this.showSettings.set(false);
-    }
-  }
-
-  onInspectionTimeChange(event: Event): void {
-    const value = parseInt((event.target as HTMLInputElement).value);
-    this.state.settings.update(s => ({ ...s, inspectionTime: value }));
-    this.state.inspectionTime.set(value);
-  }
-
-  onSoundChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value === 'on';
-    this.state.settings.update(s => ({ ...s, sound: value }));
-  }
-
-  saveSettings(): void {
-    localStorage.setItem('settings', JSON.stringify(this.state.settings()));
-    this.showToast('Settings saved!');
-    this.showSettings.set(false);
-  }
-
-  clearAllData(): void {
-    if (confirm('Are you sure you want to clear all data?')) {
-      localStorage.clear();
-      this.showToast('All data cleared!');
-      this.showSettings.set(false);
-      window.location.reload();
     }
   }
 

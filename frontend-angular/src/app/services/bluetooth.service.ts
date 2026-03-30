@@ -196,6 +196,23 @@ export class BluetoothService {
     }
   }
 
+  async connectKeyboardSimulator(): Promise<boolean> {
+    this.isConnecting.set(true);
+    this.lastError.set(null);
+
+    try {
+      console.log('[BluetoothService] Connecting to Keyboard Simulator');
+      await bluetoothManager.connectKeyboardSimulator();
+      return true;
+    } catch (error: any) {
+      this.isConnecting.set(false);
+      const errorMsg = error.message || 'Failed to start keyboard simulator';
+      console.error('[BluetoothService] Connection error:', errorMsg);
+      this.lastError.set(errorMsg);
+      return false;
+    }
+  }
+
   disconnect(): void {
     console.log('[BluetoothService] Disconnecting...');
     bluetoothManager.disconnect();

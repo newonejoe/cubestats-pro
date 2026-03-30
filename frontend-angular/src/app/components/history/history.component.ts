@@ -4,30 +4,28 @@ import { StateService, Solve, Session } from '../../services/state.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { sortSolvesByMetric } from '../../lib/analysis-selectors';
 
+import { AppCardComponent } from '../shared/app-card.component';
+import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
+
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AppCardComponent, AppEmptyStateComponent],
   template: `
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">{{ t('solveHistory') }}</span>
-        <div class="history-controls">
-          <select class="session-select" (change)="onSessionChange($event)">
-            <option value="all">All sessions</option>
-            @for (session of sessions(); track session.id) {
-              <option [value]="session.id">{{ session.name }}</option>
-            }
-          </select>
-          <button class="btn btn-secondary btn-sm" (click)="createNewSession()">+ {{ t('newSession') }}</button>
-          <button class="filter-btn" (click)="exportData()">{{ t('export') }}</button>
-        </div>
+    <app-card [title]="t('solveHistory')" [hasControls]="true">
+      <div card-controls class="history-controls">
+        <select class="session-select" (change)="onSessionChange($event)">
+          <option value="all">All sessions</option>
+          @for (session of sessions(); track session.id) {
+            <option [value]="session.id">{{ session.name }}</option>
+          }
+        </select>
+        <button class="btn btn-secondary btn-sm" (click)="createNewSession()">+ {{ t('newSession') }}</button>
+        <button class="filter-btn" (click)="exportData()">{{ t('export') }}</button>
       </div>
       <div class="solves-list">
         @if (solves().length === 0) {
-          <div class="no-data">
-            <p>{{ t('noData') }}</p>
-          </div>
+          <app-empty-state [message]="t('noData')"></app-empty-state>
         } @else {
           @for (solve of solves(); track $index) {
             <div class="solve-item" [class.dnf]="solve.dnf" [class.plus2]="solve.plus2">
@@ -47,30 +45,9 @@ import { sortSolvesByMetric } from '../../lib/analysis-selectors';
           }
         }
       </div>
-    </div>
+    </app-card>
   `,
   styles: [`
-    .card {
-      background: var(--card-bg, #fff);
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .card-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
-    }
-
     .history-controls {
       display: flex;
       gap: 8px;
@@ -193,12 +170,6 @@ import { sortSolvesByMetric } from '../../lib/analysis-selectors';
 
     .btn-delete:hover {
       color: #f44336;
-    }
-
-    .no-data {
-      text-align: center;
-      padding: 40px;
-      color: #999;
     }
   `]
 })

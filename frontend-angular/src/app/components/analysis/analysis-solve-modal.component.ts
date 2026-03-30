@@ -30,19 +30,21 @@ import {
   penaltyLabel,
 } from './analysis-solve-display';
 
+import { AppModalComponent } from '../shared/app-modal.component';
+
 @Component({
   selector: 'app-analysis-solve-modal',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AppModalComponent],
   template: `
-    <div class="modal-backdrop" (click)="onClose()"></div>
-    <div class="solve-modal" role="dialog" aria-modal="true" aria-labelledby="solve-modal-title">
-      <div class="solve-modal-inner" (click)="$event.stopPropagation()">
-        <header class="solve-modal-head">
-          <h2 id="solve-modal-title">Solve details</h2>
-          <button type="button" class="icon-close" (click)="onClose()" aria-label="Close">&times;</button>
-        </header>
-        <div class="solve-modal-body">
+    <app-modal
+      [isVisible]="true"
+      title="Solve details"
+      maxWidth="720px"
+      theme="light"
+      [noPadding]="true"
+      (closed)="onClose()">
+      <div class="solve-modal-body">
           <div class="row-actions">
             <button type="button" class="btn" (click)="retrySolve(solve())">Retry</button>
             <button type="button" class="btn" [disabled]="!solve().moveTrace || replayBusy()" (click)="replaySolve(solve())">
@@ -232,17 +234,10 @@ import {
               <p class="muted">No move trace stored for this solve.</p>
             }
           </section>
-        </div>
       </div>
-    </div>
+    </app-modal>
   `,
   styles: [`
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 2000; }
-    .solve-modal { position: fixed; inset: 0; z-index: 2001; display: flex; align-items: center; justify-content: center; padding: 16px; pointer-events: none; }
-    .solve-modal-inner { pointer-events: auto; background: #fff; border-radius: 12px; max-width: 720px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
-    .solve-modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #e9ecef; }
-    .solve-modal-head h2 { margin: 0; font-size: 18px; }
-    .icon-close { border: none; background: transparent; font-size: 26px; line-height: 1; cursor: pointer; color: #6c757d; }
     .solve-modal-body { padding: 14px 18px 20px; overflow-y: auto; }
     .row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
     .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid #d0d7de; background: #f8f9fa; cursor: pointer; font-size: 13px; }
@@ -260,8 +255,6 @@ import {
     .kv { list-style: none; margin: 0; padding: 0; }
     .kv li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #f1f3f5; font-size: 13px; }
     .muted { color: #868e96; font-size: 12px; margin-top: 0; }
-    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .tbl th, .tbl td { border-bottom: 1px solid #eef2f4; padding: 8px; text-align: left; }
     .cfop-tbl .f2l-row, .cfop-tbl .click-stat { cursor: pointer; }
     .cfop-tbl .f2l-row:hover, .cfop-tbl .click-stat:hover { background: #f8f9fa; }
     .f2l-sub td, .stat-sub td { background: #fcfcfd; padding-left: 24px; }

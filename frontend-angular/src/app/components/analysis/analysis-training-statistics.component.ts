@@ -53,8 +53,6 @@ import { computeTrainingSummary, filterBySession, formatMs } from '../../lib/ana
     .training-head label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6c757d; }
     .training-head select { padding: 8px 10px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 13px; }
     .hint { margin: 0; color: #6c757d; font-size: 12px; }
-    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .tbl th, .tbl td { border-bottom: 1px solid #eef2f4; padding: 8px; text-align: left; }
     .training-type-summary { margin-top: 12px; }
     .list { list-style: none; margin: 0; padding: 0; }
     .list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f3f5; }

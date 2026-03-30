@@ -1,43 +1,17 @@
 import { Component, inject, OnInit, HostListener, signal, computed, type WritableSignal, type Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { StateService } from '../../services/state.service';
 import { TimerService } from '../../services/timer.service';
 import { CubeService } from '../../services/cube.service';
-import {
-  buildScrambleTwistHighlightHtml,
-  escapeHtml,
-} from '../../lib/scramble-twist-display';
+import { ScrambleDisplayComponent } from './scramble-display.component';
 
 @Component({
   selector: 'app-timer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ScrambleDisplayComponent],
   template: `
     <div class="timer-display">
-      <div class="scramble-controls-row">
-        <div class="scramble-display">
-          <div class="scramble-label">{{ t('scramble') }}</div>
-          <div class="scramble-text"
-               [class.with-progress]="status() === 'twisting' || status() === 'twisted'"
-               [innerHTML]="scrambleHtml()">
-          </div>
-        </div>
-        <div class="scramble-dropdown-container">
-          <select class="scramble-type-select" [value]="scrambleType()" (change)="onScrambleTypeChange($event)">
-            <option value="wca">WCA</option>
-            <option value="cross">Cross</option>
-            <option value="f2l">F2L</option>
-            <option value="oll">OLL</option>
-            <option value="pll">PLL</option>
-          </select>
-          @if (scrambleType() !== 'wca') {
-            <div class="scramble-info">
-              <span class="scramble-length-label">{{ getScrambleLengthLabel() }}</span>
-            </div>
-          }
-        </div>
-      </div>
+      <app-scramble-display></app-scramble-display>
 
       <div class="inspection-timer" [class.visible]="isInspecting()">
         {{ inspectionTimeLeft() }}
@@ -75,118 +49,6 @@ import {
       border-radius: 12px;
       padding: 24px;
       text-align: center;
-    }
-
-    .scramble-controls-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 20px;
-      gap: 16px;
-    }
-
-    .scramble-display {
-      text-align: left;
-      flex: 1;
-    }
-
-    .scramble-label {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 4px;
-    }
-
-    .scramble-text {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 18px;
-      color: #333;
-      word-break: break-all;
-      line-height: 1.5;
-    }
-
-    .scramble-text.with-progress {
-      color: #495057;
-    }
-
-    :host ::ng-deep .scramble-text .scrm-seg {
-      display: inline-block;
-      margin-right: 0.35em;
-    }
-
-    /* csTimer-like: done = muted; current = strong highlight; todo = normal */
-    :host ::ng-deep .scramble-text .scrm-done {
-      color: #adb5bd;
-      font-weight: 500;
-    }
-
-    :host ::ng-deep .scramble-text .scrm-cur {
-      color: #0d47a1;
-      font-weight: 700;
-      background: linear-gradient(180deg, #fff9c4 0%, #ffeb3b 55%, #fdd835 100%);
-      padding: 2px 8px 3px;
-      border-radius: 6px;
-      box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.55), 0 2px 6px rgba(0, 0, 0, 0.12);
-    }
-
-    :host ::ng-deep .scramble-text .scrm-todo {
-      color: #212529;
-      font-weight: 600;
-    }
-
-    :host ::ng-deep .scramble-text .scrm-undo {
-      color: #fff;
-      font-weight: 800;
-      background: linear-gradient(180deg, #e35d6a 0%, #c82333 100%);
-      padding: 2px 8px 3px;
-      border-radius: 6px;
-      box-shadow: 0 0 0 2px rgba(200, 35, 51, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15);
-    }
-
-    .scramble-dropdown-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .scramble-type-select {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-      background: #fff;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .scramble-options {
-      display: flex;
-      gap: 4px;
-    }
-
-    .scramble-info {
-      padding: 4px 10px;
-      font-size: 12px;
-      color: #666;
-    }
-
-    .scramble-length-label {
-      color: #666;
-    }
-
-    .scramble-option {
-      padding: 4px 10px;
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.2s;
-    }
-
-    .scramble-option.active,
-    .scramble-option:hover {
-      background: #007bff;
-      color: #fff;
-      border-color: #007bff;
     }
 
     .inspection-timer {
@@ -298,30 +160,12 @@ export class TimerComponent implements OnInit {
   private state = inject(StateService);
   private timerService = inject(TimerService);
   private cubeService = inject(CubeService);
-  private sanitizer = inject(DomSanitizer);
 
   // Computed values
   scramble: Signal<string> = computed(() => this.state.scramble());
-  scrambleType: Signal<string> = computed(() => this.state.scrambleType());
-  scrambleLength: Signal<number> = computed(() => this.state.scrambleLength());
   isSolving: Signal<boolean> = computed(() => this.state.isSolving());
   isInspecting: Signal<boolean> = computed(() => this.state.isInspecting());
   status: Signal<string> = computed(() => this.state.status());
-
-  /**
-   * Twist phase: csTimer scrHinter override (wrong face → regen list + todo highlight) or original prefix progress.
-   */
-  scrambleHtml: Signal<SafeHtml> = computed(() => {
-    const currentStatus = this.state.status();
-    const twist = this.state.twistScrambleDisplay();
-    const seq = twist?.sequence ?? this.state.scrambleSequence();
-    const progress = twist?.progress ?? this.state.scrambleProgress();
-    if (currentStatus !== 'twisting' && currentStatus !== 'twisted') {
-      return this.sanitizer.bypassSecurityTrustHtml(escapeHtml(this.state.scramble()));
-    }
-    const html = buildScrambleTwistHighlightHtml(seq, progress, null);
-    return this.sanitizer.bypassSecurityTrustHtml(html);
-  });
 
   inspectionTimeLeft: WritableSignal<string> = signal<string>('');
   showPenaltyBtns: WritableSignal<boolean> = signal<boolean>(false);
@@ -343,27 +187,6 @@ export class TimerComponent implements OnInit {
 
   t(key: string): string {
     return this.translations[key] || key;
-  }
-
-  getScrambleLengthLabel(): string {
-    const type = this.scrambleType();
-    const length = this.scrambleLength();
-    switch (type) {
-      case 'wca':
-        // cstimer megascramble 333o style (25 random quarter/half turns), not TNoodle random-state
-        return '25 moves (333o)';
-      case 'cross':
-        // cstimer easyc: difficulty from length (see cross.getEasyCross)
-        return 'easyc · len ' + length;
-      case 'f2l':
-        return 'cstimer F2L subset';
-      case 'oll':
-        return '57 cases (cstimer)';
-      case 'pll':
-        return '21 cases (cstimer)';
-      default:
-        return length + ' moves';
-    }
   }
 
   ngOnInit(): void {

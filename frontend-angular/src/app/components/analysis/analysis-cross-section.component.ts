@@ -35,8 +35,6 @@ import {
   `,
   styles: [`
     h2 { margin: 0 0 12px; font-size: 18px; }
-    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .tbl th, .tbl td { border-bottom: 1px solid #eef2f4; padding: 8px; text-align: left; }
   `],
 })
 export class AnalysisCrossSectionComponent {
