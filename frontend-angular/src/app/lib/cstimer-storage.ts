@@ -16,6 +16,7 @@ export type SessionSolveExtra = Pick<
   | 'ollCaseIndex'
   | 'pllCaseIndex'
   | 'f2lCaseIndex'
+  | 'zbllCaseIndex'
   | 'moveCount'
   | 'inspectionTime'
   | 'crossTime'
@@ -174,6 +175,9 @@ export function extraFromSolve(solve: Solve): SessionSolveExtra | undefined {
   if (solve.f2lCaseIndex !== undefined) {
     extra.f2lCaseIndex = solve.f2lCaseIndex;
   }
+  if (solve.zbllCaseIndex !== undefined) {
+    extra.zbllCaseIndex = solve.zbllCaseIndex;
+  }
   if (solve.moveCount !== undefined) {
     extra.moveCount = solve.moveCount;
   }
@@ -224,6 +228,7 @@ export function solveFromRecord(rec: SessionSolveRecord, sessionId: number): Sol
     ollCaseIndex: e?.ollCaseIndex,
     pllCaseIndex: e?.pllCaseIndex,
     f2lCaseIndex: e?.f2lCaseIndex,
+    zbllCaseIndex: e?.zbllCaseIndex,
     moveCount: e?.moveCount,
     inspectionTime: e?.inspectionTime,
     crossTime: e?.crossTime,

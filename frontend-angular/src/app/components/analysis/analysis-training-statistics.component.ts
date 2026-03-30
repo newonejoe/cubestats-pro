@@ -1,7 +1,10 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
-import { computeTrainingSummary, filterBySession, formatMs } from '../../lib/analysis-selectors';
+import { computeTrainingSummary, filterBySession, formatMs, type TrainingSummaryItem } from '../../lib/analysis-selectors';
+import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
+import { getOllFace21, pllVizFromCstimer, getZbllFace21 } from '../../lib/cstimer-ll-viz';
+import { CstimerScrambleService } from '../../services/cstimer-scramble.service';
 
 @Component({
   selector: 'app-analysis-training-statistics',
@@ -15,6 +18,8 @@ import { computeTrainingSummary, filterBySession, formatMs } from '../../lib/ana
         <select [value]="trainingCaseType()" (change)="onTrainingCaseTypeChange($event)">
           <option value="oll">OLL</option>
           <option value="pll">PLL</option>
+          <option value="zbll">ZBLL</option>
+          <option value="f2l">F2L</option>
         </select>
       </label>
       <p class="hint">Sorted by mean descending to identify slowest recognition/execution cases.</p>
@@ -26,7 +31,14 @@ import { computeTrainingSummary, filterBySession, formatMs } from '../../lib/ana
       <tbody>
         @for (x of trainingCaseRows(); track x.key) {
           <tr>
-            <td>#{{ x.key }}</td>
+            <td>
+              <div class="case-label">
+                @if (getCaseImgUrl(trainingCaseType(), x.key); as imgUrl) {
+                  <img [src]="imgUrl" alt="Case {{x.key}}" class="case-img" />
+                }
+                <span>#{{ x.key }}</span>
+              </div>
+            </td>
             <td>{{ x.count }}</td>
             <td>{{ fm(x.best) }}</td>
             <td>{{ fm(x.mean) }}</td>
@@ -57,14 +69,17 @@ import { computeTrainingSummary, filterBySession, formatMs } from '../../lib/ana
     .list { list-style: none; margin: 0; padding: 0; }
     .list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f3f5; }
     .empty { color: #868e96; margin: 0; }
+    .case-label { display: flex; align-items: center; gap: 8px; }
+    .case-img { width: 32px; height: 32px; object-fit: contain; }
   `],
 })
 export class AnalysisTrainingStatisticsComponent {
   private readonly store = inject(LocalSolveStoreService);
+  private readonly cstimer = inject(CstimerScrambleService);
 
   readonly sessionId = input<number | 'all'>('all');
 
-  readonly trainingCaseType = signal<'oll' | 'pll'>('oll');
+  readonly trainingCaseType = signal<'oll' | 'pll' | 'zbll' | 'f2l'>('oll');
 
   readonly solves = computed(() => {
     this.store.storeRevision();
@@ -76,7 +91,13 @@ export class AnalysisTrainingStatisticsComponent {
   readonly training = computed(() => computeTrainingSummary(this.sessionSolves()));
 
   readonly trainingCaseRows = computed(() => {
-    const source = this.trainingCaseType() === 'oll' ? this.training().ollCases : this.training().pllCases;
+    const type = this.trainingCaseType();
+    let source: TrainingSummaryItem[] = [];
+    if (type === 'oll') source = this.training().ollCases;
+    else if (type === 'pll') source = this.training().pllCases;
+    else if (type === 'zbll') source = this.training().zbllCases;
+    else if (type === 'f2l') source = this.training().f2lCases;
+    
     return [...source].sort((a, b) => {
       const am = a.mean ?? -1;
       const bm = b.mean ?? -1;
@@ -91,8 +112,27 @@ export class AnalysisTrainingStatisticsComponent {
     return formatMs(ms);
   }
 
+  getCaseImgUrl(type: string, key: string): string | null {
+    const index = parseInt(key, 10);
+    if (isNaN(index)) return null;
+
+    if (type === 'oll') {
+      const data = getOllFace21(index);
+      return data ? buildLlImageDataUrl(data) : null;
+    } else if (type === 'pll') {
+      const data = pllVizFromCstimer(index);
+      return data ? buildLlImageDataUrl(data.face, data.arrows) : null;
+    } else if (type === 'zbll') {
+      const data = getZbllFace21(index);
+      return data ? buildLlImageDataUrl(data) : null;
+    } else if (type === 'f2l') {
+      return this.cstimer.getLsll2ImageDataUrl(index) ?? null;
+    }
+    return null;
+  }
+
   onTrainingCaseTypeChange(event: Event): void {
-    const v = (event.target as HTMLSelectElement).value;
-    this.trainingCaseType.set(v === 'pll' ? 'pll' : 'oll');
+    const v = (event.target as HTMLSelectElement).value as 'oll' | 'pll' | 'zbll' | 'f2l';
+    this.trainingCaseType.set(v);
   }
 }

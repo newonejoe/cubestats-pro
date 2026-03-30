@@ -7,6 +7,7 @@
 export interface Scramble333Global {
   getOLLImage: (cases: number, canvas: null) => [string, null, string] | undefined;
   getPLLImage: (cases: number, canvas: null) => unknown;
+  getZBLLImage: (cases: number, canvas: null) => [string, null, string] | undefined;
 }
 
 export function getScramble333(): Scramble333Global | undefined {
@@ -35,6 +36,18 @@ export function getOllFace21(caseIndex: number): string | null {
     return null;
   }
   const r = s.getOLLImage(caseIndex, null);
+  if (!r || typeof r[0] !== 'string' || r[0].length !== 21) {
+    return null;
+  }
+  return r[0];
+}
+
+export function getZbllFace21(caseIndex: number): string | null {
+  const s = getScramble333();
+  if (!s?.getZBLLImage) {
+    return null;
+  }
+  const r = s.getZBLLImage(caseIndex, null);
   if (!r || typeof r[0] !== 'string' || r[0].length !== 21) {
     return null;
   }

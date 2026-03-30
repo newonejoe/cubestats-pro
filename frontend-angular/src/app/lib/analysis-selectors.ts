@@ -1,5 +1,7 @@
 import { Solve } from '../services/state.service';
 import type { ParsedTraceMove } from './cstimer-storage';
+import { cstimerScrCubieFromScrambleString } from './cstimer/cstimer-giiker-scramble';
+import { getCubeUtil } from './cstimer/cubeutil';
 
 export interface SessionSummary {
   sessionId: number;
@@ -22,6 +24,20 @@ export interface TrainingSummary {
   ollCases: TrainingSummaryItem[];
   pllCases: TrainingSummaryItem[];
   f2lCases: TrainingSummaryItem[];
+  zbllCases: TrainingSummaryItem[];
+}
+
+export function deriveCaseFromScramble(scramble: string, method: string): number | null {
+  try {
+    const cubie = cstimerScrCubieFromScrambleString(scramble);
+    if (!cubie) return null;
+    const facelet = cubie.toFaceCube();
+    const cu = getCubeUtil();
+    const caseIndex = cu.identStep(method, facelet);
+    return caseIndex !== undefined && caseIndex >= 0 ? caseIndex : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export interface TrendPoint {
@@ -245,9 +261,10 @@ function summarizeBy<T extends string | number>(items: Solve[], keyFn: (s: Solve
 export function computeTrainingSummary(solves: Solve[]): TrainingSummary {
   return {
     byType: summarizeBy(solves, (s) => s.scrambleType ?? null),
-    ollCases: summarizeBy(solves.filter((s) => s.scrambleType === 'oll'), (s) => s.ollCaseIndex ?? null),
-    pllCases: summarizeBy(solves.filter((s) => s.scrambleType === 'pll'), (s) => s.pllCaseIndex ?? null),
-    f2lCases: summarizeBy(solves.filter((s) => s.scrambleType === 'f2l'), (s) => s.f2lCaseIndex ?? null),
+    ollCases: summarizeBy(solves, (s) => s.ollCaseIndex ?? deriveCaseFromScramble(s.scramble, 'OLL')),
+    pllCases: summarizeBy(solves, (s) => s.pllCaseIndex ?? deriveCaseFromScramble(s.scramble, 'PLL')),
+    f2lCases: summarizeBy(solves, (s) => s.f2lCaseIndex ?? null),
+    zbllCases: summarizeBy(solves, (s) => s.zbllCaseIndex ?? deriveCaseFromScramble(s.scramble, 'ZBLL')),
   };
 }
 

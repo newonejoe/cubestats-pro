@@ -27,6 +27,7 @@ export interface Solve {
   ollCaseIndex?: number | null;
   pllCaseIndex?: number | null;
   f2lCaseIndex?: number | null;
+  zbllCaseIndex?: number | null;
   moveCount?: number;
   startTime?: string;
   endTime?: string;
