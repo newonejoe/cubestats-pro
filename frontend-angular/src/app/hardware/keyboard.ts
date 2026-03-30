@@ -1,4 +1,4 @@
-import { CubeDriver } from './driver';
+import { CubeDriver, registerDriver } from './driver';
 import type { CubeMove } from './cube-move';
 import { getCubeCallbackService } from '../services/cube-callback.service';
 
@@ -71,3 +71,5 @@ export class KeyboardDriver extends CubeDriver {
         super.disconnect();
     }
 }
+
+registerDriver(KeyboardDriver);
