@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService } from '../../services/state.service';
+import { I18nService } from '../../services/i18n.service';
 import { OLL_GROUPS, ALL_OLL_INDICES } from '../../data/oll-cases';
 import { getOllFace21 } from '../../lib/cstimer-ll-viz';
 import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
@@ -13,7 +14,7 @@ import { AlgorithmCasePickerComponent, type AlgorithmGroup } from '../shared/alg
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-algorithm-case-picker
-      title="OLL"
+      [title]="t('oll')"
       radioName="ollMode"
       [mode]="state.ollSubsetMode()"
       [groups]="mappedGroups()"
@@ -32,8 +33,13 @@ import { AlgorithmCasePickerComponent, type AlgorithmGroup } from '../shared/alg
 })
 export class OllCasePickerComponent {
   readonly state = inject(StateService);
+  private readonly i18n = inject(I18nService);
   readonly inline = input<boolean>(false);
   readonly ALL_OLL_INDICES = ALL_OLL_INDICES;
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly mappedGroups = computed<AlgorithmGroup[]>(() => {
     return OLL_GROUPS.map(g => ({

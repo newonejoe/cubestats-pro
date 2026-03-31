@@ -2,6 +2,7 @@ import { Component, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { I18nService } from '../../services/i18n.service';
 import { SolveReplayService } from '../../services/solve-replay.service';
 import { CubeService } from '../../services/cube.service';
 import { StateService, type Solve } from '../../services/state.service';
@@ -22,64 +23,64 @@ import { CfopReconstructionComponent } from '../shared/cfop-reconstruction.compo
   template: `
     <app-modal
       [isVisible]="true"
-      title="Solve details"
+      [title]="t('solveDetails')"
       maxWidth="720px"
       theme="light"
       [noPadding]="true"
       (closed)="onClose()">
       <div class="solve-modal-body">
           <div class="row-actions">
-            <button type="button" class="btn" (click)="retrySolve(solve())">Retry</button>
+            <button type="button" class="btn" (click)="retrySolve(solve())">{{ t('retry') }}</button>
             <button type="button" class="btn" [disabled]="!solve().moveTrace || replayBusy()" (click)="replaySolve(solve())">
-              {{ replayBusy() ? 'Replaying…' : 'Replay' }}
+              {{ replayBusy() ? t('replaying') : t('replay') }}
             </button>
-            <button type="button" class="btn btn-danger" (click)="deleteSolve(solve())">Delete</button>
+            <button type="button" class="btn btn-danger" (click)="deleteSolve(solve())">{{ t('delete') }}</button>
           </div>
           <section class="detail-block">
-            <h3>Scramble</h3>
+            <h3>{{ t('scramble') }}</h3>
             <pre class="mono-block">{{ solve().scramble }}</pre>
-            <button type="button" class="btn-small" (click)="copyText(solve().scramble)">Copy scramble</button>
+            <button type="button" class="btn-small" (click)="copyText(solve().scramble)">{{ t('copyScramble') }}</button>
           </section>
           <section class="detail-block">
-            <h3>Summary</h3>
+            <h3>{{ t('summary') }}</h3>
             <ul class="kv">
-              <li><span>Final</span><span class="mono">{{ fm(finalSolveMs(solve())) }}</span></li>
-              <li><span>DNF / +2</span><span>{{ penaltyLabel(solve()) || '—' }}</span></li>
-              <li><span>Moves</span><span class="mono">{{ solve().moveCount ?? '—' }}</span></li>
+              <li><span>{{ t('final') }}</span><span class="mono">{{ fm(finalSolveMs(solve())) }}</span></li>
+              <li><span>{{ t('dnfPlus2') }}</span><span>{{ penaltyLabel(solve()) || '—' }}</span></li>
+              <li><span>{{ t('moves') }}</span><span class="mono">{{ solve().moveCount ?? '—' }}</span></li>
               <li>
-                <span>Inspection (WCA setting)</span>
+                <span>{{ t('inspectionWca') }}</span>
                 <span class="mono">{{ solve().inspectionTime != null ? solve().inspectionTime + ' s' : '—' }}</span>
               </li>
-              <li><span>Type</span><span>{{ solve().scrambleType ?? '—' }}</span></li>
+              <li><span>{{ t('type') }}</span><span>{{ solve().scrambleType ?? '—' }}</span></li>
             </ul>
           </section>
           <section class="detail-block reconstruct">
-            <h3>Reconstruct</h3>
+            <h3>{{ t('reconstruct') }}</h3>
             <p class="muted">
-              Inverse scramble undoes the scramble to solved. Solution line is the stored move trace (same string as csTimer <code>times[4][0]</code>).
+              {{ t('reconstructHint') }}
             </p>
-            <p class="mono-line"><strong>Inverse</strong> {{ inverseScramble(solve().scramble) }}</p>
+            <p class="mono-line"><strong>{{ t('inverse') }}</strong> {{ inverseScramble(solve().scramble) }}</p>
             @if (joinTraceNotation(solve().moveTrace)) {
-              <p class="mono-line"><strong>Solution (trace)</strong> {{ joinTraceNotation(solve().moveTrace) }}</p>
-              <button type="button" class="btn-small" (click)="copyText(joinTraceNotation(solve().moveTrace))">Copy solution</button>
+              <p class="mono-line"><strong>{{ t('solution') }}</strong> {{ joinTraceNotation(solve().moveTrace) }}</p>
+              <button type="button" class="btn-small" (click)="copyText(joinTraceNotation(solve().moveTrace))">{{ t('copySolution') }}</button>
             }
             <div class="row-actions">
-              <button type="button" class="btn-small" (click)="copyText(inverseScramble(solve().scramble))">Copy inverse</button>
+              <button type="button" class="btn-small" (click)="copyText(inverseScramble(solve().scramble))">{{ t('copyInverse') }}</button>
               <a
                 class="btn-small link"
                 [routerLink]="['/scramble-test']"
                 [queryParams]="{ scramble: solve().scramble, type: solve().scrambleType || 'wca' }"
-              >Open in scramble test</a>
+              >{{ t('openInScrambleTest') }}</a>
             </div>
           </section>
           <app-cfop-reconstruction [solve]="solve()" [caseStatScope]="caseStatScope()" />
           <section class="detail-block">
-            <h3>Move trace</h3>
+            <h3>{{ t('moveTrace') }}</h3>
             @if (solve().moveTrace) {
               <pre class="mono-block trace">{{ solve().moveTrace }}</pre>
-              <button type="button" class="btn-small" (click)="copyText(solve().moveTrace!)">Copy trace</button>
+              <button type="button" class="btn-small" (click)="copyText(solve().moveTrace!)">{{ t('copyTrace') }}</button>
             } @else {
-              <p class="muted">No move trace stored for this solve.</p>
+              <p class="muted">{{ t('noMoveTrace') }}</p>
             }
           </section>
       </div>
@@ -116,11 +117,16 @@ export class AnalysisSolveModalComponent {
   private readonly router = inject(Router);
   private readonly replay = inject(SolveReplayService);
   private readonly cube = inject(CubeService);
+  private readonly i18n = inject(I18nService);
 
   readonly solve = input.required<Solve>();
   readonly caseStatScope = input<Solve[]>([]);
   /** Used for Retry when the solve record has no sessionId. */
   readonly contextSessionId = input<number | undefined>(undefined);
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly closed = output<void>();
   readonly deleted = output<void>();
@@ -173,7 +179,7 @@ export class AnalysisSolveModalComponent {
   }
 
   async deleteSolve(solve: Solve): Promise<void> {
-    if (!solve.id || !confirm('Delete this solve from history?')) {
+    if (!solve.id || !confirm(this.t('deleteThisSolve'))) {
       return;
     }
     await this.store.deleteSolve(solve.id);

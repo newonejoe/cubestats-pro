@@ -2,6 +2,7 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CubeCallbackService } from '../../services/cube-callback.service';
+import { I18nService } from '../../services/i18n.service';
 import { AppModalComponent } from '../shared/app-modal.component';
 
 @Component({
@@ -15,18 +16,18 @@ import { AppModalComponent } from '../shared/app-modal.component';
       maxWidth="400px"
       [closeOnBackdrop]="false"
       (closed)="onCancel()">
-      <h3>Enter MAC Address</h3>
-      <p>Please enter the MAC address of your cube (e.g., AA:BB:CC:DD:EE:FF)</p>
+      <h3>{{ t('enterMacAddress') }}</h3>
+      <p>{{ t('macAddressHint') }}</p>
       <input
         type="text"
         [(ngModel)]="macAddress"
-        placeholder="AA:BB:CC:DD:EE:FF"
+        [placeholder]="t('macPlaceholder')"
         class="mac-input"
         (keyup.enter)="onSubmit()"
       />
       <div class="modal-buttons">
-        <button class="btn-cancel" (click)="onCancel()">Cancel</button>
-        <button class="btn-submit" (click)="onSubmit()" [disabled]="!macAddress()">Submit</button>
+        <button class="btn-cancel" (click)="onCancel()">{{ t('cancel') }}</button>
+        <button class="btn-submit" (click)="onSubmit()" [disabled]="!macAddress()">{{ t('submit') }}</button>
       </div>
     </app-modal>
   `,
@@ -93,10 +94,15 @@ import { AppModalComponent } from '../shared/app-modal.component';
 })
 export class MacModalComponent {
   private cubeCallback = inject(CubeCallbackService);
+  private i18n = inject(I18nService);
 
   isVisible = signal(false);
   macAddress = signal('');
   private resolveCallback: ((mac: string | null) => void) | null = null;
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   constructor() {
     this.cubeCallback.registerMacModal((resolve) => {

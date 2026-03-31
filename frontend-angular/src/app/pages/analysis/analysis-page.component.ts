@@ -2,6 +2,9 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { StateService } from '../../services/state.service';
+import { BluetoothService } from '../../services/bluetooth.service';
+import { I18nService } from '../../services/i18n.service';
 import { filterBySession, type TimeWindow } from '../../lib/analysis-selectors';
 import type { Solve } from '../../services/state.service';
 import { AnalysisToolbarComponent, type AnalysisFeature } from '../../components/analysis/analysis-toolbar.component';
@@ -27,9 +30,27 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
   template: `
     <div class="analysis-page">
       <header class="top">
-        <a routerLink="/" class="back">← Home</a>
-        <h1>Analysis</h1>
+        <a routerLink="/" class="back">← {{ t('home') }}</a>
+        <h1>{{ t('analysis') }}</h1>
       </header>
+
+      <div class="bt-status-bar">
+        <div class="connection-status">
+          @if (isScanning()) {
+            <div class="scanning-indicator">
+              <div class="scanner-pulse-small"></div>
+              <span class="status-dot scanning"></span>
+            </div>
+            <span>{{ t('scanning') }}</span>
+          } @else {
+            <span class="status-dot" [class.connected]="cubeConnected()"></span>
+            <span>{{ cubeConnected() ? t('connected') : t('disconnected') }}</span>
+          }
+        </div>
+        @if (cubeConnected() && deviceName()) {
+          <span class="device-name">{{ deviceName() }}</span>
+        }
+      </div>
 
       <section class="panel">
         <app-analysis-toolbar
@@ -95,10 +116,67 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
     .back { color: #0d6efd; text-decoration: none; }
     .panel { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
     .empty { color: #868e96; margin: 0; }
+    .bt-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 14px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #999;
+    }
+    .status-dot.connected {
+      background: #4caf50;
+    }
+    .status-dot.scanning {
+      background: #007bff;
+      animation: pulse-dot 1s ease-in-out infinite;
+    }
+    .scanning-indicator {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scanner-pulse-small {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(0, 123, 255, 0.3);
+      animation: pulse-small 1s ease-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes pulse-small {
+      0% { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+    .device-name {
+      color: #666;
+      font-size: 12px;
+    }
   `],
 })
 export class AnalysisPageComponent {
   private readonly store = inject(LocalSolveStoreService);
+  private readonly state = inject(StateService);
+  private readonly bluetooth = inject(BluetoothService);
+  private readonly i18n = inject(I18nService);
 
   readonly selectedFeature = signal<AnalysisFeature>('training');
   readonly selectedSessionId = signal<number | 'all'>('all');
@@ -107,6 +185,14 @@ export class AnalysisPageComponent {
   readonly customFrom = signal<string>('');
   readonly customTo = signal<string>('');
   readonly modalSolve = signal<Solve | null>(null);
+
+  cubeConnected = computed(() => this.state.cubeConnected());
+  isScanning = computed(() => this.bluetooth.isScanning());
+  deviceName = computed(() => this.bluetooth.getDeviceName());
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly solves = computed(() => {
     this.store.storeRevision();

@@ -1,6 +1,7 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { I18nService } from '../../services/i18n.service';
 import {
   computeSessionSummaries,
   filterBySession,
@@ -14,10 +15,10 @@ import {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <h2>Cross-section Statistics</h2>
+    <h2>{{ t('crossSectionStats') }}</h2>
     <table class="tbl">
       <thead>
-        <tr><th>Session</th><th>Solves</th><th>Best</th><th>Mean</th><th>Ao5</th><th>Ao12</th></tr>
+        <tr><th>{{ t('session') }}</th><th>{{ t('solves') }}</th><th>{{ t('bestStat') }}</th><th>{{ t('mean') }}</th><th>{{ t('ao5') }}</th><th>{{ t('ao12') }}</th></tr>
       </thead>
       <tbody>
         @for (row of sessionRows(); track row.sessionId) {
@@ -39,12 +40,17 @@ import {
 })
 export class AnalysisCrossSectionComponent {
   private readonly store = inject(LocalSolveStoreService);
+  private readonly i18n = inject(I18nService);
 
   readonly timeWindow = input<TimeWindow>('7d');
   readonly customFrom = input<string>('');
   readonly customTo = input<string>('');
   readonly useSessionFilter = input<boolean>(false);
   readonly sessionFilterId = input<number | 'all'>('all');
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly solves = computed(() => {
     this.store.storeRevision();

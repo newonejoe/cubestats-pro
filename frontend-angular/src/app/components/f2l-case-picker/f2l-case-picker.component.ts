@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { CommonModule } from '@angular/common';
 import { StateService } from '../../services/state.service';
 import { CstimerScrambleService } from '../../services/cstimer-scramble.service';
+import { I18nService } from '../../services/i18n.service';
 import { AlgorithmCasePickerComponent, type AlgorithmGroup } from '../shared/algorithm-case-picker.component';
 
 @Component({
@@ -11,7 +12,7 @@ import { AlgorithmCasePickerComponent, type AlgorithmGroup } from '../shared/alg
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-algorithm-case-picker
-      title="Last slot+last layer"
+      [title]="t('f2l')"
       radioName="f2lMode"
       [mode]="state.f2lSubsetMode()"
       [groups]="mappedGroups()"
@@ -32,6 +33,11 @@ export class F2lCasePickerComponent {
   readonly inline = input<boolean>(false);
   readonly state = inject(StateService);
   private readonly cstimer = inject(CstimerScrambleService);
+  private readonly i18n = inject(I18nService);
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly allIndices = computed<number[]>(() => {
     const meta = this.cstimer.getLsll2Meta();

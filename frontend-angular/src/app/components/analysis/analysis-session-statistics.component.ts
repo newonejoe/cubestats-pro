@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { I18nService } from '../../services/i18n.service';
 import {
   computeRollingAoBySolve,
   computeSessionStats,
@@ -74,7 +75,7 @@ import type { Solve } from '../../services/state.service';
             Primary metric
             <select [value]="primaryMetric()" (change)="onPrimaryMetricChange($event)">
               @for (opt of metricOptions; track opt.value) {
-                <option [value]="opt.value">{{ opt.label }}</option>
+                <option [value]="opt.value">{{ translateMetricLabel(opt.labelKey) }}</option>
               }
             </select>
           </label>
@@ -204,12 +205,21 @@ export class AnalysisSessionStatisticsComponent {
   readonly finalSolveMs = finalSolveMs;
 
   private readonly store = inject(LocalSolveStoreService);
+  private readonly i18n = inject(I18nService);
 
   readonly sessionId = input<number | 'all'>('all');
   readonly mode = input<'compact' | 'full'>('full');
   readonly solveOpen = output<Solve>();
 
   readonly primaryMetric = signal<PrimaryMetric>('timestamp');
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
+
+  translateMetricLabel(labelKey: string): string {
+    return this.i18n.t(labelKey);
+  }
 
   readonly solves = computed(() => {
     this.store.storeRevision();
@@ -232,7 +242,8 @@ export class AnalysisSessionStatisticsComponent {
 
   readonly primaryMetricLabel = computed(() => {
     const m = this.primaryMetric();
-    return METRIC_OPTIONS.find((o) => o.value === m)?.label ?? m;
+    const opt = METRIC_OPTIONS.find((o) => o.value === m);
+    return opt ? this.translateMetricLabel(opt.labelKey) : m;
   });
 
   fm(ms: number | null | undefined): string {

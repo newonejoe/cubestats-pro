@@ -4,14 +4,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { HeaderComponent } from '../../components/header/header.component';
 import { TimerComponent } from '../../components/timer/timer.component';
-import { MultiphaseDisplayComponent } from '../../components/timer/multiphase-display.component';
 import { MacModalComponent } from '../../components/mac-modal/mac-modal.component';
 import { SolvedStateModalComponent } from '../../components/solved-state-modal/solved-state-modal.component';
 import { BluetoothManagerComponent } from '../../components/bluetooth-manager/bluetooth-manager.component';
 import { AnalysisSessionStatisticsComponent } from '../../components/analysis/analysis-session-statistics.component';
 import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-solve-modal.component';
-import { CfopReconstructionComponent } from '../../components/shared/cfop-reconstruction.component';
-import { AppEmptyStateComponent } from '../../components/shared/app-empty-state.component';
 import { SettingsModalComponent } from '../../components/settings-modal/settings-modal.component';
 
 import { StateService, type Solve } from '../../services/state.service';
@@ -26,14 +23,11 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
     CommonModule,
     HeaderComponent,
     TimerComponent,
-    MultiphaseDisplayComponent,
     MacModalComponent,
     SolvedStateModalComponent,
     BluetoothManagerComponent,
     AnalysisSessionStatisticsComponent,
     AnalysisSolveModalComponent,
-    CfopReconstructionComponent,
-    AppEmptyStateComponent,
     SettingsModalComponent,
   ],
   template: `
@@ -44,14 +38,11 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       </div>
     </div>
 
-    @if (cubeConnected()) {
-      <app-header></app-header>
-    }
-
     <div class="layout" [class.blurred]="!cubeConnected()">
       @if (cubeConnected()) {
         <!-- Left sidebar: session stats + solve list -->
         <aside class="sidebar">
+          <app-header></app-header>
           <app-analysis-session-statistics
             mode="compact"
             [sessionId]="currentSessionId()"
@@ -61,21 +52,8 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
 
         <!-- Center: timer stage (cube bg + scramble/timer overlay) -->
         <main class="center">
-          <app-timer></app-timer>
+          <app-timer [sessionId]="currentSessionId()"></app-timer>
         </main>
-
-        <!-- Right panel: multiphase stats + CFOP recon -->
-        <aside class="right-panel">
-          <app-multiphase-display [sessionId]="currentSessionId()" />
-
-          <div class="recon-section">
-            @if (lastSolve(); as sol) {
-              <app-cfop-reconstruction [solve]="sol" [caseStatScope]="sessionSolves()" />
-            } @else {
-              <app-empty-state icon="🎯" message="No solve data yet"></app-empty-state>
-            }
-          </div>
-        </aside>
       }
     </div>
 
@@ -109,11 +87,10 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
 
     .layout {
       display: grid;
-      grid-template-columns: 260px 1fr 280px;
+      grid-template-columns: 260px 1fr;
       gap: 12px;
       padding: 12px;
-      max-width: 1600px;
-      margin: 0 auto;
+      width: 100%;
       min-height: calc(100vh - 56px);
     }
 
@@ -121,7 +98,7 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
     .sidebar {
       background: #fff;
       border-radius: 12px;
-      padding: 12px;
+      padding: 0;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       display: flex;
       flex-direction: column;
@@ -129,6 +106,10 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       position: sticky;
       top: 68px;
       overflow-y: auto;
+    }
+
+    .sidebar app-header {
+      flex-shrink: 0;
     }
 
     /* Center stage */
@@ -136,26 +117,6 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       display: flex;
       flex-direction: column;
       min-height: 0;
-    }
-
-    /* Right panel */
-    .right-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-height: calc(100vh - 80px);
-      position: sticky;
-      top: 68px;
-      overflow-y: auto;
-    }
-
-    .recon-section {
-      background: #fff;
-      border-radius: 12px;
-      padding: 14px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-      flex: 1;
-      overflow-y: auto;
     }
 
     /* Toast */

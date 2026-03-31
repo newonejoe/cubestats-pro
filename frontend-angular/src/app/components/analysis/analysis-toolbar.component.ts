@@ -1,5 +1,6 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { I18nService } from '../../services/i18n.service';
 import type { Session } from '../../services/state.service';
 import type { TimeWindow } from '../../lib/analysis-selectors';
 
@@ -12,20 +13,20 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
   template: `
     <div class="toolbar">
       <label>
-        Feature
+        {{ t('feature') }}
         <select [value]="selectedFeature()" (change)="onFeatureChange($event)">
-          <option value="session">Session Statistics</option>
-          <option value="trend">Time Trend</option>
-          <option value="cross">Cross-section Statistics</option>
-          <option value="training">Training Statistics</option>
+          <option value="session">{{ t('sessionStatistics') }}</option>
+          <option value="trend">{{ t('timeTrend') }}</option>
+          <option value="cross">{{ t('crossSectionStats') }}</option>
+          <option value="training">{{ t('trainingStats') }}</option>
         </select>
       </label>
       @if (selectedFeature() !== 'cross') {
         <label>
-          Session
+          {{ t('session') }}
           <select [value]="sessionSelectValue()" (change)="onSessionChange($event)">
             @if (sessionAllowsAll()) {
-              <option value="all">All sessions</option>
+              <option value="all">{{ t('allSessions') }}</option>
             }
             @for (s of sessions(); track s.id) {
               <option [value]="s.id">{{ s.name }}</option>
@@ -34,23 +35,23 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
         </label>
       } @else {
         <label>
-          Time Window
+          {{ t('timeWindow') }}
           <select [value]="selectedTimeWindow()" (change)="onTimeWindowChange($event)">
-            <option value="today">Today</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="custom">Custom</option>
+            <option value="today">{{ t('today') }}</option>
+            <option value="7d">{{ t('past7Days') }}</option>
+            <option value="30d">{{ t('past30Days') }}</option>
+            <option value="custom">{{ t('custom') }}</option>
           </select>
         </label>
         <label class="inline-check">
           <input type="checkbox" [checked]="useSessionFilterInCross()" (change)="onCrossSessionFilterToggle($event)" />
-          <span>Apply session filter</span>
+          <span>{{ t('applySessionFilter') }}</span>
         </label>
         @if (useSessionFilterInCross()) {
           <label>
-            Session
+            {{ t('session') }}
             <select [value]="crossSessionSelectValue()" (change)="onSessionChange($event)">
-              <option value="all">All sessions</option>
+              <option value="all">{{ t('allSessions') }}</option>
               @for (s of sessions(); track s.id) {
                 <option [value]="s.id">{{ s.name }}</option>
               }
@@ -59,11 +60,11 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
         }
         @if (selectedTimeWindow() === 'custom') {
           <label>
-            From
+            {{ t('from') }}
             <input type="date" [value]="customFrom()" (change)="onCustomFromChange($event)" />
           </label>
           <label>
-            To
+            {{ t('to') }}
             <input type="date" [value]="customTo()" (change)="onCustomToChange($event)" />
           </label>
         }
@@ -78,6 +79,8 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
   `],
 })
 export class AnalysisToolbarComponent {
+  private readonly i18n = inject(I18nService);
+
   readonly selectedFeature = input<AnalysisFeature>('session');
   readonly selectedSessionId = input<number | 'all'>('all');
   readonly sessions = input<Session[]>([]);
@@ -85,6 +88,10 @@ export class AnalysisToolbarComponent {
   readonly useSessionFilterInCross = input<boolean>(false);
   readonly customFrom = input<string>('');
   readonly customTo = input<string>('');
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly featureChange = output<AnalysisFeature>();
   readonly sessionChange = output<number | 'all'>();

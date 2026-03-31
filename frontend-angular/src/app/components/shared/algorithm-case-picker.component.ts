@@ -1,6 +1,7 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppModalComponent } from '../shared/app-modal.component';
+import { I18nService } from '../../services/i18n.service';
 
 export interface AlgorithmCase {
   index: number;
@@ -28,7 +29,7 @@ export interface AlgorithmGroup {
             [checked]="mode === 'full'"
             (change)="modeChange.emit('full')"
           />
-          Full {{ title }} set ({{ allIndices.length }} cases)
+          {{ t('full') }} {{ title }} {{ t('set') }} ({{ allIndices.length }} {{ t('cases') }})
         </label>
         <label class="mode-label">
           <input
@@ -37,21 +38,21 @@ export interface AlgorithmGroup {
             [checked]="mode === 'subset'"
             (change)="modeChange.emit('subset')"
           />
-          Custom subset
+          {{ t('customSubset') }}
         </label>
       </div>
       @if (mode === 'subset' && !inline) {
         <div class="subset-bar">
-          <button type="button" class="btn primary" (click)="openModal()">Choose cases…</button>
-          <span class="count">{{ enabledIndices.size }} / {{ allIndices.length }} selected</span>
+          <button type="button" class="btn primary" (click)="openModal()">{{ t('chooseCases') }}</button>
+          <span class="count">{{ enabledIndices.size }} / {{ allIndices.length }} {{ t('selected') }}</span>
         </div>
       }
     </div>
 
     @if (inline) {
       <div class="modal-toolbar inline-toolbar">
-        <button type="button" class="btn" (click)="selectAll.emit()">Select all</button>
-        <button type="button" class="btn" (click)="clearAll.emit()">Clear all</button>
+        <button type="button" class="btn" (click)="selectAll.emit()">{{ t('selectAll') }}</button>
+        <button type="button" class="btn" (click)="clearAll.emit()">{{ t('clearAll') }}</button>
       </div>
       <div class="inline-body">
         <ng-container *ngTemplateOutlet="gridTemplate"></ng-container>
@@ -59,20 +60,20 @@ export interface AlgorithmGroup {
     } @else if (modalOpen()) {
       <app-modal
         [isVisible]="true"
-        [title]="title + ' case pool'"
+        [title]="title + ' ' + t('casePool')"
         maxWidth="920px"
         theme="light"
         [noPadding]="true"
         (closed)="closeModal()">
         <div class="modal-toolbar">
-          <button type="button" class="btn" (click)="selectAll.emit()">Select all</button>
-          <button type="button" class="btn" (click)="clearAll.emit()">Clear all</button>
+          <button type="button" class="btn" (click)="selectAll.emit()">{{ t('selectAll') }}</button>
+          <button type="button" class="btn" (click)="clearAll.emit()">{{ t('clearAll') }}</button>
         </div>
         <div class="modal-body-scroll">
           <ng-container *ngTemplateOutlet="gridTemplate"></ng-container>
         </div>
         <div class="modal-foot">
-          <button type="button" class="btn primary" (click)="closeModal()">Done</button>
+          <button type="button" class="btn primary" (click)="closeModal()">{{ t('done') }}</button>
         </div>
       </app-modal>
     }
@@ -83,8 +84,8 @@ export interface AlgorithmGroup {
           <section class="group">
             <header class="group-head">
               <span class="group-title">{{ g.title }}</span>
-              <button type="button" class="btn tiny" (click)="selectGroup.emit(g)">All</button>
-              <button type="button" class="btn tiny" (click)="clearGroup.emit(g)">None</button>
+              <button type="button" class="btn tiny" (click)="selectGroup.emit(g)">{{ t('all') }}</button>
+              <button type="button" class="btn tiny" (click)="clearGroup.emit(g)">{{ t('none') }}</button>
             </header>
             <div class="case-grid">
               @for (c of g.cases; track c.index) {
@@ -215,6 +216,8 @@ export interface AlgorithmGroup {
   `]
 })
 export class AlgorithmCasePickerComponent {
+  private i18n = inject(I18nService);
+
   @Input() title = 'Cases';
   @Input() radioName = 'caseMode';
   @Input() mode: 'full' | 'subset' = 'full';
@@ -232,6 +235,10 @@ export class AlgorithmCasePickerComponent {
   @Output() clearGroup = new EventEmitter<AlgorithmGroup>();
 
   modalOpen = signal(false);
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   openModal(): void {
     this.modalOpen.set(true);

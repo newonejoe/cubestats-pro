@@ -5,6 +5,7 @@ import { TimerService } from '../../services/timer.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { computeSessionStats, type SessionStats } from '../../lib/analysis-selectors';
 import { parseMoveTrace } from '../../lib/cstimer-storage';
+import { I18nService } from '../../services/i18n.service';
 
 @Component({
   selector: 'app-multiphase-display',
@@ -21,12 +22,12 @@ import { parseMoveTrace } from '../../lib/cstimer-storage';
         }
         @else if (lastSolve(); as sol) {
           <div class="last-time" [class.dnf]="sol.dnf">
-            {{ sol.dnf ? 'DNF' : formatMs(sol.finalTime ?? sol.time) }}
+            {{ sol.dnf ? t('dnf') : formatMs(sol.finalTime ?? sol.time) }}
           </div>
           @if (lastSolveMoveCnt() > 0) {
             <div class="recons-line">
-              <span class="metric">{{ lastSolveMoveCnt() }} turns</span>
-              <span class="metric">{{ lastSolveTps() }} tps</span>
+              <span class="metric">{{ lastSolveMoveCnt() }} {{ t('turns') }}</span>
+              <span class="metric">{{ lastSolveTps() }} {{ t('tps') }}</span>
             </div>
           }
         } @else {
@@ -37,34 +38,34 @@ import { parseMoveTrace } from '../../lib/cstimer-storage';
       <!-- Session averages -->
       <div class="section avg-section">
         <div class="avg-row">
-          <span class="avg-label">cur</span>
+          <span class="avg-label">{{ t('cur') }}</span>
           <span class="avg-value">{{ formatStat(stats().current) }}</span>
         </div>
         <div class="avg-row">
-          <span class="avg-label">best</span>
+          <span class="avg-label">{{ t('bestStat') }}</span>
           <span class="avg-value best">{{ formatStat(stats().best) }}</span>
         </div>
         <div class="avg-row">
-          <span class="avg-label">ao5</span>
+          <span class="avg-label">{{ t('ao5') }}</span>
           <span class="avg-value">{{ formatStat(stats().ao5) }}</span>
         </div>
         <div class="avg-row">
-          <span class="avg-label">ao12</span>
+          <span class="avg-label">{{ t('ao12') }}</span>
           <span class="avg-value">{{ formatStat(stats().ao12) }}</span>
         </div>
         <div class="avg-row">
-          <span class="avg-label">ao100</span>
+          <span class="avg-label">{{ t('ao100') }}</span>
           <span class="avg-value">{{ formatStat(stats().ao100) }}</span>
         </div>
         <div class="avg-row">
-          <span class="avg-label">mean</span>
+          <span class="avg-label">{{ t('mean') }}</span>
           <span class="avg-value">{{ formatStat(stats().mean) }}</span>
         </div>
       </div>
 
       <!-- Solve count -->
       <div class="section count-section">
-        <span class="count-label">{{ stats().solveCount }}/{{ stats().dnfCount }} DNF</span>
+        <span class="count-label">{{ stats().solveCount }}/{{ stats().dnfCount }} {{ t('dnf') }}</span>
       </div>
     </div>
   `,
@@ -157,8 +158,13 @@ export class MultiphaseDisplayComponent {
   private state = inject(StateService);
   private timerService = inject(TimerService);
   private localStore = inject(LocalSolveStoreService);
+  private i18n = inject(I18nService);
 
   readonly sessionId = input<number | 'all'>('all');
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   private readonly sessionSolves: Signal<Solve[]> = computed(() => {
     this.localStore.storeRevision();

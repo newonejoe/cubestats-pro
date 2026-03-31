@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, type WritableSignal, type Signal, 
 import { CommonModule } from '@angular/common';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { StateService } from '../../services/state.service';
+import { I18nService } from '../../services/i18n.service';
 
 export interface CachedDevice {
   name: string;
@@ -454,6 +455,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
 export class BluetoothManagerComponent implements OnInit {
   private bluetooth = inject(BluetoothService);
   private state = inject(StateService);
+  private i18n = inject(I18nService);
 
   // Connection state
   connectionState: WritableSignal<ConnectionState> = signal<ConnectionState>('disconnected');
@@ -472,20 +474,9 @@ export class BluetoothManagerComponent implements OnInit {
   private readonly STORAGE_KEY = 'cubestats_bt_devices';
   private readonly MAX_CACHED_DEVICES = 5;
 
-  private translations: Record<string, string> = {
-    connected: 'Connected',
-    disconnected: 'Disconnected',
-    scanning: 'Scanning for cubes...',
-    connecting: 'Connecting to',
-    scanForCubes: 'Scan for Cubes',
-    cancel: 'Cancel',
-    disconnect: 'Disconnect',
-    tryAgain: 'Try Again',
-    recentDevices: 'Recent Devices',
-    connectYourCube: 'Connect Your Cube',
-    promptDescription: 'Connect your Bluetooth smart cube to start timing',
-    skip: 'Skip'
-  };
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   ngOnInit(): void {
     this.loadCachedDevices();
@@ -550,10 +541,6 @@ export class BluetoothManagerComponent implements OnInit {
     } else {
       this.connectionState.set('disconnected');
     }
-  }
-
-  t(key: string): string {
-    return this.translations[key] || key;
   }
 
   getDeviceIcon(type: string): string {

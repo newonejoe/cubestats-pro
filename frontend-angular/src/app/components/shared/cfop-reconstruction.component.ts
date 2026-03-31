@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { Solve } from '../../services/state.service';
+import { I18nService } from '../../services/i18n.service';
 import { parseMoveTrace } from '../../lib/cstimer-storage';
 import {
   allocatePhaseTurnCounts,
@@ -27,36 +28,36 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
   imports: [CommonModule],
   template: `
     <section class="cfop-block">
-      <h3>CFOP reconstruction</h3>
+      <h3>{{ t('cfopReconstruction') }}</h3>
       <p class="muted">
         @if (reconsCf4op()) {
-          csTimer cf4op breakdown via <code>calcRecons</code>.
+          {{ t('cstimerBreakdown') }}
         } @else if (traceEst()) {
-          Fallback: pause-gap heuristic ({{ traceEst()!.gapMsUsed }} ms).
+          {{ t('pauseGapHeuristic') }} ({{ traceEst()!.gapMsUsed }} ms).
         } @else {
-          No trace — stored CFOP times only.
+          {{ t('storedCfopTimes') }}
         }
       </p>
       <table class="tbl cfop-tbl">
         <thead>
           <tr>
-            <th>Phase</th>
-            <th>Insp</th>
-            <th>Exec</th>
-            <th>Turns</th>
-            <th>TPS</th>
+            <th>{{ t('phase') }}</th>
+            <th>{{ t('insp') }}</th>
+            <th>{{ t('exec') }}</th>
+            <th>{{ t('turns') }}</th>
+            <th>{{ t('tps') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Cross</td>
+            <td>{{ t('cross') }}</td>
             <td>{{ cfopInspectionCell(solve(), 'cross') }}</td>
             <td class="mono">{{ formatCfopPhaseMs(execPhaseMs(solve(), 'cross')) }}</td>
             <td class="mono">{{ turnsPhaseStr(solve(), 'cross') }}</td>
             <td class="mono">{{ tpsPhaseStr(solve(), 'cross') }}</td>
           </tr>
           <tr class="clickable" (click)="toggleF2lExpand()">
-            <td>F2L <span class="chev">{{ f2lExpanded() ? '▼' : '▶' }}</span></td>
+            <td>{{ t('f2l') }} <span class="chev">{{ f2lExpanded() ? '▼' : '▶' }}</span></td>
             <td>{{ cfopInspectionCell(solve(), 'f2l') }}</td>
             <td class="mono">{{ formatCfopPhaseMs(execPhaseMs(solve(), 'f2l')) }}</td>
             <td class="mono">{{ turnsPhaseStr(solve(), 'f2l') }}</td>
@@ -75,7 +76,7 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
                 @if (row.moves.length > 0) {
                   <tr class="sub-row moves-row">
                     <td colspan="5">
-                      <span class="mono muted">{{ row.moves.length }} moves</span>
+                      <span class="mono muted">{{ row.moves.length }} {{ t('moves') }}</span>
                       <pre class="mono-tiny">{{ stepText(row.moves) }}</pre>
                     </td>
                   </tr>
@@ -85,8 +86,8 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
               @for (step of f2lSteps(solve()); track $index) {
                 <tr class="sub-row">
                   <td colspan="5">
-                    <strong>Pair {{ $index + 1 }}</strong>
-                    <span class="mono muted">{{ step.moves.length }} moves</span>
+                    <strong>{{ t('pair') }} {{ $index + 1 }}</strong>
+                    <span class="mono muted">{{ step.moves.length }} {{ t('moves') }}</span>
                     <pre class="mono-tiny">{{ stepText(step.moves) }}</pre>
                   </td>
                 </tr>
@@ -94,7 +95,7 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
             }
           }
           <tr class="clickable" (click)="toggleOllStat()">
-            <td>OLL <span class="chev">{{ ollStatExpanded() ? '▼' : '▶' }}</span></td>
+            <td>{{ t('oll') }} <span class="chev">{{ ollStatExpanded() ? '▼' : '▶' }}</span></td>
             <td>{{ cfopInspectionCell(solve(), 'oll') }}</td>
             <td class="mono">{{ formatCfopPhaseMs(execPhaseMs(solve(), 'oll')) }}</td>
             <td class="mono">{{ turnsPhaseStr(solve(), 'oll') }}</td>
@@ -104,8 +105,8 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
             @if (ollReconMoves().length > 0) {
               <tr class="sub-row">
                 <td colspan="5">
-                  <strong>OLL moves</strong>
-                  <span class="mono muted">{{ ollReconMoves().length }} moves</span>
+                  <strong>{{ t('ollMoves') }}</strong>
+                  <span class="mono muted">{{ ollReconMoves().length }} {{ t('moves') }}</span>
                   <pre class="mono-tiny">{{ stepText(ollReconMoves()) }}</pre>
                 </td>
               </tr>
@@ -114,15 +115,15 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
               <tr class="sub-row">
                 <td colspan="5">
                   <div class="case-stat">
-                    <strong>Case #{{ solve().ollCaseIndex }} (OLL)</strong>
-                    <span>N={{ ollCaseStat().count }}, best={{ fm(ollCaseStat().best) }}, mean={{ fm(ollCaseStat().mean) }}</span>
+                    <strong>{{ t('case') }} #{{ solve().ollCaseIndex }} ({{ t('oll') }})</strong>
+                    <span>N={{ ollCaseStat().count }}, {{ t('bestStat') }}={{ fm(ollCaseStat().best) }}, {{ t('mean') }}={{ fm(ollCaseStat().mean) }}</span>
                   </div>
                 </td>
               </tr>
             }
           }
           <tr class="clickable" (click)="togglePllStat()">
-            <td>PLL <span class="chev">{{ pllStatExpanded() ? '▼' : '▶' }}</span></td>
+            <td>{{ t('pll') }} <span class="chev">{{ pllStatExpanded() ? '▼' : '▶' }}</span></td>
             <td>{{ cfopInspectionCell(solve(), 'pll') }}</td>
             <td class="mono">{{ formatCfopPhaseMs(execPhaseMs(solve(), 'pll')) }}</td>
             <td class="mono">{{ turnsPhaseStr(solve(), 'pll') }}</td>
@@ -132,8 +133,8 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
             @if (pllReconMoves().length > 0) {
               <tr class="sub-row">
                 <td colspan="5">
-                  <strong>PLL moves</strong>
-                  <span class="mono muted">{{ pllReconMoves().length }} moves</span>
+                  <strong>{{ t('pllMoves') }}</strong>
+                  <span class="mono muted">{{ pllReconMoves().length }} {{ t('moves') }}</span>
                   <pre class="mono-tiny">{{ stepText(pllReconMoves()) }}</pre>
                 </td>
               </tr>
@@ -142,8 +143,8 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
               <tr class="sub-row">
                 <td colspan="5">
                   <div class="case-stat">
-                    <strong>Case #{{ solve().pllCaseIndex }} (PLL)</strong>
-                    <span>N={{ pllCaseStat().count }}, best={{ fm(pllCaseStat().best) }}, mean={{ fm(pllCaseStat().mean) }}</span>
+                    <strong>{{ t('case') }} #{{ solve().pllCaseIndex }} ({{ t('pll') }})</strong>
+                    <span>N={{ pllCaseStat().count }}, {{ t('bestStat') }}={{ fm(pllCaseStat().best) }}, {{ t('mean') }}={{ fm(pllCaseStat().mean) }}</span>
                   </div>
                 </td>
               </tr>
@@ -168,8 +169,14 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
 export class CfopReconstructionComponent {
   readonly formatCfopPhaseMs = formatCfopPhaseMs;
 
+  private readonly i18n = inject(I18nService);
+
   readonly solve = input.required<Solve>();
   readonly caseStatScope = input<Solve[]>([]);
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly f2lExpanded = signal(false);
   readonly ollStatExpanded = signal(false);

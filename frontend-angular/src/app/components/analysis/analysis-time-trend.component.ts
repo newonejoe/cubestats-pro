@@ -1,6 +1,7 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { I18nService } from '../../services/i18n.service';
 import { buildTrend, filterBySession } from '../../lib/analysis-selectors';
 
 @Component({
@@ -8,11 +9,11 @@ import { buildTrend, filterBySession } from '../../lib/analysis-selectors';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <h2>Time Trend</h2>
+    <h2>{{ t('timeTrend') }}</h2>
     @if (sessionId() === 'all') {
-      <p class="empty">Select a session to view solves.</p>
+      <p class="empty">{{ t('selectSession') }}</p>
     } @else if (trend().length < 2) {
-      <p class="empty">Need at least 2 solves to render trend.</p>
+      <p class="empty">{{ t('needMoreSolvesTrend') }}</p>
     } @else {
       <svg class="trend" viewBox="0 0 1000 240" preserveAspectRatio="none">
         <polyline [attr.points]="trendPolyline()" fill="none" stroke="#0d6efd" stroke-width="2" />
@@ -27,8 +28,13 @@ import { buildTrend, filterBySession } from '../../lib/analysis-selectors';
 })
 export class AnalysisTimeTrendComponent {
   private readonly store = inject(LocalSolveStoreService);
+  private readonly i18n = inject(I18nService);
 
   readonly sessionId = input<number | 'all'>('all');
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly solves = computed(() => {
     this.store.storeRevision();

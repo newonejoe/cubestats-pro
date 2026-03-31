@@ -192,6 +192,18 @@ interface CachedDevice {
   - Caches: name, MAC address, type (GAN/Giiker/Qiyi/Moyu/GoCube), lastConnected timestamp
   - Quick connect buttons for recent devices
   - MAC passed via `ConnectCallback(name, mac)` type
+- [x] **Internationalization (i18n)**
+  - Implemented `I18nService` with `APP_INITIALIZER` for preloading translations
+  - Added i18n for all analysis components (session statistics, time trend, cross-section, training stats, solve modal)
+  - Added i18n for bluetooth-manager, mac-modal, multiphase-display, case-picker components
+  - Added i18n for scramble-display (Last/Next buttons)
+  - Translation files: `src/assets/i18n/en.json`, `zh.json`, `ja.json`
+  - Fixed 404 for zh.json by adding `src/assets` to angular.json assets config
+- [x] **Header Redesign**
+  - Created minimal header with click-based dropdown menu (☰)
+  - Menu items: Statistics, Scramble Test, Keyboard Mapping, Language selector, Role selector
+  - Added Bluetooth connection status display
+  - Header moved into sidebar on home page (above analysis-session-statistics)
 
 ### Known Issues / TODO
 

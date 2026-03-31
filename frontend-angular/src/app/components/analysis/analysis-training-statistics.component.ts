@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { I18nService } from '../../services/i18n.service';
 import { computeTrainingSummary, filterBySession, formatMs, type CaseStatItem } from '../../lib/analysis-selectors';
 import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
 import { getOllFace21, pllVizFromCstimer, getZbllFace21 } from '../../lib/cstimer-ll-viz';
@@ -11,27 +12,27 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
   standalone: true,
   imports: [CommonModule],
   template: `
-    <h2>Cases Stats</h2>
+    <h2>{{ t('caseStats') }}</h2>
     <div class="training-head">
       <label>
-        Case Type
+        {{ t('caseType') }}
         <select [value]="trainingCaseType()" (change)="onTrainingCaseTypeChange($event)">
-          <option value="oll">OLL</option>
-          <option value="pll">PLL</option>
-          <option value="zbll">ZBLL</option>
-          <option value="f2l">F2L</option>
+          <option value="oll">{{ t('oll') }}</option>
+          <option value="pll">{{ t('pll') }}</option>
+          <option value="zbll">{{ t('zbll') }}</option>
+          <option value="f2l">{{ t('f2l') }}</option>
         </select>
       </label>
     </div>
     <table class="tbl">
       <thead>
         <tr>
-          <th>Case</th>
-          <th class="num">N</th>
-          <th class="num">Insp</th>
-          <th class="num">Exec</th>
-          <th class="num">Turns</th>
-          <th class="num">TPS</th>
+          <th>{{ t('case') }}</th>
+          <th class="num">{{ t('solveCount') }}</th>
+          <th class="num">{{ t('insp') }}</th>
+          <th class="num">{{ t('exec') }}</th>
+          <th class="num">{{ t('turns') }}</th>
+          <th class="num">{{ t('tps') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -55,10 +56,10 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
       </tbody>
     </table>
     @if (trainingCaseRows().length === 0) {
-      <p class="empty">No {{ trainingCaseType().toUpperCase() }} records in current scope.</p>
+      <p class="empty">{{ t('noRecordsInScope') }} {{ trainingCaseType().toUpperCase() }}</p>
     }
     <div class="training-type-summary">
-      <h3>Type Distribution</h3>
+      <h3>{{ t('typeDistribution') }}</h3>
       <ul class="list">
         @for (x of training().byType; track x.key) {
           <li><span>{{ x.key }}</span><span>{{ x.count }} / {{ fm(x.mean) }}</span></li>
@@ -84,10 +85,15 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
 export class AnalysisTrainingStatisticsComponent {
   private readonly store = inject(LocalSolveStoreService);
   private readonly cstimer = inject(CstimerScrambleService);
+  private readonly i18n = inject(I18nService);
 
   readonly sessionId = input<number | 'all'>('all');
 
   readonly trainingCaseType = signal<'oll' | 'pll' | 'zbll' | 'f2l'>('oll');
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   readonly solves = computed(() => {
     this.store.storeRevision();

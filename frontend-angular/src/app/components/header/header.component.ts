@@ -13,35 +13,50 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
   imports: [CommonModule, RouterLink, AppModalComponent, KeyboardMappingComponent],
   template: `
     <header class="header">
-      <div class="logo">
-        <div class="logo-icon">🧊</div>
-        <div class="logo-text">Cube<span>Stats</span> Pro</div>
-      </div>
-      <div class="header-controls">
-        <a routerLink="/scramble-test" class="dev-link">Scramble test</a>
-        <a routerLink="/analysis" class="dev-link">Analysis</a>
-        <select class="lang-select" [value]="currentLanguage()" (change)="onLanguageChange($event)">
-          @for (lang of availableLanguages; track lang.code) {
-            <option [value]="lang.code">{{ lang.name }}</option>
+      <div class="header-left">
+        <div class="dropdown" (click)="menuOpen.update(v => !v)">
+          <button type="button" class="menu-btn">
+            <span class="menu-icon">☰</span>
+          </button>
+          @if (menuOpen()) {
+            <div class="dropdown-menu" (click)="$event.stopPropagation()">
+              <a routerLink="/analysis" class="menu-item" (click)="menuOpen.set(false)">{{ t('statistics') }}</a>
+              <a routerLink="/scramble-test" class="menu-item" (click)="menuOpen.set(false)">{{ t('scrambleTest') }}</a>
+              <button type="button" class="menu-item" (click)="openKeyboardMapping(); menuOpen.set(false)">{{ t('keyboardMapping') }}</button>
+              <div class="menu-divider"></div>
+              <div class="menu-item lang-select-wrap">
+                <span>{{ t('language') }}</span>
+                <select class="lang-select" [value]="currentLanguage()" (change)="onLanguageChange($event); menuOpen.set(false)">
+                  @for (lang of availableLanguages; track lang.code) {
+                    <option [value]="lang.code">{{ lang.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="menu-item user-select-wrap">
+                <span>{{ t('role') }}</span>
+                <select class="user-select" [value]="currentUserId()" (change)="onUserChange($event); menuOpen.set(false)">
+                  <option value="1">{{ t('coach') }}</option>
+                  <option value="2">{{ t('user') }}</option>
+                </select>
+              </div>
+            </div>
           }
-        </select>
-        <select class="user-select" [value]="currentUserId()" (change)="onUserChange($event)">
-          <option value="1">Coach</option>
-          <option value="2">User</option>
-        </select>
+        </div>
+      </div>
+      <div class="header-right">
         <div class="connection-status">
           @if (isKeyboardSimulator()) {
-            <button class="btn btn-secondary btn-keyboard" (click)="openKeyboardMapping()">⌨️ Mapping</button>
+            <button class="btn-keyboard" (click)="openKeyboardMapping()">⌨️</button>
           }
           @if (isScanning()) {
             <div class="scanning-indicator">
               <div class="scanner-pulse-small"></div>
               <span class="status-dot scanning"></span>
             </div>
-            <span id="connectionText">{{ t('scanning') }}</span>
+            <span class="status-text">{{ t('scanning') }}</span>
           } @else {
             <span class="status-dot" [class.connected]="cubeConnected()"></span>
-            <span id="connectionText">{{ cubeConnected() ? t('connected') : t('disconnected') }}</span>
+            <span class="status-text">{{ cubeConnected() ? t('connected') : t('disconnected') }}</span>
           }
         </div>
       </div>
@@ -49,7 +64,7 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
 
     <app-modal
       [isVisible]="showKeyboardMapping()"
-      title="Keyboard Mapping"
+      [title]="t('keyboardMapping')"
       (closed)="closeKeyboardMapping()"
       maxWidth="500px">
       <app-keyboard-mapping></app-keyboard-mapping>
@@ -60,59 +75,103 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
+      padding: 8px 12px;
       background: #fff;
-      border-bottom: 1px solid #eee;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    .logo {
+    .header-left {
       display: flex;
       align-items: center;
-      gap: 12px;
     }
 
-    .logo-icon {
-      font-size: 32px;
+    .header-right {
+      display: flex;
+      align-items: center;
     }
 
-    .logo-text {
-      font-size: 24px;
-      font-weight: 700;
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .menu-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .menu-icon {
+      font-size: 20px;
       color: #333;
     }
 
-    .logo-text span {
-      color: #007bff;
+    .dropdown {
+      position: relative;
     }
 
-    .header-controls {
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 4px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 180px;
+      z-index: 100;
+      padding: 6px 0;
+    }
+
+    .menu-item {
       display: flex;
       align-items: center;
-      gap: 16px;
-    }
-
-    .dev-link {
-      font-size: 13px;
-      color: #6c757d;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #333;
       text-decoration: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid #dee2e6;
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
     }
 
-    .dev-link:hover {
-      color: #0d6efd;
-      border-color: #0d6efd;
+    .menu-item:hover {
+      background: #f5f5f5;
     }
 
-    .lang-select,
-    .user-select {
-      padding: 8px 12px;
-      border-radius: 6px;
+    .menu-divider {
+      height: 1px;
+      background: #eee;
+      margin: 6px 0;
+    }
+
+    .lang-select-wrap, .user-select-wrap {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    .lang-select-wrap span, .user-select-wrap span {
+      font-size: 11px;
+      color: #999;
+    }
+
+    .lang-select, .user-select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 4px;
       border: 1px solid #ddd;
       background: #fff;
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
     }
 
@@ -120,7 +179,6 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
       display: flex;
       align-items: center;
       gap: 8px;
-      position: relative;
     }
 
     .status-dot {
@@ -165,22 +223,26 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
       100% { transform: scale(1.5); opacity: 0; }
     }
 
+    .status-text {
+      font-size: 12px;
+      color: #666;
+    }
+
     .btn-keyboard {
-      background: transparent;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 13px;
-      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: #333;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 16px;
     }
 
     .btn-keyboard:hover {
-      background: #f8f9fa;
-      border-color: #ccc;
+      background: #f0f0f0;
     }
   `]
 })
@@ -194,19 +256,14 @@ export class HeaderComponent {
   cubeConnected: Signal<boolean> = computed(() => this.state.cubeConnected());
   isScanning: Signal<boolean> = computed(() => this.bluetooth.isScanning());
   isKeyboardSimulator: Signal<boolean> = computed(() => this.bluetooth.currentDeviceName() === 'Keyboard Simulator');
-  
+
   showKeyboardMapping: WritableSignal<boolean> = signal(false);
+  menuOpen: WritableSignal<boolean> = signal(false);
 
   availableLanguages = this.i18n.getAvailableLanguages();
 
-  private translations: Record<string, string> = {
-    disconnected: 'Disconnected',
-    connected: 'Connected',
-    scanning: 'Scanning...'
-  };
-
   t(key: string): string {
-    return this.translations[key] || key;
+    return this.i18n.t(key);
   }
 
   onLanguageChange(event: Event): void {
@@ -220,6 +277,7 @@ export class HeaderComponent {
   }
 
   openKeyboardMapping(): void {
+    this.menuOpen.set(false);
     this.showKeyboardMapping.set(true);
   }
 
