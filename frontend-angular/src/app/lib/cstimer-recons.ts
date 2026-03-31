@@ -5,7 +5,8 @@ import {
   type ParsedTraceMove,
 } from './cstimer-storage';
 import { calcRecons, type CstimerCalcReconsTimes } from './cstimer/recons-calc';
-import { isMathlibLoaded } from './cstimer/cstimer-mathlib';
+import { getMathlib, isMathlibLoaded, type CubieCube } from './cstimer/cstimer-mathlib';
+import { getCubeUtil } from './cstimer/cubeutil';
 
 export type { CstimerCalcReconsTimes };
 
@@ -183,4 +184,75 @@ export function cf4opF2lPairParsedMoves(
   return [1, 2, 3, 4].map((i) => ({
     moves: phaseRowParsedMovesFromRawRow(recons.rawMovesChrono[i] ?? []),
   }));
+}
+
+/**
+ * Recons method and data-slot index for each case type.
+ * Mirrors csTimer recons.js caseStat registration:
+ *   cf4op: PLL = data[0], OLL = data[1]
+ *   cf3zb: ZBLL = data[0]
+ */
+const CASE_STEP_CONFIG: Record<string, { reconsMethod: string; stepIdx: number }> = {
+  PLL: { reconsMethod: 'cf4op', stepIdx: 0 },
+  OLL: { reconsMethod: 'cf4op', stepIdx: 1 },
+  ZBLL: { reconsMethod: 'cf3zb', stepIdx: 0 },
+};
+
+/**
+ * Per-stage data returned by `deriveCaseFromSolveRecons`, mirroring
+ * csTimer's `calcCaseExtra` return: `[cur, insp, exec, turns]`.
+ */
+export interface ReconsCaseResult {
+  caseIndex: number;
+  inspMs: number;
+  execMs: number;
+  turns: number;
+}
+
+/**
+ * Derive case index + per-stage timing from a solve's move trace.
+ * Mirrors csTimer's `caseStat.calcCaseExtra(method, step, time, idx)` in recons.js:
+ *   1. Run calcRecons to replay the solution and find stage boundaries
+ *   2. Get the transCubie at the relevant stage slot
+ *   3. Invert it and identify the case via identStep
+ *   4. Extract inspection / execution / turn count from the data row
+ */
+export function deriveCaseFromSolveRecons(solve: Solve, method: 'OLL' | 'PLL' | 'ZBLL'): ReconsCaseResult | null {
+  if (!cstimerReconsEngineReady()) return null;
+
+  const config = CASE_STEP_CONFIG[method];
+  if (!config) return null;
+
+  const base = buildCstimerTimesForCalcRecons(solve);
+  if (!base) return null;
+
+  const traceRaw = base[4]![0]!;
+  const solveMs = solveDurationMsForRecons(solve);
+  const traceForCalc = spreadEqualTimestampRunsForRecons(traceRaw, solveMs) || traceRaw;
+  const timesForCalc: CstimerCalcReconsTimes = [base[0]!, base[1]!, base[2]!, base[3]!, [traceForCalc, '333']];
+
+  let rec: ReturnType<typeof calcRecons>;
+  try {
+    rec = calcRecons(timesForCalc, config.reconsMethod);
+  } catch {
+    return null;
+  }
+  if (!rec?.data) return null;
+
+  const sdata = rec.data[config.stepIdx];
+  if (!sdata || !sdata[4]) return null;
+
+  const ml = getMathlib();
+  const c = new ml.CubieCube();
+  c.invFrom(sdata[4] as CubieCube);
+
+  const cu = getCubeUtil();
+  const caseIndex = cu.identStep(method, c.toFaceCube());
+  if (caseIndex === undefined || caseIndex < 0) return null;
+
+  const inspMs = Math.max(0, (sdata[1] as number) - (sdata[0] as number));
+  const execMs = Math.max(0, (sdata[2] as number) - (sdata[1] as number));
+  const turns = Math.max(0, sdata[3] as number);
+
+  return { caseIndex, inspMs, execMs, turns };
 }

@@ -1,7 +1,6 @@
-import { Component, inject, AfterViewInit, OnDestroy, OnInit, WritableSignal, untracked } from '@angular/core';
+import { Component, inject, AfterViewInit, OnDestroy, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
-import { CubeService } from '../../services/cube.service';
 import { StateService, CubeState } from '../../services/state.service';
 
 // WCA standard colors
@@ -25,40 +24,54 @@ const DEFAULT_STATE: CubeState = {
   B: Array(9).fill('blue')
 };
 
+
+const BORDER_LINE_MATERIAL = new THREE.LineBasicMaterial({
+  color: 0x000000,
+  linewidth: 1   // note: linewidth >1 only works in WebGL1 on some drivers
+});
+
+
 @Component({
   selector: 'app-virtual-cube',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="cube-container">
-      <canvas id="threeJsCanvas" width="300" height="300"></canvas>
+    <div class="cube-container" #cubeContainer>
+      <canvas #cubeCanvas></canvas>
     </div>
   `,
   styles: [`
+    :host { display: block; width: 100%; height: 100%; }
     .cube-container {
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 16px;
-      background: #1a1a2e;
-      border-radius: 12px;
+      width: 100%;
+      height: 100%;
+      background: #eeffcb;
+      border-radius: 4px;
+      overflow: hidden;
     }
     canvas {
-      border-radius: 8px;
+      display: block;
+      width: 100%;
+      height: 100%;
     }
   `]
 })
 export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
-  private cubeService = inject(CubeService);
   private state = inject(StateService);
+
+  @ViewChild('cubeCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('cubeContainer') containerRef!: ElementRef<HTMLElement>;
 
   private threeScene!: THREE.Scene;
   private threeCamera!: THREE.PerspectiveCamera;
   private threeRenderer!: THREE.WebGLRenderer;
   private cubeGroup!: THREE.Group;
   private animationId: number = 0;
+  private resizeObserver?: ResizeObserver;
 
-  // Track previous state to detect changes
   private lastBtState: string = '';
   private lastVirtualState: string = '';
 
@@ -70,15 +83,15 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     try {
-      console.log('[VirtualCube] ngAfterViewInit called');
       this.initThreeJs();
       this.buildThreeJsCube();
 
-      // Poll for state changes instead of using effect()
       setInterval(() => {
         this.checkForStateChange();
       }, 100);
-      console.log('[VirtualCube] Polling interval started');
+
+      this.resizeObserver = new ResizeObserver(() => this.handleResize());
+      this.resizeObserver.observe(this.containerRef.nativeElement);
     } catch (e) {
       console.error('[VirtualCube] Error in ngAfterViewInit:', e);
     }
@@ -88,6 +101,7 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
     }
+    this.resizeObserver?.disconnect();
     if (this.threeRenderer) {
       this.threeRenderer.dispose();
     }
@@ -98,12 +112,6 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
     const currentVirtualState = JSON.stringify(this.state.cubeState());
 
     if (currentBtState !== this.lastBtState || currentVirtualState !== this.lastVirtualState) {
-      console.log('[VirtualCube] State changed, rebuilding...', {
-        btChanged: currentBtState !== this.lastBtState,
-        vChanged: currentVirtualState !== this.lastVirtualState,
-        bt: !!this.state.btCubeState(),
-        v: !!this.state.cubeState()
-      });
       this.lastBtState = currentBtState;
       this.lastVirtualState = currentVirtualState;
       this.buildThreeJsCube();
@@ -118,47 +126,36 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
     return virtualState || DEFAULT_STATE;
   }
 
+  private handleResize(): void {
+    if (!this.threeRenderer || !this.containerRef) return;
+    const { clientWidth: w, clientHeight: h } = this.containerRef.nativeElement;
+    if (w === 0 || h === 0) return;
+    this.threeCamera.aspect = w / h;
+    this.threeCamera.updateProjectionMatrix();
+    this.threeRenderer.setSize(w, h);
+  }
+
   private initThreeJs(): void {
-    const canvas = document.getElementById('threeJsCanvas');
-    if (!canvas) {
-      console.error('[VirtualCube] Canvas not found');
-      return;
-    }
+    const canvas = this.canvasRef.nativeElement;
+    const container = this.containerRef.nativeElement;
+    const w = container.clientWidth || 500;
+    const h = container.clientHeight || 500;
 
-    // Scene
     this.threeScene = new THREE.Scene();
-    this.threeScene.background = new THREE.Color(0x14141f);
+    this.threeScene.background = new THREE.Color(0xeeffcb);
 
-    // Camera
-    this.threeCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    this.threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
     this.threeCamera.position.set(0, 0, 8);
     this.threeCamera.lookAt(0, 0, 0);
 
-    // Renderer
-    this.threeRenderer = new THREE.WebGLRenderer({ canvas: canvas as HTMLCanvasElement, antialias: true });
-    this.threeRenderer.setSize(300, 300);
+    this.threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.threeRenderer.setSize(w, h);
     this.threeRenderer.setPixelRatio(window.devicePixelRatio);
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    this.threeScene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 10, 7);
-    this.threeScene.add(directionalLight);
-
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
-    directionalLight2.position.set(-5, -5, -5);
-    this.threeScene.add(directionalLight2);
-
-    // Create cube group
     this.cubeGroup = new THREE.Group();
     this.threeScene.add(this.cubeGroup);
 
-    // Start render loop
     this.animate();
-
-    console.log('[VirtualCube] Three.js initialized');
   }
 
   private animate = (): void => {
@@ -176,8 +173,6 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const stateColors = this.getCubeState();
     const cubieSize = 0.95;
-
-    console.log('[VirtualCube] Building cube with state:', stateColors);
 
     // Create 27 cubies (3x3x3)
     for (let x = -1; x <= 1; x++) {
@@ -209,7 +204,7 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Create black core cubie (transparent)
     const geometry = new THREE.BoxGeometry(size, size, size);
-    const coreMaterial = new THREE.MeshLambertMaterial({
+    const coreMaterial = new THREE.MeshBasicMaterial({
       transparent: true,
       opacity: 0.0,
       depthWrite: false
@@ -233,7 +228,7 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
       const row = y === 1 ? 0 : (y === 0 ? 1 : 2);
       const col = z === 1 ? 2 : (z === 0 ? 1 : 0);
       const color = getFaceColor('L', getIdx(row, col));
-      cubie.add(this.createSticker(color, stickerSize, -1, 0, 0, -stickerOffset));
+      cubie.add(this.createSticker(color, stickerSize, 1, 0, 0, -stickerOffset));
     }
 
     // Up face (y=1) -> U
@@ -249,7 +244,7 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
       const row = z === 1 ? 0 : (z === 0 ? 1 : 2);
       const col = x === -1 ? 0 : (x === 0 ? 1 : 2);
       const color = getFaceColor('D', getIdx(row, col));
-      cubie.add(this.createSticker(color, stickerSize, 0, -1, 0, -stickerOffset));
+      cubie.add(this.createSticker(color, stickerSize, 0, 1, 0, -stickerOffset));
     }
 
     // Front face (z=1) -> F
@@ -265,25 +260,37 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
       const row = y === 1 ? 0 : (y === 0 ? 1 : 2);
       const col = x === 1 ? 0 : (x === 0 ? 1 : 2);
       const color = getFaceColor('B', getIdx(row, col));
-      cubie.add(this.createSticker(color, stickerSize, 0, 0, -1, -stickerOffset));
+      cubie.add(this.createSticker(color, stickerSize, 0, 0, 1, -stickerOffset));
     }
 
     return cubie;
   }
 
-  private createSticker(color: number, size: number, nx: number, ny: number, nz: number, offset: number): THREE.Mesh {
+  private createSticker(color: number, size: number, nx: number, ny: number, nz: number, offset: number): THREE.Group {
     const geometry = new THREE.PlaneGeometry(size, size);
-    const material = new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide });
-    const mesh = new THREE.Mesh(geometry, material);
 
+    const fillMesh = new THREE.Mesh(
+      geometry,
+      new THREE.MeshBasicMaterial({color, side: THREE.DoubleSide })
+    );
+
+    const edgesGeometry = new THREE.EdgesGeometry(geometry, 1);
+    const borderLine = new THREE.LineSegments(edgesGeometry, BORDER_LINE_MATERIAL);
+    borderLine.renderOrder = 1;
+
+    const group = new THREE.Group();
+    group.add(fillMesh);
+    // group.add(borderMesh);
+    group.add(borderLine);
+    
     // Position the sticker
-    mesh.position.set(nx * offset, ny * offset, nz * offset);
+    group.position.set(nx * offset, ny * offset, nz * offset);
 
     // Rotate to face outward
-    if (nx !== 0) mesh.rotation.y = nx * Math.PI / 2;
-    if (ny !== 0) mesh.rotation.x = -ny * Math.PI / 2;
-    if (nz === -1) mesh.rotation.y = Math.PI;
+    if (nx !== 0) group.rotation.y = nx * Math.PI / 2;
+    if (ny !== 0) group.rotation.x = -ny * Math.PI / 2;
+    if (nz === -1) group.rotation.y = Math.PI;
 
-    return mesh;
+    return group;
   }
 }

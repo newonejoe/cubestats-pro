@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
-import { computeTrainingSummary, filterBySession, formatMs, type TrainingSummaryItem } from '../../lib/analysis-selectors';
+import { computeTrainingSummary, filterBySession, formatMs, type CaseStatItem } from '../../lib/analysis-selectors';
 import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
 import { getOllFace21, pllVizFromCstimer, getZbllFace21 } from '../../lib/cstimer-ll-viz';
 import { CstimerScrambleService } from '../../services/cstimer-scramble.service';
@@ -11,7 +11,7 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
   standalone: true,
   imports: [CommonModule],
   template: `
-    <h2>Training Statistics</h2>
+    <h2>Cases Stats</h2>
     <div class="training-head">
       <label>
         Case Type
@@ -22,11 +22,17 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
           <option value="f2l">F2L</option>
         </select>
       </label>
-      <p class="hint">Sorted by mean descending to identify slowest recognition/execution cases.</p>
     </div>
     <table class="tbl">
       <thead>
-        <tr><th>Case</th><th>N</th><th>Best</th><th>Mean</th></tr>
+        <tr>
+          <th>Case</th>
+          <th class="num">N</th>
+          <th class="num">Insp</th>
+          <th class="num">Exec</th>
+          <th class="num">Turns</th>
+          <th class="num">TPS</th>
+        </tr>
       </thead>
       <tbody>
         @for (x of trainingCaseRows(); track x.key) {
@@ -39,9 +45,11 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
                 <span>#{{ x.key }}</span>
               </div>
             </td>
-            <td>{{ x.count }}</td>
-            <td>{{ fm(x.best) }}</td>
-            <td>{{ fm(x.mean) }}</td>
+            <td class="num">{{ x.count }}</td>
+            <td class="num">{{ fm(x.avgInspMs) }}</td>
+            <td class="num">{{ fm(x.avgExecMs) }}</td>
+            <td class="num">{{ x.avgTurns ?? '—' }}</td>
+            <td class="num">{{ x.tps ?? '—' }}</td>
           </tr>
         }
       </tbody>
@@ -64,13 +72,13 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
     .training-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 10px; }
     .training-head label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6c757d; }
     .training-head select { padding: 8px 10px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 13px; }
-    .hint { margin: 0; color: #6c757d; font-size: 12px; }
     .training-type-summary { margin-top: 12px; }
     .list { list-style: none; margin: 0; padding: 0; }
     .list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f3f5; }
     .empty { color: #868e96; margin: 0; }
     .case-label { display: flex; align-items: center; gap: 8px; }
     .case-img { width: 32px; height: 32px; object-fit: contain; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
   `],
 })
 export class AnalysisTrainingStatisticsComponent {
@@ -92,18 +100,16 @@ export class AnalysisTrainingStatisticsComponent {
 
   readonly trainingCaseRows = computed(() => {
     const type = this.trainingCaseType();
-    let source: TrainingSummaryItem[] = [];
+    let source: CaseStatItem[] = [];
     if (type === 'oll') source = this.training().ollCases;
     else if (type === 'pll') source = this.training().pllCases;
     else if (type === 'zbll') source = this.training().zbllCases;
     else if (type === 'f2l') source = this.training().f2lCases;
-    
+
     return [...source].sort((a, b) => {
-      const am = a.mean ?? -1;
-      const bm = b.mean ?? -1;
-      if (bm !== am) {
-        return bm - am;
-      }
+      const aExec = a.avgExecMs ?? -1;
+      const bExec = b.avgExecMs ?? -1;
+      if (bExec !== aExec) return bExec - aExec;
       return b.count - a.count;
     });
   });

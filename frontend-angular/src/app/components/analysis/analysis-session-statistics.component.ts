@@ -24,70 +24,105 @@ import type { Solve } from '../../services/state.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <h2>Session Statistics</h2>
-    @if (sessionId() === 'all') {
-      <p class="empty">Select a session to view solves.</p>
-    } @else {
-      <div class="cards">
-        <div class="card"><div class="label">Solves</div><div class="value">{{ sessionStats().solveCount }}</div></div>
-        <div class="card"><div class="label">Current</div><div class="value">{{ fm(sessionStats().current) }}</div></div>
-        <div class="card"><div class="label">Best</div><div class="value">{{ fm(sessionStats().best) }}</div></div>
-        <div class="card"><div class="label">Ao5</div><div class="value">{{ fm(sessionStats().ao5) }}</div></div>
-        <div class="card"><div class="label">Ao12</div><div class="value">{{ fm(sessionStats().ao12) }}</div></div>
-        <div class="card"><div class="label">Ao100</div><div class="value">{{ fm(sessionStats().ao100) }}</div></div>
-      </div>
-      <div class="session-tools">
-        <label>
-          Primary metric
-          <select [value]="primaryMetric()" (change)="onPrimaryMetricChange($event)">
-            @for (opt of metricOptions; track opt.value) {
-              <option [value]="opt.value">{{ opt.label }}</option>
-            }
-          </select>
-        </label>
-        <span class="sort-hint">Default: newest solve first. Total time: fastest first; other metrics: largest first.</span>
-      </div>
-      @if (sortedSessionSolves().length === 0) {
-        <p class="empty">No solves in this session.</p>
-      } @else {
-        <div class="table-wrap">
-          <table class="tbl solves-tbl">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Ao5</th>
-                <th>Ao12</th>
-                <th>{{ primaryMetricLabel() }}</th>
-                <th>Pen.</th>
-                <th>Scramble</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (solve of sortedSessionSolves(); track solve.id ?? $index; let idx = $index) {
-                <tr class="solve-row" (click)="solveOpen.emit(solve)">
-                  <td>{{ idx + 1 }}</td>
-                  <td>{{ formatSolveDate(solve) }}</td>
-                  <td class="mono">{{ fm(finalSolveMs(solve)) }}</td>
-                  <td class="mono ao-cell">{{ rollingAo5Cell(solve) }}</td>
-                  <td class="mono ao-cell">{{ rollingAo12Cell(solve) }}</td>
-                  <td class="mono">{{ formatMetricCell(solve) }}</td>
-                  <td>{{ penaltyLabel(solve) }}</td>
-                  <td class="scramble-cell" [title]="solve.scramble">{{ truncateScramble(solve.scramble) }}</td>
-                  <td>
-                    <button type="button" class="linkish" (click)="solveOpen.emit(solve); $event.stopPropagation()">Details</button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+    @if (mode() === 'compact') {
+      <!-- Compact sidebar mode -->
+      <div class="compact-stats">
+        <div class="cards-compact">
+          <div class="card-c"><span class="val">{{ fm(sessionStats().current) }}</span><span class="lbl">Cur</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().best) }}</span><span class="lbl">Best</span></div>
+          <div class="card-c"><span class="val">{{ sessionStats().solveCount }}</span><span class="lbl">N</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().ao5) }}</span><span class="lbl">Ao5</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().ao12) }}</span><span class="lbl">Ao12</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().ao100) }}</span><span class="lbl">Ao100</span></div>
         </div>
+        @if (sortedSessionSolves().length > 0) {
+          <div class="compact-list-wrap">
+            <table class="compact-tbl">
+              <thead><tr><th>#</th><th>Time</th><th>Ao5</th><th>Ao12</th></tr></thead>
+              <tbody>
+                @for (solve of sortedSessionSolves(); track solve.id ?? $index; let idx = $index) {
+                  <tr class="solve-row" (click)="solveOpen.emit(solve)">
+                    <td>{{ idx + 1 }}</td>
+                    <td class="mono">{{ fm(finalSolveMs(solve)) }}</td>
+                    <td class="mono ao-cell">{{ rollingAo5Cell(solve) }}</td>
+                    <td class="mono ao-cell">{{ rollingAo12Cell(solve) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="empty">No solves yet.</p>
+        }
+      </div>
+    } @else {
+      <!-- Full analysis mode -->
+      <h2>Session Statistics</h2>
+      @if (sessionId() === 'all') {
+        <p class="empty">Select a session to view solves.</p>
+      } @else {
+        <div class="cards">
+          <div class="card"><div class="label">Solves</div><div class="value">{{ sessionStats().solveCount }}</div></div>
+          <div class="card"><div class="label">Current</div><div class="value">{{ fm(sessionStats().current) }}</div></div>
+          <div class="card"><div class="label">Best</div><div class="value">{{ fm(sessionStats().best) }}</div></div>
+          <div class="card"><div class="label">Ao5</div><div class="value">{{ fm(sessionStats().ao5) }}</div></div>
+          <div class="card"><div class="label">Ao12</div><div class="value">{{ fm(sessionStats().ao12) }}</div></div>
+          <div class="card"><div class="label">Ao100</div><div class="value">{{ fm(sessionStats().ao100) }}</div></div>
+        </div>
+        <div class="session-tools">
+          <label>
+            Primary metric
+            <select [value]="primaryMetric()" (change)="onPrimaryMetricChange($event)">
+              @for (opt of metricOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </label>
+          <span class="sort-hint">Default: newest solve first. Total time: fastest first; other metrics: largest first.</span>
+        </div>
+        @if (sortedSessionSolves().length === 0) {
+          <p class="empty">No solves in this session.</p>
+        } @else {
+          <div class="table-wrap">
+            <table class="tbl solves-tbl">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Ao5</th>
+                  <th>Ao12</th>
+                  <th>{{ primaryMetricLabel() }}</th>
+                  <th>Pen.</th>
+                  <th>Scramble</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (solve of sortedSessionSolves(); track solve.id ?? $index; let idx = $index) {
+                  <tr class="solve-row" (click)="solveOpen.emit(solve)">
+                    <td>{{ idx + 1 }}</td>
+                    <td>{{ formatSolveDate(solve) }}</td>
+                    <td class="mono">{{ fm(finalSolveMs(solve)) }}</td>
+                    <td class="mono ao-cell">{{ rollingAo5Cell(solve) }}</td>
+                    <td class="mono ao-cell">{{ rollingAo12Cell(solve) }}</td>
+                    <td class="mono">{{ formatMetricCell(solve) }}</td>
+                    <td>{{ penaltyLabel(solve) }}</td>
+                    <td class="scramble-cell" [title]="solve.scramble">{{ truncateScramble(solve.scramble) }}</td>
+                    <td>
+                      <button type="button" class="linkish" (click)="solveOpen.emit(solve); $event.stopPropagation()">Details</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       }
     }
   `,
   styles: [`
+    /* Full mode styles */
     h2 { margin: 0 0 12px; font-size: 18px; }
     .cards { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
     .card { background: #f8f9fa; border-radius: 8px; padding: 10px; text-align: center; }
@@ -104,7 +139,61 @@ import type { Solve } from '../../services/state.service';
     .mono { font-family: 'JetBrains Mono', monospace; }
     .linkish { background: none; border: none; color: #0d6efd; cursor: pointer; font-size: 13px; padding: 0; text-decoration: underline; }
     .table-wrap { overflow-x: auto; }
-    .empty { color: #868e96; margin: 0; }
+    .empty { color: #868e96; margin: 0; font-size: 13px; }
+
+    /* Compact sidebar mode styles */
+    .compact-stats { display: flex; flex-direction: column; height: 100%; }
+    .cards-compact {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .card-c {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 6px 4px;
+      text-align: center;
+    }
+    .card-c .val {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #212529;
+    }
+    .card-c .lbl {
+      display: block;
+      font-size: 10px;
+      color: #6c757d;
+      margin-top: 2px;
+    }
+    .compact-list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    .compact-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .compact-tbl th {
+      text-align: left;
+      font-size: 11px;
+      color: #6c757d;
+      padding: 4px 6px;
+      border-bottom: 1px solid #e9ecef;
+      position: sticky;
+      top: 0;
+      background: #fff;
+    }
+    .compact-tbl .solve-row { cursor: pointer; }
+    .compact-tbl .solve-row:hover { background: #f8f9fa; }
+    .compact-tbl td {
+      padding: 4px 6px;
+      border-bottom: 1px solid #f1f3f5;
+    }
   `],
 })
 export class AnalysisSessionStatisticsComponent {
@@ -117,6 +206,7 @@ export class AnalysisSessionStatisticsComponent {
   private readonly store = inject(LocalSolveStoreService);
 
   readonly sessionId = input<number | 'all'>('all');
+  readonly mode = input<'compact' | 'full'>('full');
   readonly solveOpen = output<Solve>();
 
   readonly primaryMetric = signal<PrimaryMetric>('timestamp');
@@ -128,15 +218,12 @@ export class AnalysisSessionStatisticsComponent {
 
   readonly sessionDetailSolves = computed(() => {
     const sid = this.sessionId();
-    if (sid === 'all') {
-      return [];
-    }
+    if (sid === 'all') return [];
     return filterBySession(this.solves(), sid);
   });
 
   readonly sessionStats = computed(() => computeSessionStats(this.sessionDetailSolves()));
 
-  /** Rolling Ao5/Ao12 keyed by solve reference; chronological history, same trim rules as session summary. */
   readonly rollingAoBySolve = computed(() => computeRollingAoBySolve(this.sessionDetailSolves()));
 
   readonly sortedSessionSolves = computed(() =>
@@ -173,17 +260,13 @@ export class AnalysisSessionStatisticsComponent {
       return this.formatSolveDate(solve);
     }
     const v = primaryMetricValue(solve, m);
-    if (v === null) {
-      return '—';
-    }
+    if (v === null) return '—';
     if (m === 'inspection') {
       return solve.inspectionTime != null
         ? formatMinuteSecondMillis(Math.round(solve.inspectionTime * 1000))
         : '—';
     }
-    if (m === 'moveCount') {
-      return String(solve.moveCount ?? '—');
-    }
+    if (m === 'moveCount') return String(solve.moveCount ?? '—');
     return formatMinuteSecondMillis(v);
   }
 }

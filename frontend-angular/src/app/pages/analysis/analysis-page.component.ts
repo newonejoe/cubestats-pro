@@ -100,7 +100,7 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
 export class AnalysisPageComponent {
   private readonly store = inject(LocalSolveStoreService);
 
-  readonly selectedFeature = signal<AnalysisFeature>('session');
+  readonly selectedFeature = signal<AnalysisFeature>('training');
   readonly selectedSessionId = signal<number | 'all'>('all');
   readonly selectedTimeWindow = signal<TimeWindow>('7d');
   readonly useSessionFilterInCross = signal<boolean>(false);

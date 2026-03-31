@@ -62,6 +62,13 @@ export class GanDriver extends CubeDriver {
     decoder: GanDecoder | null = null;
     protocolVersion: number = 0;
     prevMoveCnt: number = -1;
+    /**
+     * Cumulative device clock (ms) for V1/V2 protocols.
+     * csTimer accumulates per-move `timeOffs` into this counter,
+     * then aligns it with `Date.now()` when drift exceeds 2s.
+     */
+    deviceTime: number = 0;
+    deviceTimeOffset: number = 0;
 
     constructor() {
         super();
@@ -349,29 +356,39 @@ export class GanDriver extends CubeDriver {
                 return;
             }
 
-            const diff = (moveCnt - this.prevMoveCnt) & 0xFF;
-            const movesToEmit: string[] = [];
-            const timeOffsToEmit: number[] = [];
+            const locTime = Date.now();
+            const moveDiff = (moveCnt - this.prevMoveCnt) & 0xFF;
+            const prevMoves: string[] = [];
+            const timeOffs: number[] = [];
 
-            for (let i = 0; i < Math.min(diff, 7); i++) {
+            for (let i = 0; i < Math.min(moveDiff, 7); i++) {
                 const m = parseInt(bin.slice(12 + i * 5, 17 + i * 5), 2);
-                const timeOffs = parseInt(bin.slice(47 + i * 16, 63 + i * 16), 2);
-                const moveStr = "URFDLB".charAt(m >> 1) + " '".charAt(m & 1);
-                if (m < 12) {
-                    movesToEmit.unshift(moveStr);
-                    timeOffsToEmit.unshift(timeOffs);
+                timeOffs[i] = parseInt(bin.slice(47 + i * 16, 63 + i * 16), 2);
+                prevMoves[i] = "URFDLB".charAt(m >> 1) + " '".charAt(m & 1);
+                if (m >= 12) {
+                    prevMoves[i] = "U ";
                 }
             }
 
-            const cubeMoves = movesToEmit.map((move, i) => ({
-                notation: move,
-                hwMs: timeOffsToEmit[i],
-            }));
-            for (const cm of cubeMoves) {
-                console.log(`[${nowIso}] [gancube] move ${cm.notation}  ${cm.hwMs}`);
-                // Match v3/v4 / Moyu: one callback per move for per-step hwMs and downstream hooks.
-                this.onMove([cm]);
+            // csTimer updateMoveTimes: accumulate timeOffs into deviceTime,
+            // align with browser clock when drift > 2s
+            let calcTs = this.deviceTime + this.deviceTimeOffset;
+            for (let i = moveDiff - 1; i >= 0; i--) {
+                calcTs += timeOffs[i] ?? 0;
             }
+            if (!this.deviceTime || Math.abs(locTime - calcTs) > 2000) {
+                console.log(`[${nowIso}] [gancube] time adjust`, locTime - calcTs, '@', locTime);
+                this.deviceTime += locTime - calcTs;
+            }
+
+            for (let i = moveDiff - 1; i >= 0; i--) {
+                const m = parseInt(bin.slice(12 + i * 5, 17 + i * 5), 2);
+                if (m >= 12) continue;
+                this.deviceTime += timeOffs[i] ?? 0;
+                console.log(`[${nowIso}] [gancube] move ${prevMoves[i]} dt=${timeOffs[i]} hwMs=${this.deviceTime}`);
+                this.onMove([{ notation: prevMoves[i]!, hwMs: this.deviceTime }]);
+            }
+            this.deviceTimeOffset = locTime - this.deviceTime;
 
             this.prevMoveCnt = moveCnt;
         } else if (mode === 4) {
@@ -526,13 +543,18 @@ export class GanDriver extends CubeDriver {
                 return;
             }
 
+            // 32-bit hardware timestamp (csTimer: 4 bytes in specific bit order)
+            const ts = parseInt(
+                bin.slice(48, 56) + bin.slice(40, 48) + bin.slice(32, 40) + bin.slice(24, 32), 2
+            );
             const pow = parseInt(bin.slice(72, 74), 2);
             const axisVal = parseInt(bin.slice(74, 80), 2);
             const axis = [2, 32, 8, 1, 16, 4].indexOf(axisVal);
 
             if (axis !== -1) {
                 const moveStr = "URFDLB".charAt(axis) + " '".charAt(pow);
-                this.onMove([{ notation: moveStr }]);
+                console.log(`[${nowIso}] [gancube] v3 move ${moveStr} ts=${ts}`);
+                this.onMove([{ notation: moveStr, hwMs: ts }]);
             }
 
             this.prevMoveCnt = moveCnt;
@@ -556,13 +578,18 @@ export class GanDriver extends CubeDriver {
                 return;
             }
 
+            // 32-bit hardware timestamp (csTimer: 4 bytes in v4-specific bit order)
+            const ts = parseInt(
+                bin.slice(40, 48) + bin.slice(32, 40) + bin.slice(24, 32) + bin.slice(16, 24), 2
+            );
             const pow = parseInt(bin.slice(64, 66), 2);
             const axisVal = parseInt(bin.slice(66, 72), 2);
             const axis = [2, 32, 8, 1, 16, 4].indexOf(axisVal);
 
             if (axis !== -1) {
                 const moveStr = "URFDLB".charAt(axis) + " '".charAt(pow);
-                this.onMove([{ notation: moveStr }]);
+                console.log(`[${nowIso}] [gancube] v4 move ${moveStr} ts=${ts}`);
+                this.onMove([{ notation: moveStr, hwMs: ts }]);
             }
 
             this.prevMoveCnt = moveCnt;

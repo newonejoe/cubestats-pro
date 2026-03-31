@@ -500,8 +500,7 @@ export class TimerService {
   }
 
   async loadStatistics(): Promise<void> {
-    const stats = this.localStore.getStatistics();
-    window.dispatchEvent(new CustomEvent('statisticsLoaded', { detail: stats }));
+    this.localStore.getStatistics();
   }
 
   // For keyboard shortcuts

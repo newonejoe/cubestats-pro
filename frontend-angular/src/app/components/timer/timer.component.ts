@@ -4,156 +4,100 @@ import { StateService } from '../../services/state.service';
 import { TimerService } from '../../services/timer.service';
 import { CubeService } from '../../services/cube.service';
 import { ScrambleDisplayComponent } from './scramble-display.component';
+import { VirtualCubeComponent } from '../virtual-cube/virtual-cube.component';
 
 @Component({
   selector: 'app-timer',
   standalone: true,
-  imports: [CommonModule, ScrambleDisplayComponent],
+  imports: [CommonModule, ScrambleDisplayComponent, VirtualCubeComponent],
   template: `
-    <div class="timer-display">
-      <app-scramble-display></app-scramble-display>
-
-      <div class="inspection-timer" [class.visible]="isInspecting()">
-        {{ inspectionTimeLeft() }}
+    <div class="timer-stage">
+      <!-- Virtual cube fills the entire background -->
+      <div class="cube-bg">
+        <app-virtual-cube></app-virtual-cube>
       </div>
 
-      <div class="timer" [class.running]="isSolving()" [class.inspection]="isInspecting()">
-        {{ formattedTime() }}
+      <!-- Floating overlay: scramble at top, timer centered -->
+      <div class="overlay">
+        <div class="scramble-bar">
+          <app-scramble-display></app-scramble-display>
+        </div>
       </div>
-
-      <div class="penalty-btns" [class.visible]="showPenaltyBtns()">
-        <button class="btn btn-danger" (click)="applyPenalty('DNF')">DNF</button>
-        <button class="btn btn-secondary" (click)="applyPenalty('+2')">+2</button>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button class="btn btn-primary" (click)="onStartClick()">
-        <span>▶</span> {{ t('start') }}
-      </button>
-      <button class="btn btn-secondary" (click)="generateNewScramble()">
-        <span>🔄</span> {{ t('newScramble') }}
-      </button>
-      <button class="btn btn-secondary" (click)="openSettings()">
-        <span>⚙</span> {{ t('settings') }}
-      </button>
-    </div>
-
-    <div class="keyboard-hint">
-      {{ t('pressSpace') }} <kbd>Space</kbd> {{ t('pressSpace2') }} · <kbd>Enter</kbd> {{ t('pressEnter') }}
     </div>
   `,
   styles: [`
-    .timer-display {
-      background: var(--card-bg, #fff);
+    :host { display: block; }
+
+    .timer-stage {
+      position: relative;
+      min-height: 480px;
       border-radius: 12px;
-      padding: 24px;
-      text-align: center;
+      overflow: hidden;
+    }
+
+    .cube-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cube-bg ::ng-deep .cube-container {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+    }
+    .cube-bg ::ng-deep canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .overlay {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 480px;
+      pointer-events: none;
+    }
+
+    .scramble-bar {
+      padding: 16px 16px 0;
+      pointer-events: auto;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.7) 70%, transparent 100%);
+    }
+
+    .timer-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
     }
 
     .inspection-timer {
-      font-size: 24px;
+      font-size: 22px;
       color: #ff9800;
-      height: 32px;
-      margin-bottom: 8px;
+      height: 28px;
       opacity: 0;
       transition: opacity 0.2s;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.15);
     }
+    .inspection-timer.visible { opacity: 1; }
 
-    .inspection-timer.visible {
-      opacity: 1;
-    }
-
-    .timer {
+    .timer-value {
       font-family: 'JetBrains Mono', monospace;
       font-size: 72px;
       font-weight: 700;
-      color: #333;
-      margin: 16px 0;
+      color: #222;
+      text-shadow: 0 2px 12px rgba(255,255,255,0.8);
       transition: color 0.2s;
+      user-select: none;
     }
-
-    .timer.running {
-      color: #4caf50;
-    }
-
-    .timer.inspection {
-      color: #ff9800;
-    }
-
-    .penalty-btns {
-      display: none;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .penalty-btns.visible {
-      display: flex;
-    }
-
-    .controls {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-top: 20px;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: #007bff;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #0056b3;
-    }
-
-    .btn-secondary {
-      background: #e9ecef;
-      color: #333;
-    }
-
-    .btn-secondary:hover {
-      background: #dee2e6;
-    }
-
-    .btn-danger {
-      background: #dc3545;
-      color: white;
-    }
-
-    .btn-danger:hover {
-      background: #c82333;
-    }
-
-    .keyboard-hint {
-      margin-top: 16px;
-      font-size: 14px;
-      color: #666;
-      text-align: center;
-    }
-
-    kbd {
-      background: #f0f0f0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-    }
+    .timer-value.running { color: #4caf50; }
+    .timer-value.inspection { color: #ff9800; }
   `]
 })
 export class TimerComponent implements OnInit {
@@ -161,7 +105,6 @@ export class TimerComponent implements OnInit {
   private timerService = inject(TimerService);
   private cubeService = inject(CubeService);
 
-  // Computed values
   scramble: Signal<string> = computed(() => this.state.scramble());
   isSolving: Signal<boolean> = computed(() => this.state.isSolving());
   isInspecting: Signal<boolean> = computed(() => this.state.isInspecting());
@@ -175,60 +118,35 @@ export class TimerComponent implements OnInit {
     return this.timerService.formatTime(time);
   });
 
-  private translations: Record<string, string> = {
-    scramble: 'Scramble',
-    start: 'Start',
-    newScramble: 'New Scramble',
-    settings: 'Settings',
-    pressSpace: 'Press',
-    pressSpace2: 'to start/stop',
-    pressEnter: 'for new scramble'
-  };
-
-  t(key: string): string {
-    return this.translations[key] || key;
-  }
-
   ngOnInit(): void {
     this.cubeService.generateScramble();
 
-    const checkStatus = setInterval(() => {
+    setInterval(() => {
       const status = this.state.status();
-
       switch (status) {
         case 'twisting':
-          // Phase 2: User twisting to match scramble
           this.inspectionTimeLeft.set('Twist to match scramble');
           this.showPenaltyBtns.set(false);
           break;
-
         case 'twisted':
-          // Scramble matched, starting inspection
           this.inspectionTimeLeft.set('Matched! Get ready...');
           this.showPenaltyBtns.set(false);
           break;
-
         case 'inspecting':
-          // Phase 3: Inspection timer running
           if (this.state.inspectionInterval) {
             const elapsed = Math.floor((Date.now() - this.timerService.inspectionStartTime) / 1000);
             const left = Math.max(0, this.state.inspectionTime() - elapsed);
             this.inspectionTimeLeft.set('Inspection: ' + left);
           }
           break;
-
         case 'ready':
-          // Phase 3b: Inspection done, waiting for first move
           this.inspectionTimeLeft.set('GO!');
           this.showPenaltyBtns.set(false);
           break;
-
         case 'solving':
-          // Phase 4: Timer running
           this.inspectionTimeLeft.set('');
           this.showPenaltyBtns.set(true);
           break;
-
         case 'idle':
         default:
           this.showPenaltyBtns.set(false);
@@ -243,30 +161,7 @@ export class TimerComponent implements OnInit {
     this.timerService.handleKeyDown(event);
   }
 
-  onStartClick(): void {
-    this.timerService.startSolve();
-  }
-
-  generateNewScramble(): void {
-    this.cubeService.generateScramble();
-  }
-
-  onScrambleTypeChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.state.scrambleType.set(value);
-    this.cubeService.generateScramble();
-  }
-
-  setScrambleLength(length: number): void {
-    this.state.scrambleLength.set(length);
-    this.cubeService.generateScramble();
-  }
-
   applyPenalty(penalty: string): void {
     this.timerService.applyPenalty(penalty);
-  }
-
-  openSettings(): void {
-    window.dispatchEvent(new CustomEvent('openSettings'));
   }
 }

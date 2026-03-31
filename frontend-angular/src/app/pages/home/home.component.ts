@@ -4,22 +4,20 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { HeaderComponent } from '../../components/header/header.component';
 import { TimerComponent } from '../../components/timer/timer.component';
-import { StatisticsComponent } from '../../components/statistics/statistics.component';
-import { HistoryComponent } from '../../components/history/history.component';
+import { MultiphaseDisplayComponent } from '../../components/timer/multiphase-display.component';
 import { MacModalComponent } from '../../components/mac-modal/mac-modal.component';
 import { SolvedStateModalComponent } from '../../components/solved-state-modal/solved-state-modal.component';
-import { VirtualCubeComponent } from '../../components/virtual-cube/virtual-cube.component';
 import { BluetoothManagerComponent } from '../../components/bluetooth-manager/bluetooth-manager.component';
+import { AnalysisSessionStatisticsComponent } from '../../components/analysis/analysis-session-statistics.component';
+import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-solve-modal.component';
+import { CfopReconstructionComponent } from '../../components/shared/cfop-reconstruction.component';
+import { AppEmptyStateComponent } from '../../components/shared/app-empty-state.component';
+import { SettingsModalComponent } from '../../components/settings-modal/settings-modal.component';
 
-import { StateService } from '../../services/state.service';
+import { StateService, type Solve } from '../../services/state.service';
 import { CubeService } from '../../services/cube.service';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
-
-import { AppCardComponent } from '../../components/shared/app-card.component';
-import { AppEmptyStateComponent } from '../../components/shared/app-empty-state.component';
-
-import { SettingsModalComponent } from '../../components/settings-modal/settings-modal.component';
 
 @Component({
   selector: 'app-home',
@@ -28,87 +26,79 @@ import { SettingsModalComponent } from '../../components/settings-modal/settings
     CommonModule,
     HeaderComponent,
     TimerComponent,
-    StatisticsComponent,
-    HistoryComponent,
+    MultiphaseDisplayComponent,
     MacModalComponent,
     SolvedStateModalComponent,
-    VirtualCubeComponent,
     BluetoothManagerComponent,
-    AppCardComponent,
+    AnalysisSessionStatisticsComponent,
+    AnalysisSolveModalComponent,
+    CfopReconstructionComponent,
     AppEmptyStateComponent,
-    SettingsModalComponent
+    SettingsModalComponent,
   ],
   template: `
-    <!-- Bluetooth Connection Modal (always on top until connected) -->
+    <!-- Bluetooth Connection Modal -->
     <div class="bt-modal-overlay" [class.hidden]="cubeConnected()">
       <div class="bt-modal">
         <app-bluetooth-manager></app-bluetooth-manager>
       </div>
     </div>
 
-    <!-- Main App Content (only when connected) -->
     @if (cubeConnected()) {
       <app-header></app-header>
     }
 
-    <main class="app-container" [class.blurred]="!cubeConnected()">
+    <div class="layout" [class.blurred]="!cubeConnected()">
       @if (cubeConnected()) {
-      <!-- Timer Section -->
-      <div class="timer-section">
-        <div class="card">
+        <!-- Left sidebar: session stats + solve list -->
+        <aside class="sidebar">
+          <app-analysis-session-statistics
+            mode="compact"
+            [sessionId]="currentSessionId()"
+            (solveOpen)="openSolveModal($event)"
+          />
+        </aside>
+
+        <!-- Center: timer stage (cube bg + scramble/timer overlay) -->
+        <main class="center">
           <app-timer></app-timer>
-        </div>
+        </main>
 
-        <app-statistics></app-statistics>
-      </div>
+        <!-- Right panel: multiphase stats + CFOP recon -->
+        <aside class="right-panel">
+          <app-multiphase-display [sessionId]="currentSessionId()" />
 
-      <!-- Analysis Section -->
-      <div class="analysis-section">
-        <!-- Virtual Cube -->
-        <app-card [title]="t('virtualCube')">
-          <app-virtual-cube></app-virtual-cube>
-        </app-card>
-
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">{{ t('cfopAnalysis') }}</span>
+          <div class="recon-section">
+            @if (lastSolve(); as sol) {
+              <app-cfop-reconstruction [solve]="sol" [caseStatScope]="sessionSolves()" />
+            } @else {
+              <app-empty-state icon="🎯" message="No solve data yet"></app-empty-state>
+            }
           </div>
-          <div id="analysisContent">
-            <div class="no-data">
-              <div class="no-data-icon">📊</div>
-              <p>{{ t('noData') }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Last Solve Details Placeholder -->
-        <app-card [title]="t('lastSolveDetails')">
-          <div id="lastSolveDetails">
-            <app-empty-state icon="🎯" message="No solve data yet"></app-empty-state>
-          </div>
-        </app-card>
-      </div>
-
-      <!-- History Section -->
-      <div class="history-section">
-        <app-history></app-history>
-      </div>
+        </aside>
       }
-    </main>
+    </div>
 
-    <!-- Settings Modal (only when connected) -->
     @if (cubeConnected()) {
       <app-settings-modal [(isVisible)]="showSettingsVisible"></app-settings-modal>
     }
 
-    <!-- Toast -->
     <div class="toast" [class.visible]="toastMessage()">
       <span>{{ toastMessage() }}</span>
     </div>
 
-    <!-- MAC Address Modal -->
     <app-mac-modal></app-mac-modal>
     <app-solved-state-modal></app-solved-state-modal>
+
+    @if (modalSolve(); as sol) {
+      <app-analysis-solve-modal
+        [solve]="sol"
+        [caseStatScope]="sessionSolves()"
+        [contextSessionId]="currentSessionIdNum()"
+        (closed)="closeSolveModal()"
+        (deleted)="closeSolveModal()"
+      />
+    }
   `,
   styles: [`
     :host {
@@ -117,68 +107,55 @@ import { SettingsModalComponent } from '../../components/settings-modal/settings
       background: #f5f7fa;
     }
 
-    .app-container {
+    .layout {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      padding: 20px;
-      max-width: 1400px;
+      grid-template-columns: 260px 1fr 280px;
+      gap: 12px;
+      padding: 12px;
+      max-width: 1600px;
       margin: 0 auto;
+      min-height: calc(100vh - 56px);
     }
 
-    .timer-section {
+    /* Left sidebar */
+    .sidebar {
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      max-height: calc(100vh - 80px);
+      position: sticky;
+      top: 68px;
+      overflow-y: auto;
     }
 
-    .analysis-section {
+    /* Center stage */
+    .center {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      min-height: 0;
     }
 
-    .history-section {
-      grid-column: 1 / -1;
+    /* Right panel */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: calc(100vh - 80px);
+      position: sticky;
+      top: 68px;
+      overflow-y: auto;
     }
 
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: #007bff;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #0056b3;
-    }
-
-    .btn-secondary {
-      background: #e9ecef;
-      color: #333;
-    }
-
-    .btn-secondary:hover {
-      background: #dee2e6;
-    }
-
-    .btn-danger {
-      background: #dc3545;
-      color: white;
-    }
-
-    .btn-danger:hover {
-      background: #c82333;
+    .recon-section {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      flex: 1;
+      overflow-y: auto;
     }
 
     /* Toast */
@@ -195,23 +172,15 @@ import { SettingsModalComponent } from '../../components/settings-modal/settings
       transition: all 0.3s;
       z-index: 1001;
     }
-
     .toast.visible {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
 
-    .bluetooth-controls {
-      width: 100%;
-    }
-
-    /* Bluetooth Modal Overlay */
+    /* Bluetooth connection overlay */
     .bt-modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
       justify-content: center;
@@ -219,12 +188,10 @@ import { SettingsModalComponent } from '../../components/settings-modal/settings
       z-index: 9999;
       transition: opacity 0.3s ease;
     }
-
     .bt-modal-overlay.hidden {
       opacity: 0;
       pointer-events: none;
     }
-
     .bt-modal {
       background: #fff;
       border-radius: 20px;
@@ -234,11 +201,28 @@ import { SettingsModalComponent } from '../../components/settings-modal/settings
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
 
-    /* Blur background when not connected */
-    .app-container.blurred {
+    .layout.blurred {
       filter: blur(10px);
       pointer-events: none;
       opacity: 0.3;
+    }
+
+    /* Responsive: collapse to 2-col on smaller screens */
+    @media (max-width: 1200px) {
+      .layout {
+        grid-template-columns: 240px 1fr;
+      }
+      .right-panel {
+        display: none;
+      }
+    }
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
     }
   `]
 })
@@ -251,30 +235,40 @@ export class HomeComponent implements OnInit {
   private router = inject(Router);
 
   showSettingsVisible = false;
-
   toastMessage: WritableSignal<string> = signal<string>('');
 
-  inspectionTime: Signal<number> = computed(() => this.state.settings().inspectionTime);
-  soundEnabled: Signal<boolean> = computed(() => this.state.settings().sound);
   cubeConnected: Signal<boolean> = computed(() => this.state.cubeConnected());
 
-  private translations: Record<string, string> = {
-    bluetoothCube: 'Bluetooth Cube',
-    scanForCubes: 'Scan for Cubes',
-    cfopAnalysis: 'CFOP Analysis',
-    lastSolveDetails: 'Last Solve Details',
-    virtualCube: 'Virtual Cube',
-    settings: 'Settings',
-    inspectionSec: 'Inspection Time (seconds)',
-    timerSound: 'Timer Sound',
-    save: 'Save',
-    clearAllData: 'Clear All Data',
-    noData: 'No data yet'
-  };
+  readonly currentSessionId = computed((): number | 'all' => {
+    const session = this.state.currentSession();
+    return session?.id ?? 'all';
+  });
 
-  t(key: string): string {
-    return this.translations[key] || key;
-  }
+  readonly currentSessionIdNum = computed((): number | undefined => {
+    const session = this.state.currentSession();
+    return session?.id;
+  });
+
+  readonly sessionSolves = computed(() => {
+    this.localStore.storeRevision();
+    return this.localStore.getSolves().filter(s => {
+      const sid = this.currentSessionId();
+      if (sid === 'all') return true;
+      return s.sessionId === sid;
+    });
+  });
+
+  readonly lastSolve = computed<Solve | null>(() => {
+    const solves = this.sessionSolves();
+    if (solves.length === 0) return null;
+    return solves.reduce((latest, s) => {
+      const la = latest.endTime ?? '';
+      const sa = s.endTime ?? '';
+      return sa > la ? s : latest;
+    });
+  });
+
+  readonly modalSolve = signal<Solve | null>(null);
 
   ngOnInit(): void {
     const sessions = this.localStore.getSessions();
@@ -289,11 +283,7 @@ export class HomeComponent implements OnInit {
     const launchType = q.get('launchType');
     if (
       launchType &&
-      (launchType === 'wca' ||
-        launchType === 'cross' ||
-        launchType === 'f2l' ||
-        launchType === 'oll' ||
-        launchType === 'pll')
+      (launchType === 'wca' || launchType === 'cross' || launchType === 'f2l' || launchType === 'oll' || launchType === 'pll')
     ) {
       this.state.scrambleType.set(launchType);
     }
@@ -310,11 +300,7 @@ export class HomeComponent implements OnInit {
     if (launchScramble || launchSession || launchType) {
       void this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: {
-          launchScramble: null,
-          launchSession: null,
-          launchType: null,
-        },
+        queryParams: { launchScramble: null, launchSession: null, launchType: null },
         queryParamsHandling: 'merge',
         replaceUrl: true,
       });
@@ -325,17 +311,11 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  async scanForCubes(): Promise<void> {
-    const device = await this.bluetooth.scan();
-    if (device) {
-      await this.bluetooth.connect(device);
-    }
+  openSolveModal(solve: Solve): void {
+    this.modalSolve.set(solve);
   }
 
-  showToast(message: string): void {
-    this.toastMessage.set(message);
-    setTimeout(() => {
-      this.toastMessage.set('');
-    }, 3000);
+  closeSolveModal(): void {
+    this.modalSolve.set(null);
   }
 }

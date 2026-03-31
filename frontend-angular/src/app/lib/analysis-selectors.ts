@@ -1,5 +1,6 @@
 import { Solve } from '../services/state.service';
 import type { ParsedTraceMove } from './cstimer-storage';
+import { deriveCaseFromSolveRecons, type ReconsCaseResult } from './cstimer-recons';
 import { cstimerScrCubieFromScrambleString } from './cstimer/cstimer-giiker-scramble';
 import { getCubeUtil } from './cstimer/cubeutil';
 
@@ -19,12 +20,25 @@ export interface TrainingSummaryItem {
   mean: number | null;
 }
 
+/**
+ * Per-case statistics matching csTimer caseStat display:
+ * N (count), avg inspection, avg execution, avg turns, TPS.
+ */
+export interface CaseStatItem {
+  key: string;
+  count: number;
+  avgInspMs: number | null;
+  avgExecMs: number | null;
+  avgTurns: number | null;
+  tps: number | null;
+}
+
 export interface TrainingSummary {
   byType: TrainingSummaryItem[];
-  ollCases: TrainingSummaryItem[];
-  pllCases: TrainingSummaryItem[];
-  f2lCases: TrainingSummaryItem[];
-  zbllCases: TrainingSummaryItem[];
+  ollCases: CaseStatItem[];
+  pllCases: CaseStatItem[];
+  f2lCases: CaseStatItem[];
+  zbllCases: CaseStatItem[];
 }
 
 export function deriveCaseFromScramble(scramble: string, method: string): number | null {
@@ -35,9 +49,63 @@ export function deriveCaseFromScramble(scramble: string, method: string): number
     const cu = getCubeUtil();
     const caseIndex = cu.identStep(method, facelet);
     return caseIndex !== undefined && caseIndex >= 0 ? caseIndex : null;
-  } catch (e) {
+  } catch {
     return null;
   }
+}
+
+type CaseMethod = 'OLL' | 'PLL' | 'ZBLL';
+
+/**
+ * Cached per-solve result: case index + optional stage timing from recons.
+ * `caseIndex` alone (no timing) when derived from scramble only.
+ */
+interface CaseDerivation {
+  caseIndex: number;
+  inspMs?: number;
+  execMs?: number;
+  turns?: number;
+}
+
+const _reconsCaseCache = new Map<string, CaseDerivation | null>();
+
+/**
+ * Derive the OLL / PLL / ZBLL case for a solve with stage timing.
+ * Fallback chain (mirrors csTimer recons.js caseStat):
+ *   1. Stored caseIndex from training scramble metadata (no timing)
+ *   2. Recons-based: replay move trace → case + stage timing
+ *   3. Scramble-based: apply scramble → case only (no timing)
+ */
+function deriveCaseForSolve(solve: Solve, method: CaseMethod): CaseDerivation | null {
+  const solveKey = solve.id ?? `${solve.time}_${solve.scramble}_${solve.endTime ?? ''}`;
+  const cacheKey = `${solveKey}_${method}`;
+  if (_reconsCaseCache.has(cacheKey)) return _reconsCaseCache.get(cacheKey)!;
+
+  const reconsResult = deriveCaseFromSolveRecons(solve, method);
+  if (reconsResult) {
+    _reconsCaseCache.set(cacheKey, reconsResult);
+    return reconsResult;
+  }
+
+  const stored =
+    method === 'OLL' ? solve.ollCaseIndex :
+    method === 'PLL' ? solve.pllCaseIndex :
+    solve.zbllCaseIndex;
+  if (stored !== undefined && stored !== null && stored >= 0) {
+    const d: CaseDerivation = { caseIndex: stored };
+    _reconsCaseCache.set(cacheKey, d);
+    return d;
+  }
+
+  const scrIdx = deriveCaseFromScramble(solve.scramble, method);
+  if (scrIdx !== null) {
+    const d: CaseDerivation = { caseIndex: scrIdx };
+    _reconsCaseCache.set(cacheKey, d);
+    return d;
+  }
+
+  _reconsCaseCache.set(cacheKey, null);
+  return null;
 }
 
 export interface TrendPoint {
@@ -258,13 +326,56 @@ function summarizeBy<T extends string | number>(items: Solve[], keyFn: (s: Solve
   })).sort((a, b) => b.count - a.count);
 }
 
+/**
+ * Aggregate per-case stage timing (csTimer caseStat style).
+ * Each CaseDerivation may include inspMs / execMs / turns from recons;
+ * if absent (scramble-only fallback), that solve is counted but has no timing.
+ */
+function summarizeCases(
+  solves: Solve[],
+  deriveFn: (s: Solve) => CaseDerivation | null,
+): CaseStatItem[] {
+  const buckets = new Map<string, CaseDerivation[]>();
+  for (const s of solves) {
+    const d = deriveFn(s);
+    if (!d) continue;
+    const key = String(d.caseIndex);
+    const arr = buckets.get(key) ?? [];
+    arr.push(d);
+    buckets.set(key, arr);
+  }
+  return [...buckets.entries()].map(([key, arr]) => {
+    const withTiming = arr.filter(d => d.inspMs !== undefined);
+    const n = withTiming.length;
+    let avgInspMs: number | null = null;
+    let avgExecMs: number | null = null;
+    let avgTurns: number | null = null;
+    let tps: number | null = null;
+    if (n > 0) {
+      const sumInsp = withTiming.reduce((a, d) => a + d.inspMs!, 0);
+      const sumExec = withTiming.reduce((a, d) => a + d.execMs!, 0);
+      const sumTurns = withTiming.reduce((a, d) => a + (d.turns ?? 0), 0);
+      avgInspMs = sumInsp / n;
+      avgExecMs = sumExec / n;
+      avgTurns = Math.round(sumTurns / n * 10) / 10;
+      const totalMs = sumInsp + sumExec;
+      tps = totalMs > 0 ? Math.round(sumTurns / (totalMs / 1000) * 10) / 10 : null;
+    }
+    return { key, count: arr.length, avgInspMs, avgExecMs, avgTurns, tps };
+  }).sort((a, b) => b.count - a.count);
+}
+
 export function computeTrainingSummary(solves: Solve[]): TrainingSummary {
+  _reconsCaseCache.clear();
   return {
     byType: summarizeBy(solves, (s) => s.scrambleType ?? null),
-    ollCases: summarizeBy(solves, (s) => s.ollCaseIndex ?? deriveCaseFromScramble(s.scramble, 'OLL')),
-    pllCases: summarizeBy(solves, (s) => s.pllCaseIndex ?? deriveCaseFromScramble(s.scramble, 'PLL')),
-    f2lCases: summarizeBy(solves, (s) => s.f2lCaseIndex ?? null),
-    zbllCases: summarizeBy(solves, (s) => s.zbllCaseIndex ?? deriveCaseFromScramble(s.scramble, 'ZBLL')),
+    ollCases: summarizeCases(solves, (s) => deriveCaseForSolve(s, 'OLL')),
+    pllCases: summarizeCases(solves, (s) => deriveCaseForSolve(s, 'PLL')),
+    f2lCases: summarizeCases(
+      solves.filter((s) => s.scrambleType === 'f2l'),
+      (s) => s.f2lCaseIndex != null ? { caseIndex: s.f2lCaseIndex } : null,
+    ),
+    zbllCases: summarizeCases(solves, (s) => deriveCaseForSolve(s, 'ZBLL')),
   };
 }
 
