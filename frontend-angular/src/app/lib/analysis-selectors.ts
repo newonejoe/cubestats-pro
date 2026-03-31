@@ -261,10 +261,19 @@ function summarizeBy<T extends string | number>(items: Solve[], keyFn: (s: Solve
 export function computeTrainingSummary(solves: Solve[]): TrainingSummary {
   return {
     byType: summarizeBy(solves, (s) => s.scrambleType ?? null),
-    ollCases: summarizeBy(solves, (s) => s.ollCaseIndex ?? deriveCaseFromScramble(s.scramble, 'OLL')),
-    pllCases: summarizeBy(solves, (s) => s.pllCaseIndex ?? deriveCaseFromScramble(s.scramble, 'PLL')),
-    f2lCases: summarizeBy(solves, (s) => s.f2lCaseIndex ?? null),
-    zbllCases: summarizeBy(solves, (s) => s.zbllCaseIndex ?? deriveCaseFromScramble(s.scramble, 'ZBLL')),
+    ollCases: summarizeBy(
+      solves.filter((s) => s.scrambleType === 'oll' || s.scrambleType === 'wca'),
+      (s) => s.scrambleType === 'oll' ? (s.ollCaseIndex ?? deriveCaseFromScramble(s.scramble, 'OLL')) : null
+    ),
+    pllCases: summarizeBy(
+      solves.filter((s) => s.scrambleType === 'pll' || s.scrambleType === 'wca'),
+      (s) => s.scrambleType === 'pll' ? (s.pllCaseIndex ?? deriveCaseFromScramble(s.scramble, 'PLL')) : null
+    ),
+    f2lCases: summarizeBy(solves.filter((s) => s.scrambleType === 'f2l'), (s) => s.f2lCaseIndex ?? null),
+    zbllCases: summarizeBy(
+      solves.filter((s) => s.scrambleType === 'zbll' || s.scrambleType === 'wca'),
+      (s) => s.scrambleType === 'zbll' ? (s.zbllCaseIndex ?? deriveCaseFromScramble(s.scramble, 'ZBLL')) : null
+    ),
   };
 }
 
