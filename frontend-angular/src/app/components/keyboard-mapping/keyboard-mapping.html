@@ -1,0 +1,30 @@
+<div class="keyboard-mapping-container">
+  <h3>Keyboard Simulator Mapping</h3>
+  
+  <p class="description">Click an input and press a key to reassign it.</p>
+
+  <div class="mapping-grid">
+    <div class="mapping-row header">
+      <div class="action-col">Action</div>
+      <div class="key-col">Key</div>
+    </div>
+    
+    <div class="mapping-row" *ngFor="let item of mapping; let i = index">
+      <div class="action-col">{{ item.action }}</div>
+      <div class="key-col">
+        <input 
+          type="text" 
+          [value]="item.key" 
+          (keydown)="onKeydown($event, i)" 
+          readonly 
+          placeholder="Press a key..."
+          class="key-input"
+        >
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-secondary" (click)="resetToDefault()">Reset to Default</button>
+  </div>
+</div>

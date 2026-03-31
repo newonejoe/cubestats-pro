@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluetooth Cube Test - Qiyi / Moyu / GAN</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; max-width: 480px; margin: 2rem auto; padding: 1rem; }
+        h1 { font-size: 1.25rem; margin-bottom: 1rem; }
+        .status { padding: 0.5rem; border-radius: 6px; margin-bottom: 1rem; }
+        .status.disconnected { background: #fee; color: #c00; }
+        .status.connected { background: #efe; color: #080; }
+        button { padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; border-radius: 6px; margin-right: 0.5rem; margin-bottom: 0.5rem; }
+        .btn-primary { background: #06c; color: white; border: none; }
+        .btn-danger { background: #c00; color: white; border: none; }
+        .moves { background: #f5f5f5; padding: 1rem; border-radius: 6px; min-height: 120px; margin-top: 1rem; font-family: monospace; white-space: pre-wrap; word-break: break-all; }
+        .log { font-size: 0.75rem; color: #666; max-height: 150px; overflow-y: auto; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <script src="/js/cube-bluetooth.js"></script>
+</head>
+<body>
+    <h1>Bluetooth Cube Test</h1>
+    <p>Test Qiyi (QY-QYSC, XMD-TornadoV4-i), Moyu (MHC), GAN, Giiker cubes.</p>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <button class="btn-primary" onclick="scanAndConnect()">Scan & Connect</button>
+    <button class="btn-danger" onclick="disconnect()">Disconnect</button>
+    
+    <div class="moves">
+        <strong>Moves:</strong>
+        <div id="moves" style="margin-top: 0.5rem;"></div>
+    </div>
+    
+    <div class="moves log" style="margin-top: 1rem;">
+        <strong>Console log:</strong>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const movesEl = document.getElementById('moves');
+        const logEl = document.getElementById('log');
+        let moveHistory = [];
+
+        function log(msg) {
+            console.log(msg);
+            const line = document.createElement('div');
+            line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+            logEl.insertBefore(line, logEl.firstChild);
+        }
+
+        const mgr = new BluetoothManager();
+        mgr.setOnMove((moves) => {
+            moveHistory.push(...moves);
+            movesEl.textContent = moveHistory.join(' ') || '(none)';
+            log('Move: ' + moves.join(' '));
+        });
+        mgr.setOnConnect((name) => {
+            statusEl.textContent = 'Connected: ' + name;
+            statusEl.className = 'status connected';
+            moveHistory = [];
+            movesEl.textContent = '';
+            log('Connected: ' + name);
+        });
+        mgr.setOnDisconnect(() => {
+            statusEl.textContent = 'Disconnected';
+            statusEl.className = 'status disconnected';
+            log('Disconnected');
+        });
+
+        async function scanAndConnect() {
+            try {
+                log('Scanning...');
+                const { device, mac } = await mgr.scan();
+                log('Selected: ' + device.name + (mac ? ' MAC:' + mac : ''));
+                await mgr.connect(device, mac);
+            } catch (e) {
+                log('Error: ' + e.message);
+                console.error(e);
+            }
+        }
+
+        function disconnect() {
+            mgr.disconnect();
+        }
+    </script>
+</body>
+</html>
