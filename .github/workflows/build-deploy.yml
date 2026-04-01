@@ -99,7 +99,10 @@ jobs:
       run: npm run build
 
     - name: Copy build output to wwwroot
-      run: cp -r ./frontend-angular/dist/frontend-angular/browser/* ./CubeStatsApi/wwwroot/
+      run: |
+        rm -rf ./CubeStatsApi/wwwroot/*
+        cp -r ./frontend-angular/dist/frontend-angular/browser/* ./CubeStatsApi/wwwroot/
+        touch ./CubeStatsApi/wwwroot/.nojekyll
 
     - name: Create .nojekyll file
       run: touch ./CubeStatsApi/wwwroot/.nojekyll

@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Important Rules
+
+- Never use Bash commands like cat, grep, head, tail, or ls to explore the filesystem. Always use the dedicated Read, Glob, and Grep tools instead.
+- Always apply First Principle Thinking: when solving problems or implementing features, break down to the fundamental truths and build up from there. Question assumptions, identify root causes, and derive solutions from basic principles rather than following patterns blindly.
+
 ## Project Overview
 
 CubeStats is a 3x3 Rubik's cube timer and statistics web application with Bluetooth smart cube support. The project consists of two versions:
