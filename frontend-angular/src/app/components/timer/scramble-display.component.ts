@@ -51,7 +51,7 @@ interface ScrambleSnapshot {
         </button>
       }
       <button type="button" class="nav-btn" [disabled]="!canGoLast()" (click)="lastScramble()">{{ t('last') }}</button>
-      <button type="button" class="nav-btn primary" (click)="nextScramble()">{{ t('next') }}</button>
+      <button type="button" class="nav-btn primary" (click)="nextScramble()">{{ t('nextScramble') }}</button>
       @if (scrambleType() !== 'wca') {
         <span class="scramble-info">{{ getScrambleLengthLabel() }}</span>
       }

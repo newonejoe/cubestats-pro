@@ -20,7 +20,8 @@ import {
   type Cf4opMacroPhase,
   type CstimerCf4opRecons,
 } from '../../lib/cstimer-recons';
-import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
+
+import { formatMinuteSecondCentis } from '../analysis/analysis-solve-display';
 
 @Component({
   selector: 'app-cfop-reconstruction',
@@ -167,7 +168,7 @@ import { formatCfopPhaseMs } from '../analysis/analysis-solve-display';
   `],
 })
 export class CfopReconstructionComponent {
-  readonly formatCfopPhaseMs = formatCfopPhaseMs;
+  readonly formatCfopPhaseMs = formatMinuteSecondCentis;
 
   private readonly i18n = inject(I18nService);
 
@@ -262,7 +263,7 @@ export class CfopReconstructionComponent {
     const r = this.reconsCf4op();
     if (r) {
       const m = this.macroPhase(r, phase);
-      return formatCfopPhaseMs(m!.recognitionMs);
+      return formatMinuteSecondCentis(m!.recognitionMs);
     }
     if (phase === 'cross' && solve.inspectionTime != null) {
       return `${solve.inspectionTime} s`;

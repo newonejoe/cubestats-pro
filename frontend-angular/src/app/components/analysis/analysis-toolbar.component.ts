@@ -1,6 +1,7 @@
-import { Component, input, output, inject } from '@angular/core';
+import { Component, input, output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService } from '../../services/i18n.service';
+import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import type { Session } from '../../services/state.service';
 import type { TimeWindow } from '../../lib/analysis-selectors';
 
@@ -69,6 +70,26 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
           </label>
         }
       }
+      <div class="toolbar-actions">
+        <button type="button" class="btn-action" (click)="onExport()" title="{{ t('export') }}">
+          {{ t('export') }}
+        </button>
+        <div class="dropdown-wrapper">
+          <button type="button" class="btn-action" (click)="importMenuOpen.update(v => !v)">
+            {{ t('importData') }} ▼
+          </button>
+          @if (importMenuOpen()) {
+            <div class="dropdown-menu">
+              <button type="button" class="dropdown-item" (click)="onImportCstimer(); importMenuOpen.set(false)">
+                {{ t('importCstimer') }}
+              </button>
+              <button type="button" class="dropdown-item" (click)="onImportCubeStats(); importMenuOpen.set(false)">
+                {{ t('importCubeStats') }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
     </div>
   `,
   styles: [`
@@ -76,10 +97,20 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
     .toolbar label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6c757d; }
     .toolbar .inline-check { flex-direction: row; align-items: center; gap: 8px; padding-bottom: 8px; }
     .toolbar select, .toolbar input { padding: 8px 10px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 13px; color: #212529; background: #fff; }
+    .toolbar-actions { display: flex; gap: 8px; margin-left: auto; align-items: end; }
+    .btn-action { padding: 8px 14px; border-radius: 6px; border: 1px solid #d0d7de; background: #fff; font-size: 13px; cursor: pointer; }
+    .btn-action:hover { background: #f8f9fa; }
+    .dropdown-wrapper { position: relative; }
+    .dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 4px; background: white; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 180px; z-index: 100; }
+    .dropdown-item { display: block; width: 100%; padding: 10px 14px; border: none; background: none; text-align: left; cursor: pointer; font-size: 13px; }
+    .dropdown-item:hover { background: #f8f9fa; }
   `],
 })
 export class AnalysisToolbarComponent {
   private readonly i18n = inject(I18nService);
+  private readonly localStore = inject(LocalSolveStoreService);
+
+  importMenuOpen = signal(false);
 
   readonly selectedFeature = input<AnalysisFeature>('session');
   readonly selectedSessionId = input<number | 'all'>('all');
@@ -142,5 +173,60 @@ export class AnalysisToolbarComponent {
 
   onCustomToChange(event: Event): void {
     this.customToChange.emit((event.target as HTMLInputElement).value);
+  }
+
+  onExport(): void {
+    const json = this.localStore.exportSessionsJson();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cubestats-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  onImportCubeStats(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const result = this.localStore.importSessionsJson(reader.result as string);
+          alert(`Imported ${result.sessions} sessions and ${result.solves} solves`);
+          window.location.reload();
+        } catch (err) {
+          alert(this.t('error') + ': ' + (err as Error).message);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  onImportCstimer(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.txt';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const result = await this.localStore.importCstimerJson(reader.result as string);
+          alert(`Imported ${result.sessions} sessions and ${result.solves} solves`);
+          window.location.reload();
+        } catch (err) {
+          alert(this.t('error') + ': ' + (err as Error).message);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   }
 }

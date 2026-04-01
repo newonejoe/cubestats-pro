@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { HeaderComponent } from '../../components/header/header.component';
+import { SessionSelectorComponent } from '../../components/session-selector/session-selector.component';
 import { TimerComponent } from '../../components/timer/timer.component';
 import { MacModalComponent } from '../../components/mac-modal/mac-modal.component';
 import { SolvedStateModalComponent } from '../../components/solved-state-modal/solved-state-modal.component';
@@ -22,6 +23,7 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
   imports: [
     CommonModule,
     HeaderComponent,
+    SessionSelectorComponent,
     TimerComponent,
     MacModalComponent,
     SolvedStateModalComponent,
@@ -43,6 +45,7 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
         <!-- Left sidebar: session stats + solve list -->
         <aside class="sidebar">
           <app-header></app-header>
+          <app-session-selector></app-session-selector>
           <app-analysis-session-statistics
             mode="compact"
             [sessionId]="currentSessionId()"

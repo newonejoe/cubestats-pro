@@ -13,7 +13,7 @@ import {
 import { METRIC_OPTIONS } from './analysis-metric-options';
 import {
   finalSolveMs,
-  formatMinuteSecondMillis,
+  formatMinuteSecondCentis,
   formatSolveDate,
   penaltyLabel,
   truncateScramble,
@@ -29,12 +29,12 @@ import type { Solve } from '../../services/state.service';
       <!-- Compact sidebar mode -->
       <div class="compact-stats">
         <div class="cards-compact">
-          <div class="card-c"><span class="val">{{ fm(sessionStats().current) }}</span><span class="lbl">Cur</span></div>
-          <div class="card-c"><span class="val">{{ fm(sessionStats().best) }}</span><span class="lbl">Best</span></div>
-          <div class="card-c"><span class="val">{{ sessionStats().solveCount }}</span><span class="lbl">N</span></div>
-          <div class="card-c"><span class="val">{{ fm(sessionStats().ao5) }}</span><span class="lbl">Ao5</span></div>
-          <div class="card-c"><span class="val">{{ fm(sessionStats().ao12) }}</span><span class="lbl">Ao12</span></div>
-          <div class="card-c"><span class="val">{{ fm(sessionStats().ao100) }}</span><span class="lbl">Ao100</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().current) }}</span><span class="lbl">{{ translateMetricLabel('current') }}</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().best) }}</span><span class="lbl">{{ translateMetricLabel('best') }}</span></div>
+          <div class="card-c"><span class="val">{{ sessionStats().solveCount }}</span><span class="lbl">{{ translateMetricLabel('solveCount') }}</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().ao5) }}</span><span class="lbl">{{ translateMetricLabel('ao5') }}</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().ao12) }}</span><span class="lbl">{{ translateMetricLabel('ao12') }}</span></div>
+          <div class="card-c"><span class="val">{{ fm(sessionStats().ao100) }}</span><span class="lbl">{{ translateMetricLabel('ao100') }}</span></div>
         </div>
         @if (sortedSessionSolves().length > 0) {
           <div class="compact-list-wrap">
@@ -247,7 +247,8 @@ export class AnalysisSessionStatisticsComponent {
   });
 
   fm(ms: number | null | undefined): string {
-    return formatMinuteSecondMillis(ms);
+    // return formatMinuteSecondMillis(ms);
+    return formatMinuteSecondCentis(ms);
   }
 
   onPrimaryMetricChange(event: Event): void {
@@ -274,10 +275,10 @@ export class AnalysisSessionStatisticsComponent {
     if (v === null) return '—';
     if (m === 'inspection') {
       return solve.inspectionTime != null
-        ? formatMinuteSecondMillis(Math.round(solve.inspectionTime * 1000))
+        ? formatMinuteSecondCentis(Math.round(solve.inspectionTime * 1000))
         : '—';
     }
     if (m === 'moveCount') return String(solve.moveCount ?? '—');
-    return formatMinuteSecondMillis(v);
+    return formatMinuteSecondCentis(v);
   }
 }

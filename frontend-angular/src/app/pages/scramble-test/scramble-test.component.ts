@@ -125,38 +125,32 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
 
       @if (scrambleType() === 'oll' || scrambleType() === 'pll') {
         <section class="panel">
-          <h2>Last-layer case (csTimer)</h2>
-          @if (scrambleType() === 'oll') {
-            <app-oll-pll-case-viz kind="oll" [caseIndex]="lastOllCase()" />
-          } @else {
-            <app-oll-pll-case-viz kind="pll" [caseIndex]="lastPllCase()" />
-          }
+          <h2>Last-layer case & scramble target</h2>
+          <div class="viz-row">
+            <div class="viz-col">
+              <app-oll-pll-case-viz
+                [kind]="scrambleType() === 'oll' ? 'oll' : 'pll'"
+                [caseIndex]="scrambleType() === 'oll' ? lastOllCase() : lastPllCase()"
+              />
+            </div>
+            <div class="viz-col">
+              <p class="hint small net-hint">
+                Net is shown with whole-cube x2 so the top face is yellow (matches csTimer last-layer / CFOP training view).
+              </p>
+              <app-scramble-target-viz [cubeState]="scrambleTargetDisplay()" />
+            </div>
+          </div>
+        </section>
+      } @else {
+        <section class="panel">
+          <h2>Scramble picture (target state)</h2>
+          <app-scramble-target-viz [cubeState]="scrambleTargetDisplay()" />
         </section>
       }
-
-      <section class="panel">
-        <h2>Scramble picture (target state)</h2>
-        @if (scrambleType() === 'oll' || scrambleType() === 'pll') {
-          <p class="hint small net-hint">
-            Net is shown with whole-cube x2 so the top face is yellow (matches csTimer last-layer / CFOP training view).
-          </p>
-        }
-        <app-scramble-target-viz [cubeState]="scrambleTargetDisplay()" />
-      </section>
-
-      <section class="panel">
-        <h2>Moves ({{ moveCount() }})</h2>
-        <ol class="move-list">
-          @for (m of sequence(); track $index) {
-            <li><code>{{ m }}</code></li>
-          }
-        </ol>
-      </section>
     </div>
   `,
   styles: [`
     .page {
-      max-width: 900px;
       margin: 0 auto;
       padding: 24px;
       min-height: 100vh;
@@ -349,6 +343,15 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     }
     .cross-hint {
       margin: 0;
+    }
+    .viz-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .viz-col {
+      flex: 1;
+      min-width: 280px;
     }
   `]
 })

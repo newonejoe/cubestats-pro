@@ -153,10 +153,11 @@ export function formatMs(ms: number | null | undefined): string {
   const minutes = Math.floor(ms / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
   const millis = Math.floor(ms % 1000);
+  const centis = Math.floor(millis / 10);
   if (minutes > 0) {
-    return `${minutes}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`;
   }
-  return `${seconds}.${millis.toString().padStart(3, '0')}`;
+  return `${seconds}.${centis.toString().padStart(2, '0')}`;
 }
 
 export function computeMean(solves: Solve[]): number | null {
@@ -335,32 +336,33 @@ function summarizeCases(
   solves: Solve[],
   deriveFn: (s: Solve) => CaseDerivation | null,
 ): CaseStatItem[] {
-  const buckets = new Map<string, CaseDerivation[]>();
+  const buckets = new Map<string, { derivation: CaseDerivation; scramble: string }[]>();
   for (const s of solves) {
     const d = deriveFn(s);
     if (!d) continue;
     const key = String(d.caseIndex);
     const arr = buckets.get(key) ?? [];
-    arr.push(d);
+    arr.push({ derivation: d, scramble: s.scramble ?? '' });
     buckets.set(key, arr);
   }
   return [...buckets.entries()].map(([key, arr]) => {
-    const withTiming = arr.filter(d => d.inspMs !== undefined);
+    const withTiming = arr.filter(item => item.derivation.inspMs !== undefined);
     const n = withTiming.length;
     let avgInspMs: number | null = null;
     let avgExecMs: number | null = null;
     let avgTurns: number | null = null;
     let tps: number | null = null;
     if (n > 0) {
-      const sumInsp = withTiming.reduce((a, d) => a + d.inspMs!, 0);
-      const sumExec = withTiming.reduce((a, d) => a + d.execMs!, 0);
-      const sumTurns = withTiming.reduce((a, d) => a + (d.turns ?? 0), 0);
+      const sumInsp = withTiming.reduce((a, item) => a + item.derivation.inspMs!, 0);
+      const sumExec = withTiming.reduce((a, item) => a + item.derivation.execMs!, 0);
+      const sumTurns = withTiming.reduce((a, item) => a + (item.derivation.turns ?? 0), 0);
       avgInspMs = sumInsp / n;
       avgExecMs = sumExec / n;
       avgTurns = Math.round(sumTurns / n * 10) / 10;
       const totalMs = sumInsp + sumExec;
       tps = totalMs > 0 ? Math.round(sumTurns / (totalMs / 1000) * 10) / 10 : null;
     }
+    // Use first scramble that sets up the case
     return { key, count: arr.length, avgInspMs, avgExecMs, avgTurns, tps };
   }).sort((a, b) => b.count - a.count);
 }

@@ -34,24 +34,6 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
         <h1>{{ t('analysis') }}</h1>
       </header>
 
-      <div class="bt-status-bar">
-        <div class="connection-status">
-          @if (isScanning()) {
-            <div class="scanning-indicator">
-              <div class="scanner-pulse-small"></div>
-              <span class="status-dot scanning"></span>
-            </div>
-            <span>{{ t('scanning') }}</span>
-          } @else {
-            <span class="status-dot" [class.connected]="cubeConnected()"></span>
-            <span>{{ cubeConnected() ? t('connected') : t('disconnected') }}</span>
-          }
-        </div>
-        @if (cubeConnected() && deviceName()) {
-          <span class="device-name">{{ deviceName() }}</span>
-        }
-      </div>
-
       <section class="panel">
         <app-analysis-toolbar
           [selectedFeature]="selectedFeature()"
@@ -111,7 +93,7 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
     }
   `,
   styles: [`
-    .analysis-page { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .analysis-page { margin: 0 auto; padding: 20px; }
     .top { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
     .back { color: #0d6efd; text-decoration: none; }
     .panel { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }

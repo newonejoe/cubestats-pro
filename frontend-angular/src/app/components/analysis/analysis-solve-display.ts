@@ -16,6 +16,26 @@ export function formatMinuteSecondMillis(ms: number | null | undefined): string 
   return `${minutes}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
 }
 
+export function formatMinuteSecondCentis(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined || Number.isNaN(ms)) {
+    return '--';
+  }
+  const x = Math.max(0, Math.floor(ms));
+  const minutes = Math.floor(x / 60000);
+  const seconds = Math.floor((x % 60000) / 1000);
+  const millis = x % 1000;
+  const centis = Math.floor(millis / 10);
+
+  if (minutes > 0) {
+    return `${minutes}:${seconds.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`;
+  }
+  else if(seconds > 0 ){
+    return `${seconds.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`;
+  }else{
+    return `0.${centis.toString().padStart(2, '0')}`;
+  }
+}
+
 export function finalSolveMs(solve: Solve): number | null {
   if (solve.dnf || solve.finalTime === null) {
     return null;

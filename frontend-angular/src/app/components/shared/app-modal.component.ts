@@ -24,11 +24,11 @@ import { CommonModule } from '@angular/common';
     }
   `,
   styles: [`
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; }
-    .modal { position: fixed; inset: 0; z-index: 2001; display: flex; align-items: center; justify-content: center; padding: 16px; pointer-events: none; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; }
+    .modal { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 16px; pointer-events: none; }
     .modal-inner {
       pointer-events: auto; background: #fff; border-radius: 12px; width: 100%; max-height: 90vh;
-      overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.15); z-index: 10002;
     }
     .modal-inner.dark-theme {
       background: #1a1a2e; color: #eee;

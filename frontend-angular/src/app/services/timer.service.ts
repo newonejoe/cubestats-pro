@@ -292,10 +292,11 @@ export class TimerService {
     const minutes = Math.floor(ms / 60000);
     const seconds = Math.floor((ms % 60000) / 1000);
     const milliseconds = Math.floor(ms % 1000);
+    const centiseconds = Math.floor(milliseconds / 10);
     if (minutes > 0) {
-      return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+      return `${minutes}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
     }
-    return `${seconds}.${milliseconds.toString().padStart(3, '0')}`;
+    return `${seconds}.${centiseconds.toString().padStart(2, '0')}`;
   }
 
   async startSolve(): Promise<void> {

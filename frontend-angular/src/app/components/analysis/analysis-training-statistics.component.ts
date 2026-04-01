@@ -7,6 +7,11 @@ import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
 import { getOllFace21, pllVizFromCstimer, getZbllFace21 } from '../../lib/cstimer-ll-viz';
 import { CstimerScrambleService } from '../../services/cstimer-scramble.service';
 
+type SortColumn = 'count' | 'insp' | 'exec' | 'turns' | 'tps';
+type SortDirection = 'asc' | 'desc';
+
+const DEFAULT_PAGE_SIZE = 10;
+
 @Component({
   selector: 'app-analysis-training-statistics',
   standalone: true,
@@ -23,20 +28,54 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
           <option value="f2l">{{ t('f2l') }}</option>
         </select>
       </label>
+      <label>
+        {{ t('pageSize') }}
+        <select [value]="pageSize()" (change)="onPageSizeChange($event)">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </label>
     </div>
     <table class="tbl">
       <thead>
         <tr>
           <th>{{ t('case') }}</th>
-          <th class="num">{{ t('solveCount') }}</th>
-          <th class="num">{{ t('insp') }}</th>
-          <th class="num">{{ t('exec') }}</th>
-          <th class="num">{{ t('turns') }}</th>
-          <th class="num">{{ t('tps') }}</th>
+          <th class="num sortable" (click)="onSort('count')">
+            {{ t('solveCount') }}
+            @if (sortColumn() === 'count') {
+              <span class="sort-icon">{{ sortDirection() === 'desc' ? '▼' : '▲' }}</span>
+            }
+          </th>
+          <th class="num sortable" (click)="onSort('insp')">
+            {{ t('insp') }}
+            @if (sortColumn() === 'insp') {
+              <span class="sort-icon">{{ sortDirection() === 'desc' ? '▼' : '▲' }}</span>
+            }
+          </th>
+          <th class="num sortable" (click)="onSort('exec')">
+            {{ t('exec') }}
+            @if (sortColumn() === 'exec') {
+              <span class="sort-icon">{{ sortDirection() === 'desc' ? '▼' : '▲' }}</span>
+            }
+          </th>
+          <th class="num sortable" (click)="onSort('turns')">
+            {{ t('turns') }}
+            @if (sortColumn() === 'turns') {
+              <span class="sort-icon">{{ sortDirection() === 'desc' ? '▼' : '▲' }}</span>
+            }
+          </th>
+          <th class="num sortable" (click)="onSort('tps')">
+            {{ t('tps') }}
+            @if (sortColumn() === 'tps') {
+              <span class="sort-icon">{{ sortDirection() === 'desc' ? '▼' : '▲' }}</span>
+            }
+          </th>
         </tr>
       </thead>
       <tbody>
-        @for (x of trainingCaseRows(); track x.key) {
+        @for (x of paginatedRows(); track x.key) {
           <tr>
             <td>
               <div class="case-label">
@@ -52,11 +91,27 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
             <td class="num">{{ x.avgTurns ?? '—' }}</td>
             <td class="num">{{ x.tps ?? '—' }}</td>
           </tr>
+          @if (x.avgExecMs !== null) {
+            <tr class="scramble-row">
+              <td colspan="6" class="scramble-cell">
+                <span class="scramble-tag">{{ scrambleForCase()[x.key] }}</span>
+              </td>
+            </tr>
+          }
         }
       </tbody>
     </table>
     @if (trainingCaseRows().length === 0) {
       <p class="empty">{{ t('noRecordsInScope') }} {{ trainingCaseType().toUpperCase() }}</p>
+    }
+    @if (totalPages() > 1) {
+      <div class="pagination">
+        <button type="button" class="btn-page" (click)="onPageChange(1)" [disabled]="currentPage() === 1">««</button>
+        <button type="button" class="btn-page" (click)="onPageChange(currentPage() - 1)" [disabled]="currentPage() === 1">«</button>
+        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
+        <button type="button" class="btn-page" (click)="onPageChange(currentPage() + 1)" [disabled]="currentPage() === totalPages()">»</button>
+        <button type="button" class="btn-page" (click)="onPageChange(totalPages())" [disabled]="currentPage() === totalPages()">»»</button>
+      </div>
     }
     <div class="training-type-summary">
       <h3>{{ t('typeDistribution') }}</h3>
@@ -80,6 +135,17 @@ import { CstimerScrambleService } from '../../services/cstimer-scramble.service'
     .case-label { display: flex; align-items: center; gap: 8px; }
     .case-img { width: 32px; height: 32px; object-fit: contain; }
     .num { text-align: right; font-variant-numeric: tabular-nums; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { background: #f8f9fa; }
+    .sort-icon { margin-left: 4px; font-size: 10px; }
+    .scramble-row { background: #fafbfc; }
+    .scramble-cell { padding: 4px 8px 8px !important; }
+    .scramble-tag { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; background: #e9ecef; border-radius: 4px; font-size: 12px; font-family: monospace; }
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 16px 0; }
+    .btn-page { padding: 6px 12px; border: 1px solid #dee2e6; background: #fff; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .btn-page:hover:not(:disabled) { background: #f8f9fa; }
+    .btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
+    .page-info { font-size: 13px; color: #6c757d; }
   `],
 })
 export class AnalysisTrainingStatisticsComponent {
@@ -90,6 +156,10 @@ export class AnalysisTrainingStatisticsComponent {
   readonly sessionId = input<number | 'all'>('all');
 
   readonly trainingCaseType = signal<'oll' | 'pll' | 'zbll' | 'f2l'>('oll');
+  readonly sortColumn = signal<SortColumn>('count');
+  readonly sortDirection = signal<SortDirection>('desc');
+  readonly pageSize = signal<number>(DEFAULT_PAGE_SIZE);
+  readonly currentPage = signal<number>(1);
 
   t(key: string): string {
     return this.i18n.t(key);
@@ -112,12 +182,86 @@ export class AnalysisTrainingStatisticsComponent {
     else if (type === 'zbll') source = this.training().zbllCases;
     else if (type === 'f2l') source = this.training().f2lCases;
 
+    const col = this.sortColumn();
+    const dir = this.sortDirection();
+
     return [...source].sort((a, b) => {
-      const aExec = a.avgExecMs ?? -1;
-      const bExec = b.avgExecMs ?? -1;
-      if (bExec !== aExec) return bExec - aExec;
-      return b.count - a.count;
+      let aVal: number;
+      let bVal: number;
+
+      switch (col) {
+        case 'count':
+          aVal = a.count;
+          bVal = b.count;
+          break;
+        case 'insp':
+          aVal = a.avgInspMs ?? -1;
+          bVal = b.avgInspMs ?? -1;
+          break;
+        case 'exec':
+          aVal = a.avgExecMs ?? -1;
+          bVal = b.avgExecMs ?? -1;
+          break;
+        case 'turns':
+          aVal = a.avgTurns ?? -1;
+          bVal = b.avgTurns ?? -1;
+          break;
+        case 'tps':
+          aVal = a.tps ?? -1;
+          bVal = b.tps ?? -1;
+          break;
+        default:
+          aVal = a.count;
+          bVal = b.count;
+      }
+
+      return dir === 'desc' ? bVal - aVal : aVal - bVal;
     });
+  });
+
+  // Cache for scramble strings to avoid calling cstimer during change detection
+  private scrambleCache = new Map<string, string>();
+
+  readonly scrambleForCase = computed(() => {
+    const type = this.trainingCaseType();
+    const rows = this.trainingCaseRows();
+    const cache = this.scrambleCache;
+
+    // Pre-compute scrambles for current page items
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+      const key = row.key;
+      if (!cache.has(key)) {
+        const index = parseInt(key, 10);
+        if (!isNaN(index)) {
+          try {
+            if (type === 'oll') {
+              cache.set(key, this.cstimer.scrambleString('oll', 0, { cases: index }));
+            } else if (type === 'pll') {
+              cache.set(key, this.cstimer.scrambleString('pll', 0, { cases: index }));
+            } else if (type === 'f2l') {
+              cache.set(key, this.cstimer.scrambleString('f2l', 0, { cases: index }));
+            }
+          } catch {
+            cache.set(key, '');
+          }
+        }
+      }
+      result[key] = cache.get(key) ?? '';
+    }
+    return result;
+  });
+
+  readonly totalPages = computed(() => {
+    return Math.ceil(this.trainingCaseRows().length / this.pageSize()) || 1;
+  });
+
+  readonly paginatedRows = computed(() => {
+    const rows = this.trainingCaseRows();
+    const page = this.currentPage();
+    const size = this.pageSize();
+    const start = (page - 1) * size;
+    return rows.slice(start, start + size);
   });
 
   fm(ms: number | null | undefined): string {
@@ -143,8 +287,49 @@ export class AnalysisTrainingStatisticsComponent {
     return null;
   }
 
+  getScrambleForCase(type: string, key: string): string {
+    const index = parseInt(key, 10);
+    if (isNaN(index)) return '';
+    try {
+      if (type === 'oll') {
+        return this.cstimer.scrambleString('oll', 0, { cases: index });
+      } else if (type === 'pll') {
+        return this.cstimer.scrambleString('pll', 0, { cases: index });
+      } else if (type === 'f2l') {
+        return this.cstimer.scrambleString('f2l', 0, { cases: index });
+      }
+    } catch {
+      return '';
+    }
+    return '';
+  }
+
   onTrainingCaseTypeChange(event: Event): void {
     const v = (event.target as HTMLSelectElement).value as 'oll' | 'pll' | 'zbll' | 'f2l';
     this.trainingCaseType.set(v);
+    this.currentPage.set(1);
+    this.scrambleCache.clear();
+  }
+
+  onSort(column: SortColumn): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'desc' ? 'asc' : 'desc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('desc');
+    }
+  }
+
+  onPageSizeChange(event: Event): void {
+    const v = parseInt((event.target as HTMLSelectElement).value, 10);
+    this.pageSize.set(v);
+    this.currentPage.set(1);
+  }
+
+  onPageChange(page: number): void {
+    const total = this.totalPages();
+    if (page >= 1 && page <= total) {
+      this.currentPage.set(page);
+    }
   }
 }

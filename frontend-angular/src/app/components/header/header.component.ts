@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, type WritableSignal, type Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { StateService } from '../../services/state.service';
 import { I18nService, Language } from '../../services/i18n.service';
 import { BluetoothService } from '../../services/bluetooth.service';
@@ -42,6 +42,12 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
             </div>
           }
         </div>
+        <button type="button" class="menu-btn" (click)="router.navigate(['/analysis']); menuOpen.set(false)">
+            <span class="menu-icon">📈</span>
+        </button>
+        <button type="button" class="menu-btn" (click)="router.navigate(['/analysis']); menuOpen.set(false)">
+            <span class="menu-icon">⚙️</span>
+        </button>
       </div>
       <div class="header-right">
         <div class="connection-status">
@@ -250,6 +256,7 @@ export class HeaderComponent {
   private state = inject(StateService);
   private i18n = inject(I18nService);
   private bluetooth = inject(BluetoothService);
+  readonly router = inject(Router);
 
   currentLanguage: Signal<Language> = computed(() => this.i18n.currentLanguage());
   currentUserId: Signal<number> = computed(() => this.state.currentUserId());
