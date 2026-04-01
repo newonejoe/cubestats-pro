@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService, type Session } from '../../services/state.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
@@ -10,7 +10,7 @@ import { I18nService } from '../../services/i18n.service';
   imports: [CommonModule],
   template: `
     <div class="session-selector">
-      <button type="button" class="btn-selector" (click)="dropdownOpen.update(v => !v)">
+      <button type="button" class="btn-selector" (click)="toggleDropdown()">
         <span class="current-session">{{ currentSessionName() }}</span>
         <span class="arrow">▼</span>
       </button>
@@ -18,7 +18,7 @@ import { I18nService } from '../../services/i18n.service';
         <div class="dropdown-menu" (click)="$event.stopPropagation()">
           @for (session of sessions(); track session.id) {
             <div class="dropdown-item" [class.active]="session.id === currentSessionId()">
-              <button type="button" class="item-label" (click)="selectSession(session); dropdownOpen.set(false)">
+              <button type="button" class="item-label" (click)="selectSession(session)">
                 {{ session.name }}
               </button>
               @if (sessions().length > 1) {
@@ -28,7 +28,7 @@ import { I18nService } from '../../services/i18n.service';
               }
             </div>
           }
-          <button type="button" class="dropdown-item new-item" (click)="onNewSession(); dropdownOpen.set(false)">
+          <button type="button" class="dropdown-item new-item" (click)="onNewSession()">
             <span class="icon">+</span>
             {{ t('newSession') }}
           </button>
@@ -40,8 +40,8 @@ import { I18nService } from '../../services/i18n.service';
     .session-selector {
       position: relative;
       padding: 8px 12px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #e9ecef;
+      background: var(--hover-bg);
+      border-bottom: 1px solid var(--border-color);
     }
     .btn-selector {
       display: flex;
@@ -50,14 +50,15 @@ import { I18nService } from '../../services/i18n.service';
       gap: 8px;
       width: 100%;
       padding: 8px 12px;
-      background: white;
-      border: 1px solid #dee2e6;
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
+      color: var(--text-primary);
     }
     .btn-selector:hover {
-      background: #f8f9fa;
+      background: var(--hover-bg);
     }
     .current-session {
       max-width: 180px;
@@ -67,7 +68,7 @@ import { I18nService } from '../../services/i18n.service';
     }
     .arrow {
       font-size: 10px;
-      color: #6c757d;
+      color: var(--text-secondary);
     }
     .dropdown-menu {
       position: absolute;
@@ -75,8 +76,8 @@ import { I18nService } from '../../services/i18n.service';
       left: 12px;
       right: 12px;
       margin-top: 4px;
-      background: white;
-      border: 1px solid #dee2e6;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       max-height: 240px;
@@ -88,7 +89,7 @@ import { I18nService } from '../../services/i18n.service';
       align-items: center;
       justify-content: space-between;
       padding: 0;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--border-color);
     }
     .dropdown-item:last-child {
       border-bottom: none;
@@ -101,25 +102,26 @@ import { I18nService } from '../../services/i18n.service';
       text-align: left;
       cursor: pointer;
       font-size: 14px;
+      color: var(--text-primary);
     }
     .item-label:hover {
-      background: #f8f9fa;
+      background: var(--hover-bg);
     }
     .dropdown-item.active .item-label {
-      background: #e7f5ff;
-      color: #0d6efd;
+      background: var(--primary-color);
+      color: #fff;
     }
     .btn-delete {
       padding: 8px 12px;
       border: none;
       background: none;
-      color: #999;
+      color: var(--text-muted);
       cursor: pointer;
       font-size: 18px;
       line-height: 1;
     }
     .btn-delete:hover {
-      color: #dc3545;
+      color: var(--danger-color);
     }
     .new-item {
       padding: 0;
@@ -128,10 +130,10 @@ import { I18nService } from '../../services/i18n.service';
       padding: 10px 12px;
       font-size: 16px;
       font-weight: bold;
-      color: #6366f1;
+      color: var(--primary-color);
     }
     .new-item:hover {
-      background: #f8f9fa;
+      background: var(--hover-bg);
     }
   `]
 })
@@ -146,8 +148,21 @@ export class SessionSelectorComponent {
   currentSessionId = signal<number | undefined>(this.state.currentSession()?.id);
   currentSessionName = signal<string>(this.state.currentSession()?.name ?? '');
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (target.closest('.session-selector')) {
+      return;
+    }
+    this.dropdownOpen.set(false);
+  }
+
   t(key: string): string {
     return this.i18n.t(key);
+  }
+
+  toggleDropdown(): void {
+    this.dropdownOpen.update(v => !v);
   }
 
   onNewSession(): void {
@@ -162,12 +177,14 @@ export class SessionSelectorComponent {
     this.sessions.set(this.localStore.getSessions());
     this.currentSessionId.set(newSession.id);
     this.currentSessionName.set(newSession.name);
+    this.dropdownOpen.set(false);
   }
 
   selectSession(session: Session): void {
     this.state.currentSession.set(session);
     this.currentSessionId.set(session.id);
     this.currentSessionName.set(session.name);
+    this.dropdownOpen.set(false);
   }
 
   deleteSession(session: Session): void {

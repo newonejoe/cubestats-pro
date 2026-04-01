@@ -38,10 +38,6 @@ import { I18nService } from '../../services/i18n.service';
       <!-- Session averages -->
       <div class="section avg-section">
         <div class="avg-row">
-          <span class="avg-label">{{ t('cur') }}</span>
-          <span class="avg-value">{{ formatStat(stats().current) }}</span>
-        </div>
-        <div class="avg-row">
           <span class="avg-label">{{ t('bestStat') }}</span>
           <span class="avg-value best">{{ formatStat(stats().best) }}</span>
         </div>
@@ -78,27 +74,27 @@ import { I18nService } from '../../services/i18n.service';
       gap: 12px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .section {
       padding: 10px 12px;
-      background: rgba(255,255,255,0.85);
+      background: var(--card-bg);
       border-radius: 8px;
       backdrop-filter: blur(4px);
     }
 
     .active-timer { text-align: center; }
-    .active-timer.solving .last-time { color: #4caf50; }
-    .active-timer.inspecting .last-time { color: #ff9800; }
+    .active-timer.solving .last-time { color: var(--success-color); }
+    .active-timer.inspecting .last-time { color: var(--warning-color); }
 
     .last-time {
       font-size: 28px;
       font-weight: 700;
       line-height: 1.2;
     }
-    .last-time.dnf { color: #dc3545; }
-    .last-time.muted { color: #adb5bd; }
+    .last-time.dnf { color: var(--danger-color); }
+    .last-time.muted { color: var(--text-muted); }
 
     .recons-line {
       display: flex;
@@ -106,7 +102,7 @@ import { I18nService } from '../../services/i18n.service';
       gap: 16px;
       margin-top: 4px;
       font-size: 12px;
-      color: #495057;
+      color: var(--text-secondary);
     }
 
     .avg-section {
@@ -123,7 +119,7 @@ import { I18nService } from '../../services/i18n.service';
     }
 
     .avg-label {
-      color: #6c757d;
+      color: var(--text-secondary);
       font-size: 12px;
       text-transform: lowercase;
     }
@@ -132,26 +128,26 @@ import { I18nService } from '../../services/i18n.service';
       font-weight: 600;
       font-size: 14px;
     }
-    .avg-value.best { color: #28a745; }
+    .avg-value.best { color: var(--success-color); }
 
     .count-section {
       text-align: center;
     }
     .count-label {
       font-size: 11px;
-      color: #6c757d;
+      color: var(--text-secondary);
     }
     .timer-value {
       font-family: 'JetBrains Mono', monospace;
       font-size: 72px;
       font-weight: 700;
-      color: #222;
+      color: var(--text-primary);
       text-shadow: 0 2px 12px rgba(255,255,255,0.8);
       transition: color 0.2s;
       user-select: none;
     }
-    .timer-value.running { color: #4caf50; }
-    .timer-value.inspection { color: #ff9800; }
+    .timer-value.running { color: var(--success-color); }
+    .timer-value.inspection { color: var(--warning-color); }
   `]
 })
 export class MultiphaseDisplayComponent {

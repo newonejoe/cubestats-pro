@@ -12,7 +12,7 @@ import { AnalysisSessionStatisticsComponent } from '../../components/analysis/an
 import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-solve-modal.component';
 import { SettingsModalComponent } from '../../components/settings-modal/settings-modal.component';
 
-import { StateService, Theme, type Solve } from '../../services/state.service';
+import { StateService, type Solve } from '../../services/state.service';
 import { CubeService } from '../../services/cube.service';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
@@ -40,7 +40,7 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       </div>
     </div>
 
-    <div class="layout" [class.blurred]="!cubeConnected()" [class.theme-black]="isBlackTheme()">
+    <div class="layout" [class.blurred]="!cubeConnected()">
       @if (cubeConnected()) {
         <!-- Left sidebar: session stats + solve list -->
         <aside class="sidebar">
@@ -85,40 +85,30 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
     :host {
       display: block;
       min-height: 100vh;
-      background: #f5f7fa;
+      background: var(--background);
     }
 
     .layout {
       display: grid;
       grid-template-columns: 260px 1fr;
-      gap: 12px;
-      padding: 12px;
+      grid-template-rows: 1fr;
       width: 100%;
-      min-height: calc(100vh - 56px);
+      height: calc(100vh - 56px);
       transition: background-color 0.3s;
-    }
-
-    .layout.theme-black {
-      background: #1a1a1a;
     }
 
     /* Left sidebar */
     .sidebar {
-      background: #fff;
+      background: var(--card-bg);
       border-radius: 12px;
       padding: 0;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       display: flex;
       flex-direction: column;
-      max-height: calc(100vh - 80px);
+      max-height: calc(100vh);
       position: sticky;
       top: 68px;
       overflow-y: auto;
-    }
-
-    .layout.theme-black .sidebar {
-      background: #2a2a2a;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
 
     .sidebar app-header {
@@ -130,6 +120,7 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       display: flex;
       flex-direction: column;
       min-height: 0;
+      height: 100%;
     }
 
     /* Toast */
@@ -138,8 +129,8 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      background: #333;
-      color: white;
+      background: var(--text-primary);
+      color: var(--card-bg);
       padding: 12px 24px;
       border-radius: 8px;
       opacity: 0;
@@ -161,9 +152,6 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       align-items: center;
       z-index: 9999;
       transition: opacity 0.3s ease;
-    }
-    :global(.theme-black) .bt-modal-overlay {
-      background: linear-gradient(135deg, #4a148c 0%, #7b1fa2 100%);
     }
     .bt-modal-overlay.hidden {
       opacity: 0;
@@ -294,10 +282,6 @@ export class HomeComponent implements OnInit {
 
   closeSolveModal(): void {
     this.modalSolve.set(null);
-  }
-
-  isBlackTheme(): boolean {
-    return this.state.settings().theme === 'black';
   }
 
   openSettings(): void {

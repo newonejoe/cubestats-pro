@@ -1,7 +1,7 @@
 import { Component, inject, computed, Input, Output, EventEmitter, type Signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StateService, Theme } from '../../services/state.service';
-import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { StateService } from '../../services/state.service';
+import { ThemeKey, THEMES, THEME_KEYS } from '../../data/themes';
 import { AppModalComponent } from '../shared/app-modal.component';
 
 @Component({
@@ -19,8 +19,11 @@ import { AppModalComponent } from '../shared/app-modal.component';
       <div class="setting-group">
         <label class="setting-label">Theme</label>
         <select class="setting-input" (change)="onThemeChange($event)">
-          <option value="white" [selected]="currentTheme() === 'white'">White (Light)</option>
-          <option value="black" [selected]="currentTheme() === 'black'">Black (Dark)</option>
+          @for (themeKey of themeKeys; track themeKey) {
+            <option [value]="themeKey" [selected]="currentTheme() === themeKey">
+              {{ getThemeName(themeKey) }}
+            </option>
+          }
         </select>
       </div>
       <div class="setting-group">
@@ -88,14 +91,18 @@ import { AppModalComponent } from '../shared/app-modal.component';
 })
 export class SettingsModalComponent implements OnInit {
   private state = inject(StateService);
-  private localStore = inject(LocalSolveStoreService);
 
   @Input() isVisible = false;
   @Output() isVisibleChange = new EventEmitter<boolean>();
 
   inspectionTime: Signal<number> = computed(() => this.state.settings().inspectionTime);
   soundEnabled: Signal<boolean> = computed(() => this.state.settings().sound);
-  currentTheme: Signal<Theme> = computed(() => this.state.settings().theme);
+  currentTheme: Signal<ThemeKey> = computed(() => this.state.settings().theme);
+  themeKeys = THEME_KEYS;
+
+  getThemeName(key: ThemeKey): string {
+    return THEMES[key]?.name || key;
+  }
 
   ngOnInit(): void {
     // Load saved settings from localStorage
@@ -107,7 +114,7 @@ export class SettingsModalComponent implements OnInit {
           this.state.settings.set({
             inspectionTime: parsed.inspectionTime ?? 15,
             sound: parsed.sound ?? true,
-            theme: parsed.theme ?? 'white'
+            theme: parsed.theme ?? 'default'
           });
         }
       }
@@ -123,7 +130,7 @@ export class SettingsModalComponent implements OnInit {
 
   onThemeChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.state.settings.update(s => ({ ...s, theme: select.value as Theme }));
+    this.state.settings.update(s => ({ ...s, theme: select.value as ThemeKey }));
   }
 
   onInspectionTimeChange(event: Event): void {

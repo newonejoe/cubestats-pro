@@ -21,41 +21,43 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
         <app-virtual-cube></app-virtual-cube>
       </div>
 
-      <!-- Floating overlay: scramble at top -->
+      <!-- Floating overlay -->
       <div class="overlay">
         <div class="scramble-bar">
           <app-scramble-display></app-scramble-display>
         </div>
-      </div>
 
-      <!-- Right panel: multiphase stats + CFOP recon -->
-      <div class="right-panel">
-        <app-multiphase-display [sessionId]="sessionId()" />
+        <!-- Right panel: multiphase stats + CFOP recon -->
+        <div class="right-panel">
+          <app-multiphase-display [sessionId]="sessionId()" />
 
-        <div class="recon-section">
-          @if (lastSolve(); as sol) {
-            <app-cfop-reconstruction [solve]="sol" [caseStatScope]="sessionSolves()" />
-          } @else {
-            <app-empty-state icon="🎯" message="No solve data yet"></app-empty-state>
-          }
+          <div class="recon-section">
+            @if (lastSolve(); as sol) {
+              <app-cfop-reconstruction [solve]="sol" [caseStatScope]="sessionSolves()" />
+            } @else {
+              <app-empty-state icon="🎯" message="No solve data yet"></app-empty-state>
+            }
+          </div>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    :host { display: block; }
+    :host { display: block; height: 100%; }
 
     .timer-stage {
       position: relative;
-      min-height: 480px;
+      height: 100%;
       border-radius: 12px;
       overflow: hidden;
-      display: flex;
     }
 
     .cube-bg {
       position: absolute;
-      inset: 0;
+      top: 60px;
+      left: 0;
+      right: 300px;
+      bottom: 0;
       z-index: 0;
       display: flex;
       align-items: center;
@@ -64,6 +66,8 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
     .cube-bg ::ng-deep .cube-container {
       width: 100%;
       height: 100%;
+      max-width: calc(100vh - 180px);
+      max-height: calc(100% - 20px);
       padding: 0;
     }
     .cube-bg ::ng-deep canvas {
@@ -76,27 +80,30 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
       z-index: 1;
       display: flex;
       flex-direction: column;
-      min-height: 480px;
+      height: 100%;
       pointer-events: none;
-      flex: 1;
     }
 
     .scramble-bar {
-      padding: 16px 16px 0;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 16px 8px;
       pointer-events: auto;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.7) 70%, transparent 100%);
+      background: linear-gradient(to bottom, var(--card-bg) 0%, transparent 100%);
+      z-index: 10;
     }
 
     .right-panel {
-      position: relative;
-      z-index: 1;
-      width: 320px;
-      padding: 12px;
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 300px;
       display: flex;
       flex-direction: column;
       gap: 12px;
       pointer-events: none;
-      max-height: 100%;
       overflow-y: auto;
     }
     .right-panel > * {
@@ -104,77 +111,38 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
     }
 
     .recon-section {
-      background: #fff;
+      background: var(--card-bg);
       border-radius: 12px;
       padding: 14px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       flex: 1;
       overflow-y: auto;
+      color: var(--text-primary);
     }
-
-    .timer-center {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      pointer-events: auto;
-    }
-
-    .inspection-timer {
-      font-size: 22px;
-      color: #ff9800;
-      height: 28px;
-      opacity: 0;
-      transition: opacity 0.2s;
-      text-shadow: 0 1px 6px rgba(0,0,0,0.15);
-    }
-    .inspection-timer.visible { opacity: 1; }
-
-    .timer-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 72px;
-      font-weight: 700;
-      color: #222;
-      text-shadow: 0 2px 12px rgba(255,255,255,0.8);
-      transition: color 0.2s;
-      user-select: none;
-    }
-    .timer-value.running { color: #4caf50; }
-    .timer-value.inspection { color: #ff9800; }
 
     /* Mobile responsive */
     @media (max-width: 600px) {
-      .timer-stage {
-        min-height: 320px;
+      .scramble-bar {
+        position: relative;
+        padding: 8px 8px 0;
       }
-      .overlay {
-        min-height: 320px;
+      .cube-bg {
+        top: 0;
+        right: 0;
       }
       .right-panel {
-        width: 200px;
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 100%;
+        max-height: 200px;
         padding: 8px;
-      }
-      .timer-value {
-        font-size: 48px;
       }
     }
 
     @media (max-width: 480px) {
-      .timer-stage {
-        min-height: 240px;
-      }
-      .overlay {
-        min-height: 240px;
-      }
       .right-panel {
         display: none;
-      }
-      .timer-value {
-        font-size: 36px;
-      }
-      .scramble-bar {
-        padding: 8px 8px 0;
       }
     }
   `]

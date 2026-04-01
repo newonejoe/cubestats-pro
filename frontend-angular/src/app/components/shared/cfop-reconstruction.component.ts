@@ -30,6 +30,7 @@ import { formatMinuteSecondCentis } from '../analysis/analysis-solve-display';
   template: `
     <section class="cfop-block">
       <h3>{{ t('cfopReconstruction') }}</h3>
+      <!--
       <p class="muted">
         @if (reconsCf4op()) {
           {{ t('cstimerBreakdown') }}
@@ -39,6 +40,7 @@ import { formatMinuteSecondCentis } from '../analysis/analysis-solve-display';
           {{ t('storedCfopTimes') }}
         }
       </p>
+      -->
       <table class="tbl cfop-tbl">
         <thead>
           <tr>
@@ -156,15 +158,15 @@ import { formatMinuteSecondCentis } from '../analysis/analysis-solve-display';
     </section>
   `,
   styles: [`
-    .cfop-block h3 { margin: 0 0 8px; font-size: 14px; color: #495057; }
-    .muted { color: #868e96; font-size: 12px; margin-top: 0; }
+    .cfop-block h3 { margin: 0 0 8px; font-size: 14px; color: var(--text-secondary); }
+    .muted { color: var(--text-muted); font-size: 12px; margin-top: 0; }
     .mono { font-family: 'JetBrains Mono', monospace; }
     .mono-tiny { font-size: 11px; margin: 4px 0 0; white-space: pre-wrap; word-break: break-all; }
     .cfop-tbl .clickable { cursor: pointer; }
-    .cfop-tbl .clickable:hover { background: #f8f9fa; }
-    .sub-row td { background: #fcfcfd; padding-left: 24px; }
+    .cfop-tbl .clickable:hover { background: var(--hover-bg); }
+    .sub-row td { background: var(--card-bg); padding-left: 12px; }
     .case-stat { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-    .chev { font-size: 10px; color: #868e96; }
+    .chev { font-size: 10px; color: var(--text-muted); }
   `],
 })
 export class CfopReconstructionComponent {

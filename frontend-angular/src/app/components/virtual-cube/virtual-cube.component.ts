@@ -1,7 +1,8 @@
 import { Component, inject, AfterViewInit, OnDestroy, OnInit, ViewChild, ElementRef, computed, HostBinding } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
-import { StateService, CubeState, Theme } from '../../services/state.service';
+import { StateService, CubeState } from '../../services/state.service';
+import { ThemeKey, THEMES, getTheme } from '../../data/themes';
 
 // WCA standard colors
 const COLORS: Record<string, number> = {
@@ -12,17 +13,6 @@ const COLORS: Record<string, number> = {
   'blue': 0x0046ad,
   'green': 0x009b48,
   'black': 0x111111
-};
-
-// Theme background colors (both for CSS and Three.js)
-const THEME_BACKGROUNDS: Record<Theme, string> = {
-  'white': '#eeffcb',
-  'black': '#1a1a1a'
-};
-
-const THEME_BACKGROUNDS_HEX: Record<Theme, number> = {
-  'white': 0xeeffcb,
-  'black': 0x1a1a1a
 };
 
 // Default solved state
@@ -47,7 +37,7 @@ const BORDER_LINE_MATERIAL = new THREE.LineBasicMaterial({
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="cube-container" #cubeContainer [class.theme-black]="isBlackTheme">
+    <div class="cube-container" #cubeContainer>
       <canvas #cubeCanvas></canvas>
     </div>
   `,
@@ -59,13 +49,10 @@ const BORDER_LINE_MATERIAL = new THREE.LineBasicMaterial({
       align-items: center;
       width: 100%;
       height: 100%;
-      background: #eeffcb;
+      background: var(--cube-bg);
       border-radius: 4px;
       overflow: hidden;
       transition: background-color 0.3s;
-    }
-    .cube-container.theme-black {
-      background: #1a1a1a;
     }
     canvas {
       display: block;
@@ -89,20 +76,13 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private lastBtState: string = '';
   private lastVirtualState: string = '';
-  private lastTheme: Theme = 'white';
-  private currentTheme: Theme = 'white';
-
-  // Computed theme for reactivity
-  get isBlackTheme(): boolean {
-    return this.state.settings().theme === 'black';
-  }
+  private lastTheme: ThemeKey = 'default';
 
   ngOnInit(): void {
     // Set initial state tracking
     this.lastVirtualState = JSON.stringify(this.state.cubeState());
     this.lastBtState = JSON.stringify(this.state.btCubeState());
-    this.lastTheme = this.state.settings().theme;
-    this.currentTheme = this.lastTheme;
+    this.lastTheme = this.state.settings().theme || 'default';
   }
 
   ngAfterViewInit(): void {
@@ -110,7 +90,7 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.initThreeJs();
       this.buildThreeJsCube();
 
-      // Check for theme changes
+      // Check for state and theme changes
       setInterval(() => {
         this.checkForStateChange();
         this.checkForThemeChange();
@@ -124,17 +104,17 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private checkForThemeChange(): void {
-    const newTheme = this.state.settings().theme;
+    const newTheme = this.state.settings().theme || 'default';
     if (newTheme !== this.lastTheme) {
       this.lastTheme = newTheme;
-      this.currentTheme = newTheme;
       this.updateBackgroundColor();
     }
   }
 
   private updateBackgroundColor(): void {
     if (this.threeScene) {
-      const bgColor = THEME_BACKGROUNDS_HEX[this.currentTheme] || THEME_BACKGROUNDS_HEX['white'];
+      const theme = getTheme(this.lastTheme);
+      const bgColor = theme.colors['cube-bg'];
       this.threeScene.background = new THREE.Color(bgColor);
     }
   }
@@ -184,8 +164,8 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
     const h = container.clientHeight || 500;
 
     this.threeScene = new THREE.Scene();
-    const bgColor = THEME_BACKGROUNDS_HEX[this.currentTheme] || THEME_BACKGROUNDS_HEX['white'];
-    this.threeScene.background = new THREE.Color(bgColor);
+    const theme = getTheme(this.lastTheme);
+    this.threeScene.background = new THREE.Color(theme.colors['cube-bg']);
 
     this.threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
     this.threeCamera.position.set(0, 0, 8);
@@ -325,7 +305,7 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
     group.add(fillMesh);
     // group.add(borderMesh);
     group.add(borderLine);
-    
+
     // Position the sticker
     group.position.set(nx * offset, ny * offset, nz * offset);
 

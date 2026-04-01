@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, type WritableSignal, type Signal, Output, EventEmitter } from '@angular/core';
+import { Component, inject, signal, computed, type WritableSignal, type Signal, Output, EventEmitter, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { StateService } from '../../services/state.service';
@@ -79,7 +79,7 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
       justify-content: space-between;
       align-items: center;
       padding: 8px 12px;
-      background: #fff;
+      background: var(--card-bg);
     }
 
     .header-left {
@@ -105,12 +105,12 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
     }
 
     .menu-btn:hover {
-      background: #f0f0f0;
+      background: var(--hover-bg);
     }
 
     .menu-icon {
       font-size: 20px;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .dropdown {
@@ -122,8 +122,8 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
       top: 100%;
       left: 0;
       margin-top: 4px;
-      background: #fff;
-      border: 1px solid #e0e0e0;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       min-width: 180px;
@@ -138,7 +138,7 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
       gap: 12px;
       padding: 10px 14px;
       font-size: 14px;
-      color: #333;
+      color: var(--text-primary);
       text-decoration: none;
       cursor: pointer;
       background: none;
@@ -148,12 +148,12 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
     }
 
     .menu-item:hover {
-      background: #f5f5f5;
+      background: var(--hover-bg);
     }
 
     .menu-divider {
       height: 1px;
-      background: #eee;
+      background: var(--border-color);
       margin: 6px 0;
     }
 
@@ -165,17 +165,18 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
 
     .lang-select-wrap span, .user-select-wrap span {
       font-size: 11px;
-      color: #999;
+      color: var(--text-muted);
     }
 
     .lang-select, .user-select {
       width: 100%;
       padding: 6px 8px;
       border-radius: 4px;
-      border: 1px solid #ddd;
-      background: #fff;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
       font-size: 13px;
       cursor: pointer;
+      color: var(--text-primary);
     }
 
     .connection-status {
@@ -188,15 +189,15 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #999;
+      background: var(--text-muted);
     }
 
     .status-dot.connected {
-      background: #4caf50;
+      background: var(--success-color);
     }
 
     .status-dot.scanning {
-      background: #007bff;
+      background: var(--primary-color);
       animation: pulse-dot 1s ease-in-out infinite;
     }
 
@@ -228,7 +229,7 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
 
     .status-text {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
     }
 
     .btn-keyboard {
@@ -245,7 +246,7 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
     }
 
     .btn-keyboard:hover {
-      background: #f0f0f0;
+      background: var(--hover-bg);
     }
   `]
 })
@@ -265,6 +266,16 @@ export class HeaderComponent {
 
   showKeyboardMapping: WritableSignal<boolean> = signal(false);
   menuOpen: WritableSignal<boolean> = signal(false);
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    // Don't close if clicking inside the dropdown
+    if (target.closest('.dropdown')) {
+      return;
+    }
+    this.menuOpen.set(false);
+  }
 
   availableLanguages = this.i18n.getAvailableLanguages();
 

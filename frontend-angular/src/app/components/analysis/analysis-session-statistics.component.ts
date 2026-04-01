@@ -126,21 +126,21 @@ import type { Solve } from '../../services/state.service';
     /* Full mode styles */
     h2 { margin: 0 0 12px; font-size: 18px; }
     .cards { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
-    .card { background: #f8f9fa; border-radius: 8px; padding: 10px; text-align: center; }
-    .label { font-size: 12px; color: #6c757d; }
-    .value { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .card { background: var(--hover-bg); border-radius: 8px; padding: 10px; text-align: center; }
+    .label { font-size: 12px; color: var(--text-secondary); }
+    .value { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); }
     .session-tools { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 12px; }
     .ao-cell { white-space: nowrap; color: var(--text-primary); }
-    .session-tools label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6c757d; }
-    .session-tools select { padding: 8px 10px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 13px; }
-    .sort-hint { font-size: 12px; color: #868e96; }
+    .session-tools label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+    .session-tools select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--input-border); font-size: 13px; background: var(--input-bg); color: var(--text-primary); }
+    .sort-hint { font-size: 12px; color: var(--text-muted); }
     .solves-tbl .solve-row { cursor: pointer; }
-    .solves-tbl .solve-row:hover { background: #f8f9fa; }
+    .solves-tbl .solve-row:hover { background: var(--hover-bg); }
     .scramble-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
     .mono { font-family: 'JetBrains Mono', monospace; color: var(--text-primary); }
-    .linkish { background: none; border: none; color: #0d6efd; cursor: pointer; font-size: 13px; padding: 0; text-decoration: underline; }
+    .linkish { background: none; border: none; color: var(--link-color); cursor: pointer; font-size: 13px; padding: 0; text-decoration: underline; }
     .table-wrap { overflow-x: auto; }
-    .empty { color: #868e96; margin: 0; font-size: 13px; }
+    .empty { color: var(--text-muted); margin: 0; font-size: 13px; }
 
     /* Compact sidebar mode styles */
     .compact-stats { display: flex; flex-direction: column; height: 100%; }
@@ -151,7 +151,7 @@ import type { Solve } from '../../services/state.service';
       margin-bottom: 10px;
     }
     .card-c {
-      background: #f8f9fa;
+      background: var(--hover-bg);
       border-radius: 6px;
       padding: 6px 4px;
       text-align: center;
@@ -166,7 +166,7 @@ import type { Solve } from '../../services/state.service';
     .card-c .lbl {
       display: block;
       font-size: 10px;
-      color: #6c757d;
+      color: var(--text-secondary);
       margin-top: 2px;
     }
     .compact-list-wrap {
@@ -182,18 +182,19 @@ import type { Solve } from '../../services/state.service';
     .compact-tbl th {
       text-align: left;
       font-size: 11px;
-      color: #6c757d;
+      color: var(--text-secondary);
       padding: 4px 6px;
-      border-bottom: 1px solid #e9ecef;
+      border-bottom: 1px solid var(--border-color);
       position: sticky;
       top: 0;
-      background: #fff;
+      background: var(--card-bg);
     }
     .compact-tbl .solve-row { cursor: pointer; }
-    .compact-tbl .solve-row:hover { background: #f8f9fa; }
+    .compact-tbl .solve-row:hover { background: var(--hover-bg); }
     .compact-tbl td {
       padding: 4px 6px;
-      border-bottom: 1px solid #f1f3f5;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
     }
   `],
 })

@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, type WritableSignal, type Signal } from '@angular/core';
 import { ALL_OLL_INDICES } from '../data/oll-cases';
 import { ALL_PLL_INDICES } from '../data/pll-cases';
+import { ThemeKey, THEMES } from '../data/themes';
 
 export interface CubeState {
   U: string[];
@@ -11,12 +12,10 @@ export interface CubeState {
   B: string[];
 }
 
-export type Theme = 'white' | 'black';
-
 export interface Settings {
   inspectionTime: number;
   sound: boolean;
-  theme: Theme;
+  theme: ThemeKey;
 }
 
 export interface Solve {
@@ -171,11 +170,11 @@ export class StateService {
   readonly settings: WritableSignal<Settings> = signal<Settings>({
     inspectionTime: 15,
     sound: true,
-    theme: 'white'
+    theme: 'default'
   });
 
   // Theme helper (computed from settings)
-  readonly theme: Signal<Theme> = computed(() => this.settings().theme);
+  readonly theme: Signal<ThemeKey> = computed(() => this.settings().theme);
 
   // Intervals (not signals, just refs)
   timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -198,10 +197,17 @@ export class StateService {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed) {
+          // Validate theme key
+          const themeKey = parsed.theme && typeof parsed.theme === 'string'
+            ? (parsed.theme as ThemeKey)
+            : 'default';
+          // Only use valid theme keys
+          const validTheme = Object.keys(THEMES).includes(themeKey) ? themeKey : 'default';
+
           this.settings.set({
             inspectionTime: parsed.inspectionTime ?? 15,
             sound: parsed.sound ?? true,
-            theme: parsed.theme ?? 'white'
+            theme: validTheme
           });
         }
       }
