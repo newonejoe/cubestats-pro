@@ -1,4 +1,4 @@
-import { APP_INITIALIZER, ApplicationConfig, provideBrowserGlobalErrorListeners, APP_BASE_HREF } from '@angular/core';
+import { APP_INITIALIZER, ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, HttpClient } from '@angular/common/http';
 
@@ -11,7 +11,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(),
-    { provide: APP_BASE_HREF, useValue: '/cubestats-pro/' },
     {
       provide: APP_INITIALIZER,
       multi: true,

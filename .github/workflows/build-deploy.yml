@@ -104,6 +104,9 @@ jobs:
         cp -r ./frontend-angular/dist/frontend-angular/browser/* ./CubeStatsApi/wwwroot/
         touch ./CubeStatsApi/wwwroot/.nojekyll
 
+    - name: Fix base href for GitHub Pages
+      run: sed -i 's|<base href="/">|<base href="/cubestats-pro/">|' ./CubeStatsApi/wwwroot/index.html
+
     - name: Create .nojekyll file
       run: touch ./CubeStatsApi/wwwroot/.nojekyll
 
