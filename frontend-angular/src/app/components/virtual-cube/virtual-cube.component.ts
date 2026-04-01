@@ -1,7 +1,7 @@
-import { Component, inject, AfterViewInit, OnDestroy, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, AfterViewInit, OnDestroy, OnInit, ViewChild, ElementRef, computed, HostBinding } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
-import { StateService, CubeState } from '../../services/state.service';
+import { StateService, CubeState, Theme } from '../../services/state.service';
 
 // WCA standard colors
 const COLORS: Record<string, number> = {
@@ -12,6 +12,17 @@ const COLORS: Record<string, number> = {
   'blue': 0x0046ad,
   'green': 0x009b48,
   'black': 0x111111
+};
+
+// Theme background colors (both for CSS and Three.js)
+const THEME_BACKGROUNDS: Record<Theme, string> = {
+  'white': '#eeffcb',
+  'black': '#1a1a1a'
+};
+
+const THEME_BACKGROUNDS_HEX: Record<Theme, number> = {
+  'white': 0xeeffcb,
+  'black': 0x1a1a1a
 };
 
 // Default solved state
@@ -36,7 +47,7 @@ const BORDER_LINE_MATERIAL = new THREE.LineBasicMaterial({
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="cube-container" #cubeContainer>
+    <div class="cube-container" #cubeContainer [class.theme-black]="isBlackTheme">
       <canvas #cubeCanvas></canvas>
     </div>
   `,
@@ -51,6 +62,10 @@ const BORDER_LINE_MATERIAL = new THREE.LineBasicMaterial({
       background: #eeffcb;
       border-radius: 4px;
       overflow: hidden;
+      transition: background-color 0.3s;
+    }
+    .cube-container.theme-black {
+      background: #1a1a1a;
     }
     canvas {
       display: block;
@@ -74,11 +89,20 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private lastBtState: string = '';
   private lastVirtualState: string = '';
+  private lastTheme: Theme = 'white';
+  private currentTheme: Theme = 'white';
+
+  // Computed theme for reactivity
+  get isBlackTheme(): boolean {
+    return this.state.settings().theme === 'black';
+  }
 
   ngOnInit(): void {
     // Set initial state tracking
     this.lastVirtualState = JSON.stringify(this.state.cubeState());
     this.lastBtState = JSON.stringify(this.state.btCubeState());
+    this.lastTheme = this.state.settings().theme;
+    this.currentTheme = this.lastTheme;
   }
 
   ngAfterViewInit(): void {
@@ -86,14 +110,32 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.initThreeJs();
       this.buildThreeJsCube();
 
+      // Check for theme changes
       setInterval(() => {
         this.checkForStateChange();
+        this.checkForThemeChange();
       }, 100);
 
       this.resizeObserver = new ResizeObserver(() => this.handleResize());
       this.resizeObserver.observe(this.containerRef.nativeElement);
     } catch (e) {
       console.error('[VirtualCube] Error in ngAfterViewInit:', e);
+    }
+  }
+
+  private checkForThemeChange(): void {
+    const newTheme = this.state.settings().theme;
+    if (newTheme !== this.lastTheme) {
+      this.lastTheme = newTheme;
+      this.currentTheme = newTheme;
+      this.updateBackgroundColor();
+    }
+  }
+
+  private updateBackgroundColor(): void {
+    if (this.threeScene) {
+      const bgColor = THEME_BACKGROUNDS_HEX[this.currentTheme] || THEME_BACKGROUNDS_HEX['white'];
+      this.threeScene.background = new THREE.Color(bgColor);
     }
   }
 
@@ -142,7 +184,8 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
     const h = container.clientHeight || 500;
 
     this.threeScene = new THREE.Scene();
-    this.threeScene.background = new THREE.Color(0xeeffcb);
+    const bgColor = THEME_BACKGROUNDS_HEX[this.currentTheme] || THEME_BACKGROUNDS_HEX['white'];
+    this.threeScene.background = new THREE.Color(bgColor);
 
     this.threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
     this.threeCamera.position.set(0, 0, 8);

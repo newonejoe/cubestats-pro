@@ -18,8 +18,8 @@ import { CommonModule } from '@angular/common';
     .no-data {
       text-align: center;
       padding: 40px 20px;
-      color: #888;
-      background: #f8f9fa;
+      color: var(--text-muted);
+      background: var(--hover-bg);
       border-radius: 8px;
     }
     .no-data.no-bg {

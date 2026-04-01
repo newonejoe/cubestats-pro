@@ -160,13 +160,13 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
     .prompt-title {
       font-size: 20px;
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
       margin: 0;
     }
 
     .prompt-text {
       font-size: 14px;
-      color: #666;
+      color: var(--text-secondary);
       margin: 0;
     }
 
@@ -195,18 +195,18 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
       align-items: center;
       gap: 6px;
       padding: 8px 16px;
-      background: #e3f2fd;
-      border: 1px solid #2196f3;
+      background: var(--hover-bg);
+      border: 1px solid var(--primary-color);
       border-radius: 20px;
       font-size: 13px;
-      color: #1976d2;
+      color: var(--primary-color);
       cursor: pointer;
       transition: all 0.2s;
     }
 
     .quick-connect-btn:hover {
-      background: #2196f3;
-      color: white;
+      background: var(--primary-color);
+      color: var(--card-bg);
     }
 
     .prompt-actions {
@@ -230,17 +230,17 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: #999;
+      background: var(--text-muted);
     }
 
     .status-dot.connected {
-      background: #4caf50;
+      background: var(--success-color);
       box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
     }
 
     .status-text {
       font-size: 14px;
-      color: #666;
+      color: var(--text-secondary);
     }
 
     /* Connected State */
@@ -265,7 +265,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
     .device-name {
       font-size: 16px;
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .btn-disconnect {
@@ -355,7 +355,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
 
     .history-header {
       font-size: 12px;
-      color: #999;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
@@ -366,8 +366,8 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
       align-items: center;
       gap: 12px;
       padding: 12px;
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
+      background: var(--hover-bg);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s;
@@ -375,7 +375,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
     }
 
     .device-item:hover {
-      background: #e9ecef;
+      background: var(--hover-bg);
       border-color: #dee2e6;
     }
 
@@ -392,7 +392,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
 
     .device-mac {
       font-size: 11px;
-      color: #999;
+      color: var(--text-muted);
       font-family: monospace;
     }
 
@@ -416,7 +416,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
 
     .error-text {
       font-size: 14px;
-      color: #dc3545;
+      color: var(--danger-color);
     }
 
     /* Buttons */
@@ -434,21 +434,21 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
     }
 
     .btn-primary {
-      background: #007bff;
-      color: white;
+      background: var(--primary-color);
+      color: #fff;
     }
 
     .btn-primary:hover {
-      background: #0056b3;
+      background: var(--primary-color); filter: brightness(0.9);
     }
 
     .btn-secondary {
-      background: #e9ecef;
-      color: #333;
+      background: var(--hover-bg);
+      color: var(--text-primary);
     }
 
     .btn-secondary:hover {
-      background: #dee2e6;
+      background: var(--border-color);
     }
   `]
 })

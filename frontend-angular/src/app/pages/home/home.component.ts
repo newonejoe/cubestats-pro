@@ -12,7 +12,7 @@ import { AnalysisSessionStatisticsComponent } from '../../components/analysis/an
 import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-solve-modal.component';
 import { SettingsModalComponent } from '../../components/settings-modal/settings-modal.component';
 
-import { StateService, type Solve } from '../../services/state.service';
+import { StateService, Theme, type Solve } from '../../services/state.service';
 import { CubeService } from '../../services/cube.service';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
@@ -40,11 +40,11 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       </div>
     </div>
 
-    <div class="layout" [class.blurred]="!cubeConnected()">
+    <div class="layout" [class.blurred]="!cubeConnected()" [class.theme-black]="isBlackTheme()">
       @if (cubeConnected()) {
         <!-- Left sidebar: session stats + solve list -->
         <aside class="sidebar">
-          <app-header></app-header>
+          <app-header (openSettings)="openSettings()"></app-header>
           <app-session-selector></app-session-selector>
           <app-analysis-session-statistics
             mode="compact"
@@ -95,6 +95,11 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       padding: 12px;
       width: 100%;
       min-height: calc(100vh - 56px);
+      transition: background-color 0.3s;
+    }
+
+    .layout.theme-black {
+      background: #1a1a1a;
     }
 
     /* Left sidebar */
@@ -109,6 +114,11 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       position: sticky;
       top: 68px;
       overflow-y: auto;
+    }
+
+    .layout.theme-black .sidebar {
+      background: #2a2a2a;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
 
     .sidebar app-header {
@@ -152,12 +162,15 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       z-index: 9999;
       transition: opacity 0.3s ease;
     }
+    :global(.theme-black) .bt-modal-overlay {
+      background: linear-gradient(135deg, #4a148c 0%, #7b1fa2 100%);
+    }
     .bt-modal-overlay.hidden {
       opacity: 0;
       pointer-events: none;
     }
     .bt-modal {
-      background: #fff;
+      background: var(--card-bg);
       border-radius: 20px;
       padding: 32px;
       width: 90%;
@@ -281,5 +294,13 @@ export class HomeComponent implements OnInit {
 
   closeSolveModal(): void {
     this.modalSolve.set(null);
+  }
+
+  isBlackTheme(): boolean {
+    return this.state.settings().theme === 'black';
+  }
+
+  openSettings(): void {
+    this.showSettingsVisible = true;
   }
 }

@@ -74,14 +74,14 @@ type FaceId = 'U' | 'L' | 'F' | 'R' | 'B' | 'D';
     .caption {
       margin: 0 0 12px;
       font-size: 12px;
-      color: #6c757d;
+      color: var(--text-muted);
     }
     .placeholder {
       padding: 28px;
       text-align: center;
-      color: #868e96;
-      background: #f8f9fa;
-      border: 2px dashed #dee2e6;
+      color: var(--text-muted);
+      background: var(--hover-bg);
+      border: 2px dashed var(--border-color);
       border-radius: 10px;
       font-size: 14px;
     }
@@ -95,6 +95,9 @@ type FaceId = 'U' | 'L' | 'F' | 'R' | 'B' | 'D';
       background: #1a1a1a;
       border-radius: 10px;
       --st: min(22vw, 92px);
+    }
+    :global(.theme-black) .net {
+      background: #000;
     }
     .net-cell.empty {
       min-height: 0;

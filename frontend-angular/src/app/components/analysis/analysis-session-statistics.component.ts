@@ -43,7 +43,7 @@ import type { Solve } from '../../services/state.service';
               <tbody>
                 @for (solve of sortedSessionSolves(); track solve.id ?? $index; let idx = $index) {
                   <tr class="solve-row" (click)="solveOpen.emit(solve)">
-                    <td>{{ idx + 1 }}</td>
+                    <td class="lbl">{{ idx + 1 }}</td>
                     <td class="mono">{{ fm(finalSolveMs(solve)) }}</td>
                     <td class="mono ao-cell">{{ rollingAo5Cell(solve) }}</td>
                     <td class="mono ao-cell">{{ rollingAo12Cell(solve) }}</td>
@@ -130,14 +130,14 @@ import type { Solve } from '../../services/state.service';
     .label { font-size: 12px; color: #6c757d; }
     .value { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
     .session-tools { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 12px; }
-    .ao-cell { white-space: nowrap; }
+    .ao-cell { white-space: nowrap; color: var(--text-primary); }
     .session-tools label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6c757d; }
     .session-tools select { padding: 8px 10px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 13px; }
     .sort-hint { font-size: 12px; color: #868e96; }
     .solves-tbl .solve-row { cursor: pointer; }
     .solves-tbl .solve-row:hover { background: #f8f9fa; }
     .scramble-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
+    .mono { font-family: 'JetBrains Mono', monospace; color: var(--text-primary); }
     .linkish { background: none; border: none; color: #0d6efd; cursor: pointer; font-size: 13px; padding: 0; text-decoration: underline; }
     .table-wrap { overflow-x: auto; }
     .empty { color: #868e96; margin: 0; font-size: 13px; }
@@ -161,7 +161,7 @@ import type { Solve } from '../../services/state.service';
       font-size: 15px;
       font-weight: 700;
       font-family: 'JetBrains Mono', monospace;
-      color: #212529;
+      color: var(--text-primary);
     }
     .card-c .lbl {
       display: block;

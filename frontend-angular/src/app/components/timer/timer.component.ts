@@ -142,6 +142,41 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
     }
     .timer-value.running { color: #4caf50; }
     .timer-value.inspection { color: #ff9800; }
+
+    /* Mobile responsive */
+    @media (max-width: 600px) {
+      .timer-stage {
+        min-height: 320px;
+      }
+      .overlay {
+        min-height: 320px;
+      }
+      .right-panel {
+        width: 200px;
+        padding: 8px;
+      }
+      .timer-value {
+        font-size: 48px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .timer-stage {
+        min-height: 240px;
+      }
+      .overlay {
+        min-height: 240px;
+      }
+      .right-panel {
+        display: none;
+      }
+      .timer-value {
+        font-size: 36px;
+      }
+      .scramble-bar {
+        padding: 8px 8px 0;
+      }
+    }
   `]
 })
 export class TimerComponent implements OnInit {

@@ -126,26 +126,26 @@ const DEFAULT_PAGE_SIZE = 10;
     h2 { margin: 0 0 12px; font-size: 18px; }
     h3 { margin: 12px 0 8px; font-size: 15px; }
     .training-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 10px; }
-    .training-head label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6c757d; }
-    .training-head select { padding: 8px 10px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 13px; }
+    .training-head label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+    .training-head select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--input-border); font-size: 13px; background: var(--input-bg); color: var(--text-primary); }
     .training-type-summary { margin-top: 12px; }
     .list { list-style: none; margin: 0; padding: 0; }
-    .list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f3f5; }
-    .empty { color: #868e96; margin: 0; }
+    .list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color); }
+    .empty { color: var(--text-muted); margin: 0; }
     .case-label { display: flex; align-items: center; gap: 8px; }
     .case-img { width: 32px; height: 32px; object-fit: contain; }
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     th.sortable { cursor: pointer; user-select: none; }
-    th.sortable:hover { background: #f8f9fa; }
+    th.sortable:hover { background: var(--hover-bg); }
     .sort-icon { margin-left: 4px; font-size: 10px; }
-    .scramble-row { background: #fafbfc; }
+    .scramble-row { background: var(--hover-bg); }
     .scramble-cell { padding: 4px 8px 8px !important; }
-    .scramble-tag { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; background: #e9ecef; border-radius: 4px; font-size: 12px; font-family: monospace; }
+    .scramble-tag { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; background: var(--hover-bg); border-radius: 4px; font-size: 12px; font-family: monospace; color: var(--text-primary); }
     .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 16px 0; }
-    .btn-page { padding: 6px 12px; border: 1px solid #dee2e6; background: #fff; border-radius: 4px; cursor: pointer; font-size: 13px; }
-    .btn-page:hover:not(:disabled) { background: #f8f9fa; }
+    .btn-page { padding: 6px 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .btn-page:hover:not(:disabled) { background: var(--hover-bg); }
     .btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
-    .page-info { font-size: 13px; color: #6c757d; }
+    .page-info { font-size: 13px; color: var(--text-secondary); }
   `],
 })
 export class AnalysisTrainingStatisticsComponent {

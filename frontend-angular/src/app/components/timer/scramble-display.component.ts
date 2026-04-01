@@ -100,8 +100,9 @@ interface ScrambleSnapshot {
     .type-select {
       padding: 6px 10px;
       border-radius: 6px;
-      border: 1px solid #d0d7de;
-      background: #f8f9fa;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-primary);
       font-size: 13px;
       cursor: pointer;
     }
@@ -111,54 +112,55 @@ interface ScrambleSnapshot {
       justify-content: center;
       width: 32px;
       height: 32px;
-      border: 1px solid #d0d7de;
+      border: 1px solid var(--border-color);
       border-radius: 6px;
-      background: #f8f9fa;
+      background: var(--card-bg);
       cursor: pointer;
       padding: 0;
     }
-    .icon-btn:hover { background: #e9ecef; }
-    .icon-btn svg { fill: #495057; }
+    .icon-btn:hover { background: var(--hover-bg); }
+    .icon-btn svg { fill: var(--text-secondary); }
     .nav-btn {
       padding: 6px 14px;
       border-radius: 6px;
-      border: 1px solid #d0d7de;
-      background: #f8f9fa;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-primary);
       font-size: 13px;
       cursor: pointer;
     }
-    .nav-btn:hover { background: #e9ecef; }
+    .nav-btn:hover { background: var(--hover-bg); }
     .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .nav-btn.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
-    .nav-btn.primary:hover { background: #0b5ed7; }
+    .nav-btn.primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+    .nav-btn.primary:hover { filter: brightness(0.9); }
     .scramble-info {
       font-size: 12px;
-      color: #6c757d;
-      background: #e9ecef;
+      color: var(--text-secondary);
+      background: var(--hover-bg);
       padding: 2px 8px;
       border-radius: 4px;
     }
     .scramble-text {
       font-family: 'JetBrains Mono', monospace;
       font-size: 24px;
-      color: #333;
+      color: var(--text-primary);
       word-break: break-all;
       line-height: 1.5;
     }
-    .scramble-text.with-progress { color: #495057; }
+    .scramble-text.with-progress { color: var(--text-secondary); }
     :host ::ng-deep .scrm-seg { display: inline-block; margin-right: 0.35em; }
-    :host ::ng-deep .scrm-done { color: #adb5bd; font-weight: 500; }
-    :host ::ng-deep .scrm-todo { color: #212529; }
+    :host ::ng-deep .scrm-done { color: var(--text-muted); font-weight: 500; }
+    :host ::ng-deep .scrm-todo { color: var(--text-primary); }
     :host ::ng-deep .scrm-cur {
-      color: #0d6efd;
+      color: var(--primary-color);
       font-weight: 700;
-      background: #e7f1ff;
+      background: var(--hover-bg);
       padding: 0 0.1em;
       border-radius: 4px;
     }
     .bounds-group { display: flex; align-items: center; gap: 8px; }
-    .bounds-label { font-size: 13px; color: #495057; }
-    .bounds-digit { width: 4rem; text-align: center; padding: 6px; border: 1px solid #ccc; border-radius: 6px; }
+    .bounds-label { font-size: 13px; color: var(--text-secondary); }
+    .bounds-digit { width: 4rem; text-align: center; padding: 6px; border: 1px solid var(--input-border); border-radius: 6px; }
   `]
 })
 export class ScrambleDisplayComponent {

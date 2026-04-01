@@ -93,17 +93,19 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
     }
   `,
   styles: [`
+    :host { display: block; background: var(--background); color: var(--text-primary); }
     .analysis-page { margin: 0 auto; padding: 20px; }
     .top { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
-    .back { color: #0d6efd; text-decoration: none; }
-    .panel { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-    .empty { color: #868e96; margin: 0; }
+    .back { color: var(--link-color); text-decoration: none; }
+    .back:hover { text-decoration: underline; }
+    .panel { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .empty { color: var(--text-muted); margin: 0; }
     .bt-status-bar {
       display: flex;
       align-items: center;
       gap: 16px;
       padding: 10px 14px;
-      background: #f8f9fa;
+      background: var(--hover-bg);
       border-radius: 8px;
       margin-bottom: 14px;
       font-size: 13px;
@@ -117,13 +119,13 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #999;
+      background: var(--text-muted);
     }
     .status-dot.connected {
-      background: #4caf50;
+      background: var(--success-color);
     }
     .status-dot.scanning {
-      background: #007bff;
+      background: var(--primary-color);
       animation: pulse-dot 1s ease-in-out infinite;
     }
     .scanning-indicator {
@@ -149,7 +151,7 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
       100% { transform: scale(1.5); opacity: 0; }
     }
     .device-name {
-      color: #666;
+      color: var(--text-secondary);
       font-size: 12px;
     }
   `],

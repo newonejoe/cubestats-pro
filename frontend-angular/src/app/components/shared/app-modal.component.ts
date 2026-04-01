@@ -24,23 +24,22 @@ import { CommonModule } from '@angular/common';
     }
   `,
   styles: [`
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; }
-    .modal { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 16px; pointer-events: none; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100000; }
+    .modal { position: fixed; inset: 0; z-index: 100001; display: flex; align-items: center; justify-content: center; padding: 16px; pointer-events: none; }
     .modal-inner {
-      pointer-events: auto; background: #fff; border-radius: 12px; width: 100%; max-height: 90vh;
-      overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.15); z-index: 10002;
+      pointer-events: auto; background: var(--card-bg); border-radius: 12px; width: 100%; max-height: 90vh;
+      overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.15); z-index: 100002;
     }
     .modal-inner.dark-theme {
       background: #1a1a2e; color: #eee;
     }
-    .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #e9ecef; }
-    .dark-theme .modal-head { border-bottom-color: #333; }
-    .modal-head h2 { margin: 0; font-size: 18px; }
-    .icon-close { border: none; background: transparent; font-size: 26px; line-height: 1; cursor: pointer; color: #6c757d; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border-color); }
+    .modal-head h2 { margin: 0; font-size: 18px; color: var(--text-primary); }
+    .icon-close { border: none; background: transparent; font-size: 26px; line-height: 1; cursor: pointer; color: var(--text-muted); }
     .dark-theme .icon-close { color: #888; }
-    .icon-close:hover { color: #343a40; }
+    .icon-close:hover { color: var(--text-primary); }
     .dark-theme .icon-close:hover { color: #ccc; }
-    .modal-body { padding: 24px; overflow-y: auto; }
+    .modal-body { padding: 24px; overflow-y: auto; color: var(--text-primary); }
     .modal-body.no-padding { padding: 0; }
   `]
 })

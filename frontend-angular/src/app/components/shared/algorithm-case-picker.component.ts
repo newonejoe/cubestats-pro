@@ -128,7 +128,7 @@ export interface AlgorithmGroup {
     </ng-template>
   `,
   styles: [`
-    .alg-picker { font-size: 13px; color: #333; }
+    .alg-picker { font-size: 13px; color: var(--text-primary); }
     .mode-row {
       display: flex;
       flex-wrap: wrap;
@@ -152,8 +152,9 @@ export interface AlgorithmGroup {
       padding: 6px 12px;
       font-size: 12px;
       border-radius: 6px;
-      border: 1px solid #ced4da;
-      background: #fff;
+      border: 1px solid var(--input-border);
+      background: var(--card-bg);
+      color: var(--text-primary);
       cursor: pointer;
     }
     .btn.primary {
@@ -162,19 +163,19 @@ export interface AlgorithmGroup {
       color: #fff;
     }
     .btn.primary:hover { filter: brightness(0.95); }
-    .count { font-size: 12px; color: #868e96; }
+    .count { font-size: 12px; color: var(--text-muted); }
 
     .modal-toolbar {
       padding: 12px 18px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #e9ecef;
+      background: var(--hover-bg);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       gap: 8px;
     }
-    .inline-toolbar { border-radius: 8px; margin-bottom: 12px; border: 1px solid #e9ecef; }
-    .modal-body-scroll { padding: 18px; overflow-y: auto; background: #f8f9fa; }
+    .inline-toolbar { border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-color); }
+    .modal-body-scroll { padding: 18px; overflow-y: auto; background: var(--hover-bg); }
     .inline-body { padding: 0; background: transparent; }
-    
+
     .case-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -184,7 +185,7 @@ export interface AlgorithmGroup {
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: #fff;
+      background: var(--card-bg);
       border: 2px solid transparent;
       border-radius: 8px;
       padding: 8px;
@@ -192,26 +193,26 @@ export interface AlgorithmGroup {
       transition: all 0.15s;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .case-tile:hover { border-color: #dee2e6; transform: translateY(-1px); }
-    .case-tile.on { border-color: #fd7e14; background: #fffcf8; }
+    .case-tile:hover { border-color: var(--border-color); transform: translateY(-1px); }
+    .case-tile.on { border-color: #fd7e14; background: var(--card-bg); }
     .sr-only {
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
     }
     .ll-thumb { width: 100px; height: 100px; object-fit: contain; margin-bottom: 8px; border-radius: 4px; }
-    .ll-fallback { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; background: #f1f3f5; color: #adb5bd; border-radius: 4px; margin-bottom: 8px; font-size: 24px; }
-    .case-name { font-size: 12px; font-weight: 600; text-align: center; }
+    .ll-fallback { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; background: var(--hover-bg); color: var(--text-muted); border-radius: 4px; margin-bottom: 8px; font-size: 24px; }
+    .case-name { font-size: 12px; font-weight: 600; text-align: center; color: var(--text-primary); }
 
     .group { margin-bottom: 24px; }
-    .group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e9ecef; }
-    .group-title { font-size: 15px; font-weight: 600; color: #495057; }
+    .group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+    .group-title { font-size: 15px; font-weight: 600; color: var(--text-secondary); }
     .btn.tiny { padding: 2px 8px; font-size: 11px; }
 
     .modal-foot {
       padding: 14px 18px;
-      border-top: 1px solid #e9ecef;
+      border-top: 1px solid var(--border-color);
       display: flex;
       justify-content: flex-end;
-      background: #fff;
+      background: var(--card-bg);
     }
   `]
 })

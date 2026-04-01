@@ -154,7 +154,7 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
       margin: 0 auto;
       padding: 24px;
       min-height: 100vh;
-      background: #f0f2f5;
+      background: var(--background);
       font-family: system-ui, sans-serif;
     }
     .top {
@@ -168,10 +168,10 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
       margin: 0;
       font-size: 1.35rem;
       font-weight: 700;
-      color: #1a1a1a;
+      color: var(--text-primary);
     }
     .back {
-      color: #0d6efd;
+      color: var(--link-color);
       text-decoration: none;
       font-weight: 500;
     }
@@ -182,15 +182,15 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
       font-size: 12px;
       padding: 4px 10px;
       border-radius: 999px;
-      background: #e9ecef;
-      color: #666;
+      background: var(--hover-bg);
+      color: var(--text-muted);
     }
     .badge.on {
-      background: #d1e7dd;
-      color: #0f5132;
+      background: var(--success-color);
+      color: #fff;
     }
     .panel {
-      background: #fff;
+      background: var(--card-bg);
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 16px;
@@ -199,7 +199,7 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     .panel h2 {
       margin: 0 0 16px;
       font-size: 1rem;
-      color: #444;
+      color: var(--text-secondary);
     }
     .row {
       display: flex;
@@ -211,17 +211,19 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     .row label {
       min-width: 200px;
       font-size: 14px;
-      color: #333;
+      color: var(--text-primary);
     }
     select, input[type="number"] {
       padding: 8px 12px;
-      border: 1px solid #ccc;
+      border: 1px solid var(--input-border);
       border-radius: 8px;
       font-size: 14px;
+      background: var(--input-bg);
+      color: var(--text-primary);
     }
     .hint {
       font-size: 12px;
-      color: #888;
+      color: var(--text-muted);
       flex: 1 1 100%;
       margin-left: 212px;
     }
@@ -235,7 +237,7 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     .toolbar-row label {
       min-width: auto;
       font-size: 14px;
-      color: #333;
+      color: var(--text-primary);
     }
     .btn-mid,
     .btn-next {
@@ -244,12 +246,12 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
       font-weight: 600;
       border-radius: 8px;
       cursor: pointer;
-      border: 1px solid #d0d7de;
-      background: #fff;
-      color: #1f2328;
+      border: 1px solid var(--input-border);
+      background: var(--card-bg);
+      color: var(--text-primary);
     }
     .btn-mid:hover {
-      background: #f6f8fa;
+      background: var(--hover-bg);
     }
     .icon-btn {
       padding: 9px 10px;
@@ -266,29 +268,29 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     }
     .btn-mid:disabled {
       cursor: not-allowed;
-      color: #8c959f;
-      border-color: #d8dee4;
-      background: #f6f8fa;
+      color: var(--text-muted);
+      border-color: var(--border-color);
+      background: var(--hover-bg);
     }
     .btn-next {
       color: #fff;
-      background: #0d6efd;
-      border-color: #0d6efd;
+      background: var(--primary-color);
+      border-color: var(--primary-color);
     }
     .btn-next:hover {
-      background: #0b5ed7;
+      filter: brightness(0.9);
     }
     .scramble-line {
       margin: 0;
       padding: 14px;
-      background: #f8f9fa;
+      background: var(--hover-bg);
       border-radius: 8px;
       font-family: 'JetBrains Mono', ui-monospace, monospace;
       font-size: 15px;
       line-height: 1.5;
       white-space: pre-wrap;
       word-break: break-word;
-      color: #222;
+      color: var(--text-primary);
     }
     .move-list {
       margin: 0;
@@ -300,7 +302,7 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     .move-list code {
       font-family: 'JetBrains Mono', ui-monospace, monospace;
       font-size: 14px;
-      background: #f1f3f5;
+      background: var(--hover-bg);
       padding: 2px 6px;
       border-radius: 4px;
     }
@@ -312,7 +314,7 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     }
     .bounds-label {
       font-size: 13px;
-      color: #495057;
+      color: var(--text-secondary);
     }
     input.bounds-digit {
       width: 4rem;
@@ -320,13 +322,13 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     }
     .hint code {
       font-size: 11px;
-      background: #f1f3f5;
+      background: var(--hover-bg);
       padding: 1px 4px;
       border-radius: 3px;
     }
     .hint.muted {
       margin-left: 0;
-      color: #868e96;
+      color: var(--text-muted);
     }
     .hint.small {
       margin-left: 0;
@@ -336,7 +338,7 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
     .subh {
       margin: 0 0 8px;
       font-size: 0.95rem;
-      color: #495057;
+      color: var(--text-secondary);
     }
     .net-hint {
       margin: 0 0 12px;

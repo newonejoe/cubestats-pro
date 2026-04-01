@@ -35,7 +35,7 @@ import { AppModalComponent } from '../shared/app-modal.component';
     }
     h3 {
       margin: 0 0 8px;
-      color: #4caf50;
+      color: var(--success-color);
       font-size: 24px;
     }
     h3.not-solved {
@@ -43,12 +43,12 @@ import { AppModalComponent } from '../shared/app-modal.component';
     }
     p {
       margin: 0 0 8px;
-      color: #888;
+      color: var(--text-secondary);
       font-size: 16px;
     }
     .subtitle {
       margin: 16px 0 20px;
-      color: #666;
+      color: var(--text-secondary);
     }
     .modal-buttons {
       display: flex;
@@ -64,18 +64,18 @@ import { AppModalComponent } from '../shared/app-modal.component';
       font-weight: 500;
     }
     .btn-cancel {
-      background: #333;
-      color: #aaa;
+      background: var(--hover-bg);
+      color: var(--text-primary);
     }
     .btn-cancel:hover {
-      background: #444;
+      background: var(--border-color);
     }
     .btn-submit {
-      background: #6366f1;
-      color: white;
+      background: var(--primary-color);
+      color: #fff;
     }
     .btn-submit:hover {
-      background: #5558e3;
+      filter: brightness(0.9);
     }
   `]
 })

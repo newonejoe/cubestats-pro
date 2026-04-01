@@ -89,21 +89,21 @@ import { CfopReconstructionComponent } from '../shared/cfop-reconstruction.compo
   styles: [`
     .solve-modal-body { padding: 14px 18px 20px; overflow-y: auto; }
     .row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid #d0d7de; background: #f8f9fa; cursor: pointer; font-size: 13px; }
-    .btn:hover { background: #e9ecef; }
+    .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--card-bg); color: var(--text-primary); cursor: pointer; font-size: 13px; }
+    .btn:hover { background: var(--hover-bg); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-danger { background: #f8d7da; border-color: #f5c2c7; color: #842029; }
-    .btn-small { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #d0d7de; background: #fff; cursor: pointer; margin-top: 8px; margin-right: 8px; }
-    .btn-small.link { display: inline-block; text-decoration: none; color: #0d6efd; text-align: center; }
+    .btn-danger { background: var(--danger-color); border-color: var(--danger-color); color: #fff; }
+    .btn-small { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--card-bg); color: var(--text-primary); cursor: pointer; margin-top: 8px; margin-right: 8px; }
+    .btn-small.link { display: inline-block; text-decoration: none; color: var(--link-color); text-align: center; }
     .detail-block { margin-bottom: 18px; }
-    .detail-block h3 { margin: 0 0 8px; font-size: 14px; color: #495057; }
-    .mono-block { margin: 0 0 8px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+    .detail-block h3 { margin: 0 0 8px; font-size: 14px; color: var(--text-secondary); }
+    .mono-block { margin: 0 0 8px; padding: 10px; background: var(--hover-bg); border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: var(--text-primary); }
     .mono-line { font-family: 'JetBrains Mono', monospace; font-size: 12px; word-break: break-all; }
     .mono-tiny { font-size: 11px; margin: 4px 0 0; white-space: pre-wrap; word-break: break-all; }
     .trace { max-height: 160px; overflow-y: auto; }
     .kv { list-style: none; margin: 0; padding: 0; }
-    .kv li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #f1f3f5; font-size: 13px; }
-    .muted { color: #868e96; font-size: 12px; margin-top: 0; }
+    .kv li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-primary); }
+    .muted { color: var(--text-muted); font-size: 12px; margin-top: 0; }
     .mono { font-family: 'JetBrains Mono', monospace; }
   `],
 })

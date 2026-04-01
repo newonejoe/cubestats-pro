@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, type WritableSignal, type Signal } from '@angular/core';
+import { Component, inject, signal, computed, type WritableSignal, type Signal, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { StateService } from '../../services/state.service';
@@ -20,9 +20,12 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
           </button>
           @if (menuOpen()) {
             <div class="dropdown-menu" (click)="$event.stopPropagation()">
+              <a routerLink="/" class="menu-item" (click)="menuOpen.set(false)">{{ t('home') }}</a>
               <a routerLink="/analysis" class="menu-item" (click)="menuOpen.set(false)">{{ t('statistics') }}</a>
               <a routerLink="/scramble-test" class="menu-item" (click)="menuOpen.set(false)">{{ t('scrambleTest') }}</a>
               <button type="button" class="menu-item" (click)="openKeyboardMapping(); menuOpen.set(false)">{{ t('keyboardMapping') }}</button>
+              <div class="menu-divider"></div>
+              <button type="button" class="menu-item" (click)="openSettingsClicked(); menuOpen.set(false)">{{ t('settings') }}</button>
               <div class="menu-divider"></div>
               <div class="menu-item lang-select-wrap">
                 <span>{{ t('language') }}</span>
@@ -42,12 +45,6 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
             </div>
           }
         </div>
-        <button type="button" class="menu-btn" (click)="router.navigate(['/analysis']); menuOpen.set(false)">
-            <span class="menu-icon">📈</span>
-        </button>
-        <button type="button" class="menu-btn" (click)="router.navigate(['/analysis']); menuOpen.set(false)">
-            <span class="menu-icon">⚙️</span>
-        </button>
       </div>
       <div class="header-right">
         <div class="connection-status">
@@ -258,6 +255,8 @@ export class HeaderComponent {
   private bluetooth = inject(BluetoothService);
   readonly router = inject(Router);
 
+  @Output() openSettings = new EventEmitter<void>();
+
   currentLanguage: Signal<Language> = computed(() => this.i18n.currentLanguage());
   currentUserId: Signal<number> = computed(() => this.state.currentUserId());
   cubeConnected: Signal<boolean> = computed(() => this.state.cubeConnected());
@@ -290,6 +289,10 @@ export class HeaderComponent {
 
   closeKeyboardMapping(): void {
     this.showKeyboardMapping.set(false);
+  }
+
+  openSettingsClicked(): void {
+    this.openSettings.emit();
   }
 
   async scanForCubes(): Promise<void> {

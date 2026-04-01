@@ -11,9 +11,12 @@ export interface CubeState {
   B: string[];
 }
 
+export type Theme = 'white' | 'black';
+
 export interface Settings {
   inspectionTime: number;
   sound: boolean;
+  theme: Theme;
 }
 
 export interface Solve {
@@ -167,8 +170,12 @@ export class StateService {
   // Settings
   readonly settings: WritableSignal<Settings> = signal<Settings>({
     inspectionTime: 15,
-    sound: true
+    sound: true,
+    theme: 'white'
   });
+
+  // Theme helper (computed from settings)
+  readonly theme: Signal<Theme> = computed(() => this.settings().theme);
 
   // Intervals (not signals, just refs)
   timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -182,6 +189,25 @@ export class StateService {
   constructor() {
     this.initializeCubeState();
     this.loadSubsetTrainingPrefs();
+    this.loadSettings();
+  }
+
+  private loadSettings(): void {
+    try {
+      const saved = localStorage.getItem('settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed) {
+          this.settings.set({
+            inspectionTime: parsed.inspectionTime ?? 15,
+            sound: parsed.sound ?? true,
+            theme: parsed.theme ?? 'white'
+          });
+        }
+      }
+    } catch {
+      // Use defaults
+    }
   }
 
   private loadSubsetTrainingPrefs(): void {

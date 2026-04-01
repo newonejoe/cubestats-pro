@@ -1,6 +1,6 @@
-import { Component, inject, computed, Input, Output, EventEmitter, type Signal } from '@angular/core';
+import { Component, inject, computed, Input, Output, EventEmitter, type Signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StateService } from '../../services/state.service';
+import { StateService, Theme } from '../../services/state.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { AppModalComponent } from '../shared/app-modal.component';
 
@@ -15,7 +15,14 @@ import { AppModalComponent } from '../shared/app-modal.component';
       maxWidth="400px"
       theme="light"
       (closed)="close()">
-      
+
+      <div class="setting-group">
+        <label class="setting-label">Theme</label>
+        <select class="setting-input" (change)="onThemeChange($event)">
+          <option value="white" [selected]="currentTheme() === 'white'">White (Light)</option>
+          <option value="black" [selected]="currentTheme() === 'black'">Black (Dark)</option>
+        </select>
+      </div>
       <div class="setting-group">
         <label class="setting-label">Inspection Time (seconds)</label>
         <input type="number" class="setting-input" [value]="inspectionTime()" min="0" max="30"
@@ -40,14 +47,16 @@ import { AppModalComponent } from '../shared/app-modal.component';
       display: block;
       margin-bottom: 8px;
       font-size: 14px;
-      color: #666;
+      color: var(--text-secondary);
     }
     .setting-input {
       width: 100%;
       padding: 10px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--input-border);
       border-radius: 6px;
       font-size: 14px;
+      background: var(--input-bg);
+      color: var(--text-primary);
     }
     .btn {
       padding: 12px 24px;
@@ -62,22 +71,22 @@ import { AppModalComponent } from '../shared/app-modal.component';
       transition: all 0.2s;
     }
     .btn-primary {
-      background: #007bff;
+      background: var(--primary-color);
       color: white;
     }
     .btn-primary:hover {
-      background: #0056b3;
+      filter: brightness(0.9);
     }
     .btn-danger {
-      background: #dc3545;
+      background: var(--danger-color);
       color: white;
     }
     .btn-danger:hover {
-      background: #c82333;
+      filter: brightness(0.9);
     }
   `]
 })
-export class SettingsModalComponent {
+export class SettingsModalComponent implements OnInit {
   private state = inject(StateService);
   private localStore = inject(LocalSolveStoreService);
 
@@ -86,10 +95,35 @@ export class SettingsModalComponent {
 
   inspectionTime: Signal<number> = computed(() => this.state.settings().inspectionTime);
   soundEnabled: Signal<boolean> = computed(() => this.state.settings().sound);
+  currentTheme: Signal<Theme> = computed(() => this.state.settings().theme);
+
+  ngOnInit(): void {
+    // Load saved settings from localStorage
+    try {
+      const saved = localStorage.getItem('settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed) {
+          this.state.settings.set({
+            inspectionTime: parsed.inspectionTime ?? 15,
+            sound: parsed.sound ?? true,
+            theme: parsed.theme ?? 'white'
+          });
+        }
+      }
+    } catch {
+      // Use defaults
+    }
+  }
 
   close(): void {
     this.isVisible = false;
     this.isVisibleChange.emit(false);
+  }
+
+  onThemeChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.state.settings.update(s => ({ ...s, theme: select.value as Theme }));
   }
 
   onInspectionTimeChange(event: Event): void {

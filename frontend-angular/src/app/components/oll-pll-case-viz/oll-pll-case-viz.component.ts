@@ -66,18 +66,18 @@ import { pllNameByIndex as pllNameFn } from '../../data/pll-cases';
     .empty {
       padding: 16px;
       text-align: center;
-      color: #868e96;
+      color: var(--text-muted);
       font-size: 13px;
-      background: #f8f9fa;
+      background: var(--hover-bg);
       border-radius: 10px;
-      border: 1px dashed #dee2e6;
+      border: 1px dashed var(--border-color);
     }
     .empty.small { padding: 10px; font-size: 12px; }
     .card {
-      background: #fff;
+      background: var(--card-bg);
       border-radius: 12px;
       padding: 14px 16px;
-      border: 1px solid #e9ecef;
+      border: 1px solid var(--border-color);
       max-width: 320px;
     }
     .title-row {
@@ -89,7 +89,7 @@ import { pllNameByIndex as pllNameFn } from '../../data/pll-cases';
     .sub {
       margin: 0 0 10px;
       font-size: 11px;
-      color: #868e96;
+      color: var(--text-muted);
     }
     .badge {
       font-size: 11px;
@@ -100,13 +100,13 @@ import { pllNameByIndex as pllNameFn } from '../../data/pll-cases';
       color: #0d47a1;
     }
     .badge.pll { background: #fff3e0; color: #e65100; }
-    .name { font-size: 15px; font-weight: 600; color: #212529; }
+    .name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
     .ll-viz {
       display: block;
       max-width: 100%;
       height: auto;
       border-radius: 8px;
-      border: 1px solid #e9ecef;
+      border: 1px solid var(--border-color);
     }
   `]
 })
