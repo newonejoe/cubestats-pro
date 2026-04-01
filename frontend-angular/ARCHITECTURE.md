@@ -204,6 +204,17 @@ interface CachedDevice {
   - Menu items: Statistics, Scramble Test, Keyboard Mapping, Language selector, Role selector
   - Added Bluetooth connection status display
   - Header moved into sidebar on home page (above analysis-session-statistics)
+- [x] **Multi-Theme Color Scheme**
+  - Created `src/app/data/themes.ts` with 9 predefined themes (default, style1, style2, style3, black, white, style6, solarized-dark, solarized-light)
+  - Each theme defined as constant object with 15 color properties (card-bg, primary-color, success-color, danger-color, warning-color, text-primary, text-secondary, text-muted, border-color, background, cube-bg, hover-bg, input-bg, input-border, link-color)
+  - Applied via CSS customProperties on `:root` using Angular effect()
+  - Removed hardcoded `.theme-black` class approach from styles.scss
+  - Theme selection dropdown in settings modal
+  - Click-outside-to-close for header dropdown and session-selector (using HostListener)
+- [x] **Timer Layout**
+  - Cube background positioned to avoid overlapping with right panel and scramble bar
+  - Right panel width 300px, bottom aligns with screen bottom
+  - Responsive design with media queries for mobile
 
 ### Known Issues / TODO
 
