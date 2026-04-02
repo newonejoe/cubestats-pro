@@ -2,6 +2,11 @@ import { Injectable, signal, APP_INITIALIZER, inject } from '@angular/core';
 import { StateService, CubeState } from './state.service';
 
 /**
+ * Module-level singleton instance for use by drivers
+ */
+let cubeCallbackServiceInstance: CubeCallbackService | null = null;
+
+/**
  * Convert facelets string (54 chars) to CubeState object
  * Format: U(0-8), R(9-17), F(18-26), D(27-35), L(36-44), B(45-53)
  */
@@ -43,11 +48,6 @@ export class CubeCallbackService {
   // Pending solved state modal callback
   private solvedStateResolve: ((isSolved: boolean) => void) | null = null;
   private solvedStateModalRegistrar: ((resolve: (confirmed: boolean) => void, facelets: string) => void) | null = null;
-
-  constructor() {
-    // Register self as global singleton for driver access
-    window.cubeCallbackService = this;
-  }
 
   /**
    * Register a MAC modal component with this service.
@@ -158,9 +158,6 @@ export class CubeCallbackService {
       this.state.btCubeState.set(cubeState);
       console.log('[CubeCallbackService] Updated btCubeState from facelets');
     }
-
-    // Also emit to window for backward compatibility
-    window.onGanCubeState?.(facelets);
   }
 
   /**
@@ -185,8 +182,11 @@ export class CubeCallbackService {
 }
 
 /**
- * Get the global CubeCallbackService instance for use in non-Angular contexts (drivers)
+ * Get the CubeCallbackService singleton instance for use in drivers
  */
 export function getCubeCallbackService(): CubeCallbackService {
-  return window.cubeCallbackService || new CubeCallbackService();
+  if (!cubeCallbackServiceInstance) {
+    cubeCallbackServiceInstance = new CubeCallbackService();
+  }
+  return cubeCallbackServiceInstance;
 }

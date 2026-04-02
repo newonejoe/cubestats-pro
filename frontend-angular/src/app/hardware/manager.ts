@@ -360,14 +360,5 @@ export class BluetoothManager {
 export function initBluetoothManager(): BluetoothManager {
     const manager = new BluetoothManager();
 
-    // Expose classes to window for backward compatibility
-    window.BluetoothManager = BluetoothManager;
-    window.CubeDriver = CubeDriver;
-    window.GiikerDriver = GiikerDriver;
-    window.GanDriver = GanDriver;
-    window.GoCubeDriver = GoCubeDriver;
-    window.QiyiDriver = QiyiDriver;
-    window.MoyuDriver = MoyuDriver;
-
     return manager;
 }
