@@ -9,9 +9,8 @@ import { AlgorithmCasePickerComponent, type AlgorithmCase } from '../shared/algo
 
 @Component({
   selector: 'app-pll-case-picker',
-  standalone: true,
-  imports: [CommonModule, AlgorithmCasePickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, AlgorithmCasePickerComponent],
   template: `
     <app-algorithm-case-picker
       [title]="t('pll')"

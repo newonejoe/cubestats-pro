@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
+import { Component, signal, inject, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppModalComponent } from '../shared/app-modal.component';
 import { I18nService } from '../../services/i18n.service';
@@ -17,7 +17,7 @@ export interface AlgorithmGroup {
 
 @Component({
   selector: 'app-algorithm-case-picker',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, AppModalComponent],
   template: `
     <div class="alg-picker">
@@ -25,31 +25,31 @@ export interface AlgorithmGroup {
         <label class="mode-label">
           <input
             type="radio"
-            [name]="radioName"
-            [checked]="mode === 'full'"
+            [name]="radioName()"
+            [checked]="mode() === 'full'"
             (change)="modeChange.emit('full')"
           />
-          {{ t('full') }} {{ title }} {{ t('set') }} ({{ allIndices.length }} {{ t('cases') }})
+          {{ t('full') }} {{ title() }} {{ t('set') }} ({{ allIndices().length }} {{ t('cases') }})
         </label>
         <label class="mode-label">
           <input
             type="radio"
-            [name]="radioName"
-            [checked]="mode === 'subset'"
+            [name]="radioName()"
+            [checked]="mode() === 'subset'"
             (change)="modeChange.emit('subset')"
           />
           {{ t('customSubset') }}
         </label>
       </div>
-      @if (mode === 'subset' && !inline) {
+      @if (mode() === 'subset' && !inline()) {
         <div class="subset-bar">
           <button type="button" class="btn primary" (click)="openModal()">{{ t('chooseCases') }}</button>
-          <span class="count">{{ enabledIndices.size }} / {{ allIndices.length }} {{ t('selected') }}</span>
+          <span class="count">{{ enabledIndices().size }} / {{ allIndices().length }} {{ t('selected') }}</span>
         </div>
       }
     </div>
 
-    @if (inline) {
+    @if (inline()) {
       <div class="modal-toolbar inline-toolbar">
         <button type="button" class="btn" (click)="selectAll.emit()">{{ t('selectAll') }}</button>
         <button type="button" class="btn" (click)="clearAll.emit()">{{ t('clearAll') }}</button>
@@ -60,7 +60,7 @@ export interface AlgorithmGroup {
     } @else if (modalOpen()) {
       <app-modal
         [isVisible]="true"
-        [title]="title + ' ' + t('casePool')"
+        [title]="title() + ' ' + t('casePool')"
         maxWidth="920px"
         theme="light"
         [noPadding]="true"
@@ -79,8 +79,8 @@ export interface AlgorithmGroup {
     }
 
     <ng-template #gridTemplate>
-      @if (groups.length > 0) {
-        @for (g of groups; track g.id || g.title) {
+      @if (groups().length > 0) {
+        @for (g of groups(); track g.id || g.title) {
           <section class="group">
             <header class="group-head">
               <span class="group-title">{{ g.title }}</span>
@@ -96,7 +96,7 @@ export interface AlgorithmGroup {
         }
       } @else {
         <div class="case-grid">
-          @for (c of cases; track c.index) {
+          @for (c of cases(); track c.index) {
             <ng-container *ngTemplateOutlet="tileTemplate; context: { $implicit: c }"></ng-container>
           }
         </div>
@@ -104,11 +104,11 @@ export interface AlgorithmGroup {
     </ng-template>
 
     <ng-template #tileTemplate let-c>
-      <label class="case-tile" [class.on]="enabledIndices.has(c.index)">
+      <label class="case-tile" [class.on]="enabledIndices().has(c.index)">
         <input
           class="sr-only"
           type="checkbox"
-          [checked]="enabledIndices.has(c.index)"
+          [checked]="enabledIndices().has(c.index)"
           (change)="toggleCase.emit({index: c.index, checked: $any($event.target).checked})"
         />
         @if (c.imgUrl) {
@@ -219,21 +219,21 @@ export interface AlgorithmGroup {
 export class AlgorithmCasePickerComponent {
   private i18n = inject(I18nService);
 
-  @Input() title = 'Cases';
-  @Input() radioName = 'caseMode';
-  @Input() mode: 'full' | 'subset' = 'full';
-  @Input() cases: AlgorithmCase[] = [];
-  @Input() groups: AlgorithmGroup[] = [];
-  @Input() enabledIndices: ReadonlySet<number> = new Set<number>();
-  @Input() allIndices: readonly number[] = [];
-  @Input() inline = false;
+  readonly title = input('Cases');
+  readonly radioName = input('caseMode');
+  readonly mode = input<'full' | 'subset'>('full');
+  readonly cases = input<AlgorithmCase[]>([]);
+  readonly groups = input<AlgorithmGroup[]>([]);
+  readonly enabledIndices = input<ReadonlySet<number>>(new Set<number>());
+  readonly allIndices = input<readonly number[]>([]);
+  readonly inline = input(false);
 
-  @Output() modeChange = new EventEmitter<'full' | 'subset'>();
-  @Output() toggleCase = new EventEmitter<{index: number; checked: boolean}>();
-  @Output() selectAll = new EventEmitter<void>();
-  @Output() clearAll = new EventEmitter<void>();
-  @Output() selectGroup = new EventEmitter<AlgorithmGroup>();
-  @Output() clearGroup = new EventEmitter<AlgorithmGroup>();
+  readonly modeChange = output<'full' | 'subset'>();
+  readonly toggleCase = output<{index: number; checked: boolean}>();
+  readonly selectAll = output<void>();
+  readonly clearAll = output<void>();
+  readonly selectGroup = output<AlgorithmGroup>();
+  readonly clearGroup = output<AlgorithmGroup>();
 
   modalOpen = signal(false);
 

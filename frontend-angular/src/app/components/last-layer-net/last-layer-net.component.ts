@@ -8,9 +8,8 @@ import { llCharColor } from '../../lib/cstimer-ll-viz';
  */
 @Component({
   selector: 'app-last-layer-net',
-  standalone: true,
-  imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule],
   template: `
     @if (face21() && face21()!.length >= 21) {
       <div class="ll" [class.compact]="compact()" aria-label="Last layer: yellow U face and neighbours">

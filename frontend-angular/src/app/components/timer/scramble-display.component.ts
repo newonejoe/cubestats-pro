@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, type Signal } from '@angular/core';
+import { Component, inject, computed, signal, type Signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { StateService, type CubeState } from '../../services/state.service';
@@ -25,7 +25,7 @@ interface ScrambleSnapshot {
 
 @Component({
   selector: 'app-scramble-display',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     AppModalComponent,

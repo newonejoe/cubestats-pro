@@ -16,9 +16,8 @@ type FaceId = 'U' | 'L' | 'F' | 'R' | 'B' | 'D';
 
 @Component({
   selector: 'app-scramble-target-viz',
-  standalone: true,
-  imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule],
   template: `
     <div class="viz-wrap">
       <p class="caption">

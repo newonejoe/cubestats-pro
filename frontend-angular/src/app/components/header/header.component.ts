@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, type WritableSignal, type Signal, Output, EventEmitter, HostListener } from '@angular/core';
+import { Component, inject, signal, computed, type WritableSignal, type Signal, output, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { StateService } from '../../services/state.service';
@@ -9,7 +9,10 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
 
 @Component({
   selector: 'app-header',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:click)': 'onDocumentClick($event)'
+  },
   imports: [CommonModule, RouterLink, AppModalComponent, KeyboardMappingComponent],
   template: `
     <header class="header">
@@ -256,7 +259,7 @@ export class HeaderComponent {
   private bluetooth = inject(BluetoothService);
   readonly router = inject(Router);
 
-  @Output() openSettings = new EventEmitter<void>();
+  readonly openSettings = output<void>();
 
   currentLanguage: Signal<Language> = computed(() => this.i18n.currentLanguage());
   currentUserId: Signal<number> = computed(() => this.state.currentUserId());
@@ -267,7 +270,6 @@ export class HeaderComponent {
   showKeyboardMapping: WritableSignal<boolean> = signal(false);
   menuOpen: WritableSignal<boolean> = signal(false);
 
-  @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {
     const target = event.target as HTMLElement;
     // Don't close if clicking inside the dropdown

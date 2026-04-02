@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, HostListener, signal, computed, type WritableSignal, type Signal, input } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, type WritableSignal, type Signal, input, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService, type Solve } from '../../services/state.service';
 import { TimerService } from '../../services/timer.service';
@@ -12,7 +12,10 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
 
 @Component({
   selector: 'app-timer',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown)': 'handleKeyDown($event)'
+  },
   imports: [CommonModule, ScrambleDisplayComponent, VirtualCubeComponent, MultiphaseDisplayComponent, CfopReconstructionComponent, AppEmptyStateComponent],
   template: `
     <div class="timer-stage">
@@ -222,7 +225,6 @@ export class TimerComponent implements OnInit {
     }, 100);
   }
 
-  @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent): void {
     this.timerService.handleKeyDown(event);
   }

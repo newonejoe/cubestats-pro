@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, type WritableSignal, type Signal, OnInit, HostListener } from '@angular/core';
+import { Component, inject, signal, computed, type WritableSignal, type Signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { StateService } from '../../services/state.service';
@@ -15,7 +15,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
 
 @Component({
   selector: 'app-bluetooth-manager',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="bluetooth-manager">

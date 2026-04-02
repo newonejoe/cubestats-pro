@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, type WritableSignal, type Signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, type WritableSignal, type Signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -19,7 +19,7 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
 
 @Component({
   selector: 'app-home',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     HeaderComponent,

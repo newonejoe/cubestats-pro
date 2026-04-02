@@ -1,16 +1,16 @@
-import { Component, Input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-empty-state',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <div class="no-data" [class.no-bg]="noBackground">
-      @if (icon) {
-        <div class="no-data-icon">{{ icon }}</div>
+    <div class="no-data" [class.no-bg]="noBackground()">
+      @if (icon()) {
+        <div class="no-data-icon">{{ icon() }}</div>
       }
-      <p>{{ message }}</p>
+      <p>{{ message() }}</p>
       <ng-content></ng-content>
     </div>
   `,
@@ -35,7 +35,7 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class AppEmptyStateComponent {
-  @Input() message = 'No data yet';
-  @Input() icon = '';
-  @Input() noBackground = false;
+  readonly message = input('No data yet');
+  readonly icon = input('');
+  readonly noBackground = input(false);
 }

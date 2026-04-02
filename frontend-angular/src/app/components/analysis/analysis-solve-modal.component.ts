@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
@@ -18,7 +18,7 @@ import { CfopReconstructionComponent } from '../shared/cfop-reconstruction.compo
 
 @Component({
   selector: 'app-analysis-solve-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, AppModalComponent, CfopReconstructionComponent],
   template: `
     <app-modal

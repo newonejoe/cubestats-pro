@@ -1,22 +1,22 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    @if (isVisible) {
+    @if (isVisible()) {
       <div class="modal-backdrop" (click)="onBackdropClick()"></div>
       <div class="modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId">
-        <div class="modal-inner" [class.dark-theme]="theme === 'dark'" [style.maxWidth]="maxWidth" (click)="$event.stopPropagation()">
-          @if (title) {
+        <div class="modal-inner" [class.dark-theme]="theme() === 'dark'" [style.maxWidth]="maxWidth()" (click)="$event.stopPropagation()">
+          @if (title()) {
             <header class="modal-head">
-              <h2 [id]="titleId">{{ title }}</h2>
+              <h2 [id]="titleId">{{ title() }}</h2>
               <button type="button" class="icon-close" (click)="close()" aria-label="Close">&times;</button>
             </header>
           }
-          <div class="modal-body" [class.no-padding]="noPadding">
+          <div class="modal-body" [class.no-padding]="noPadding()">
             <ng-content></ng-content>
           </div>
         </div>
@@ -44,19 +44,19 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class AppModalComponent {
-  @Input() isVisible = false;
-  @Input() title = '';
-  @Input() theme: 'light' | 'dark' = 'light';
-  @Input() maxWidth = '720px';
-  @Input() closeOnBackdrop = true;
-  @Input() noPadding = false;
+  readonly isVisible = input(false);
+  readonly title = input('');
+  readonly theme = input<'light' | 'dark'>('light');
+  readonly maxWidth = input('720px');
+  readonly closeOnBackdrop = input(true);
+  readonly noPadding = input(false);
 
-  @Output() closed = new EventEmitter<void>();
+  readonly closed = output<void>();
 
   titleId = 'modal-title-' + Math.random().toString(36).slice(2, 9);
 
   onBackdropClick(): void {
-    if (this.closeOnBackdrop) {
+    if (this.closeOnBackdrop()) {
       this.close();
     }
   }

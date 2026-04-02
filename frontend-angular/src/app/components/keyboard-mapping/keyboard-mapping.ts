@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { KeyboardDriver } from '../../hardware/keyboard';
@@ -6,7 +6,7 @@ import { bluetoothManager } from '../../hardware/index';
 
 @Component({
   selector: 'app-keyboard-mapping',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   templateUrl: './keyboard-mapping.html',
   styleUrls: ['./keyboard-mapping.scss']

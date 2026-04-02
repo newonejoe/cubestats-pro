@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CubeCallbackService } from '../../services/cube-callback.service';
@@ -7,7 +7,7 @@ import { AppModalComponent } from '../shared/app-modal.component';
 
 @Component({
   selector: 'app-mac-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, AppModalComponent],
   template: `
     <app-modal

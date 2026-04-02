@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, computed, signal, type Signal, type WritableSignal } from '@angular/core';
+import { Component, OnInit, inject, computed, signal, type Signal, type WritableSignal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StateService, type CubeState } from '../../services/state.service';
@@ -14,7 +14,7 @@ import { AppModalComponent } from '../../components/shared/app-modal.component';
 
 @Component({
   selector: 'app-scramble-test',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     AppModalComponent,

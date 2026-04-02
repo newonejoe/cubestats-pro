@@ -1,4 +1,4 @@
-import { Component, inject, computed, Input, Output, EventEmitter, type Signal, OnInit } from '@angular/core';
+import { Component, inject, computed, input, output, type Signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService } from '../../services/state.service';
 import { ThemeKey, THEMES, THEME_KEYS } from '../../data/themes';
@@ -6,11 +6,11 @@ import { AppModalComponent } from '../shared/app-modal.component';
 
 @Component({
   selector: 'app-settings-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, AppModalComponent],
   template: `
     <app-modal
-      [isVisible]="isVisible"
+      [isVisible]="isVisible()"
       title="Settings"
       maxWidth="400px"
       theme="light"
@@ -92,8 +92,8 @@ import { AppModalComponent } from '../shared/app-modal.component';
 export class SettingsModalComponent implements OnInit {
   private state = inject(StateService);
 
-  @Input() isVisible = false;
-  @Output() isVisibleChange = new EventEmitter<boolean>();
+  readonly isVisible = input(false);
+  readonly isVisibleChange = output<boolean>();
 
   inspectionTime: Signal<number> = computed(() => this.state.settings().inspectionTime);
   soundEnabled: Signal<boolean> = computed(() => this.state.settings().sound);
@@ -124,7 +124,6 @@ export class SettingsModalComponent implements OnInit {
   }
 
   close(): void {
-    this.isVisible = false;
     this.isVisibleChange.emit(false);
   }
 

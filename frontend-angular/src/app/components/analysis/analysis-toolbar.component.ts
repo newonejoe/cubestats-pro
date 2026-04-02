@@ -1,4 +1,4 @@
-import { Component, input, output, inject, signal } from '@angular/core';
+import { Component, input, output, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService } from '../../services/i18n.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
@@ -9,7 +9,7 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
 
 @Component({
   selector: 'app-analysis-toolbar',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="toolbar">

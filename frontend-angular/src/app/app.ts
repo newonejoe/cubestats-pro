@@ -1,4 +1,4 @@
-import { Component, inject, computed, effect, OnInit } from '@angular/core';
+import { Component, inject, computed, effect, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { StateService } from './services/state.service';
 import { ThemeKey, applyTheme, THEMES } from './data/themes';
@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, CommonModule],
   template: `
     <div class="app-container">

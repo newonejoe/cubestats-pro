@@ -7,9 +7,8 @@ import { AlgorithmCasePickerComponent, type AlgorithmGroup } from '../shared/alg
 
 @Component({
   selector: 'app-f2l-case-picker',
-  standalone: true,
-  imports: [CommonModule, AlgorithmCasePickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, AlgorithmCasePickerComponent],
   template: `
     <app-algorithm-case-picker
       [title]="t('f2l')"

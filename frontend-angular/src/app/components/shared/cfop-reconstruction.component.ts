@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { Solve } from '../../services/state.service';
 import { I18nService } from '../../services/i18n.service';
@@ -25,7 +25,7 @@ import { formatMinuteSecondCentis } from '../analysis/analysis-solve-display';
 
 @Component({
   selector: 'app-cfop-reconstruction',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <section class="cfop-block">

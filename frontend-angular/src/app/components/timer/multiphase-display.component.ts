@@ -1,4 +1,4 @@
-import { Component, inject, computed, input, type Signal } from '@angular/core';
+import { Component, inject, computed, input, type Signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService, type Solve } from '../../services/state.service';
 import { TimerService } from '../../services/timer.service';
@@ -9,7 +9,7 @@ import { I18nService } from '../../services/i18n.service';
 
 @Component({
   selector: 'app-multiphase-display',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="multiphase">

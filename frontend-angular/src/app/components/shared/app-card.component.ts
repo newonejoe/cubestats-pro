@@ -1,16 +1,16 @@
-import { Component, Input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-card',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="card">
-      @if (title || hasControls) {
+      @if (title() || hasControls()) {
         <div class="card-header">
-          <span class="card-title">{{ title }}</span>
-          @if (hasControls) {
+          <span class="card-title">{{ title() }}</span>
+          @if (hasControls()) {
             <div class="card-controls">
               <ng-content select="[card-controls]"></ng-content>
             </div>
@@ -47,6 +47,6 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class AppCardComponent {
-  @Input() title = '';
-  @Input() hasControls = false;
+  readonly title = input('');
+  readonly hasControls = input(false);
 }

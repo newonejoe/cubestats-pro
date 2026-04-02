@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { I18nService } from '../../services/i18n.service';
@@ -6,7 +6,7 @@ import { buildTrend, filterBySession } from '../../lib/analysis-selectors';
 
 @Component({
   selector: 'app-analysis-time-trend',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <h2>{{ t('timeTrend') }}</h2>

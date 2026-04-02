@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
@@ -16,7 +16,7 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
 
 @Component({
   selector: 'app-analysis-page',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterLink,

@@ -13,9 +13,8 @@ import { pllNameByIndex as pllNameFn } from '../../data/pll-cases';
 
 @Component({
   selector: 'app-oll-pll-case-viz',
-  standalone: true,
-  imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule],
   template: `
     @if (caseIndex() === null) {
       <div class="empty">No case — generate an OLL/PLL scramble.</div>

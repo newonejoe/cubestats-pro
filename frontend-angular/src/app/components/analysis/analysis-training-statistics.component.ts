@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { I18nService } from '../../services/i18n.service';
@@ -14,7 +14,7 @@ const DEFAULT_PAGE_SIZE = 10;
 
 @Component({
   selector: 'app-analysis-training-statistics',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <h2>{{ t('caseStats') }}</h2>

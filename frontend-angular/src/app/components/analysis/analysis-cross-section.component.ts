@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { I18nService } from '../../services/i18n.service';
@@ -12,7 +12,7 @@ import {
 
 @Component({
   selector: 'app-analysis-cross-section',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <h2>{{ t('crossSectionStats') }}</h2>

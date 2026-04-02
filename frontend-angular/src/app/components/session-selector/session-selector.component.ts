@@ -1,4 +1,4 @@
-import { Component, inject, signal, HostListener } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService, type Session } from '../../services/state.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
@@ -6,7 +6,10 @@ import { I18nService } from '../../services/i18n.service';
 
 @Component({
   selector: 'app-session-selector',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:click)': 'onDocumentClick($event)'
+  },
   imports: [CommonModule],
   template: `
     <div class="session-selector">
@@ -148,7 +151,6 @@ export class SessionSelectorComponent {
   currentSessionId = signal<number | undefined>(this.state.currentSession()?.id);
   currentSessionName = signal<string>(this.state.currentSession()?.name ?? '');
 
-  @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {
     const target = event.target as HTMLElement;
     if (target.closest('.session-selector')) {

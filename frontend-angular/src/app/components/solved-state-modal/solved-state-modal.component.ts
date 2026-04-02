@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CubeCallbackService } from '../../services/cube-callback.service';
 import { StateService } from '../../services/state.service';
@@ -6,7 +6,7 @@ import { AppModalComponent } from '../shared/app-modal.component';
 
 @Component({
   selector: 'app-solved-state-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, AppModalComponent],
   template: `
     <app-modal

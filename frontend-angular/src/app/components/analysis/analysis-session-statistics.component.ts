@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { I18nService } from '../../services/i18n.service';
@@ -22,7 +22,7 @@ import type { Solve } from '../../services/state.service';
 
 @Component({
   selector: 'app-analysis-session-statistics',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     @if (mode() === 'compact') {

@@ -1,4 +1,4 @@
-import { Component, inject, AfterViewInit, OnDestroy, OnInit, ViewChild, ElementRef, computed, HostBinding } from '@angular/core';
+import { Component, inject, AfterViewInit, OnDestroy, OnInit, ViewChild, ElementRef, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
 import { StateService, CubeState } from '../../services/state.service';
@@ -34,7 +34,7 @@ const BORDER_LINE_MATERIAL = new THREE.LineBasicMaterial({
 
 @Component({
   selector: 'app-virtual-cube',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="cube-container" #cubeContainer>
