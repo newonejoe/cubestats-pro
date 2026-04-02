@@ -117,4 +117,38 @@ export class IndexedDbSessionStoreService {
       }
     });
   }
+
+  async clearAll(): Promise<void> {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction(SESSIONS_STORE, 'readwrite');
+      const store = tx.objectStore(SESSIONS_STORE);
+      const r = store.clear();
+      r.onerror = () => reject(r.error);
+      r.onsuccess = () => resolve();
+    });
+  }
+
+  async deleteDb(): Promise<void> {
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(CUBESTATS_DB_NAME);
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => resolve();
+      req.onupgradeneeded = () => {
+        // Database doesn't exist, that's fine
+        resolve();
+      };
+    });
+  }
+
+  close(): void {
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
+  }
 }

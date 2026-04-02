@@ -270,10 +270,6 @@ export class HomeComponent implements OnInit {
         replaceUrl: true,
       });
     }
-
-    window.addEventListener('openSettings', () => {
-      this.showSettingsVisible = true;
-    });
   }
 
   openSolveModal(solve: Solve): void {

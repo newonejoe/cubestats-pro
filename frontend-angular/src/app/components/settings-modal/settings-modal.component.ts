@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { StateService } from '../../services/state.service';
 import { ThemeKey, THEMES, THEME_KEYS } from '../../data/themes';
 import { AppModalComponent } from '../shared/app-modal.component';
+import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 
 @Component({
   selector: 'app-settings-modal',
@@ -91,6 +92,7 @@ import { AppModalComponent } from '../shared/app-modal.component';
 })
 export class SettingsModalComponent implements OnInit {
   private state = inject(StateService);
+  private localStore = inject(LocalSolveStoreService);
 
   readonly isVisible = input(false);
   readonly isVisibleChange = output<boolean>();
@@ -150,10 +152,9 @@ export class SettingsModalComponent implements OnInit {
     this.close();
   }
 
-  clearAllData(): void {
+  async clearAllData(): Promise<void> {
     if (confirm('Are you sure you want to delete all solves and sessions? This cannot be undone.')) {
-      localStorage.clear();
-      window.location.reload();
+      await this.localStore.clearAll();
     }
   }
 }

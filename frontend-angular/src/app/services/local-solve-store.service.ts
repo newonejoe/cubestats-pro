@@ -199,6 +199,19 @@ export class LocalSolveStoreService {
   }
 
   /**
+   * Clear all sessions and solves from localStorage and IndexedDB
+   */
+  async clearAll(): Promise<void> {
+    localStorage.removeItem(SESSIONS_KEY);
+    localStorage.removeItem(LEGACY_ANALYSIS_SOLVES_KEY);
+    // Delete IDB database to clear all records
+    await this.idb.deleteDb();
+    this.sessionIdSeq = 1;
+    this.memorySolves = [];
+    this.bumpStoreRevision();
+  }
+
+  /**
    * Import sessions and solves from cstimer export format
    * Saves to IndexedDB so imported solves are included in OLL case stats
    */

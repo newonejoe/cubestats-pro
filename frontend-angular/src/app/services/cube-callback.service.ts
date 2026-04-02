@@ -176,15 +176,7 @@ export class CubeCallbackService {
         return;
       }
 
-      // Fallback: Call window modal if available
-      if (window.showMacModal) {
-        window.showMacModal((mac) => {
-          resolve(mac);
-        });
-        return;
-      }
-
-      // Final fallback: browser prompt
+      // Fallback: browser prompt
       console.log('[CubeCallbackService] No modal available, using browser prompt');
       const mac = prompt('Please enter the MAC address of your cube (e.g., AA:BB:CC:DD:EE:FF):');
       resolve(mac || null);

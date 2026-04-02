@@ -197,8 +197,7 @@ export class AnalysisToolbarComponent {
       reader.onload = () => {
         try {
           const result = this.localStore.importSessionsJson(reader.result as string);
-          alert(`Imported ${result.sessions} sessions and ${result.solves} solves`);
-          window.location.reload();
+          this.alertImportResult(result);
         } catch (err) {
           alert(this.t('error') + ': ' + (err as Error).message);
         }
@@ -219,8 +218,7 @@ export class AnalysisToolbarComponent {
       reader.onload = async () => {
         try {
           const result = await this.localStore.importCstimerJson(reader.result as string);
-          alert(`Imported ${result.sessions} sessions and ${result.solves} solves`);
-          window.location.reload();
+          this.alertImportResult(result);
         } catch (err) {
           alert(this.t('error') + ': ' + (err as Error).message);
         }
@@ -228,5 +226,9 @@ export class AnalysisToolbarComponent {
       reader.readAsText(file);
     };
     input.click();
+  }
+
+  private alertImportResult(result: { sessions: number; solves: number }): void {
+    alert(`Imported ${result.sessions} sessions and ${result.solves} solves`);
   }
 }
