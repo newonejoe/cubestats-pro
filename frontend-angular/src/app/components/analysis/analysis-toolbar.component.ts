@@ -94,16 +94,16 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
   `,
   styles: [`
     .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
-    .toolbar label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6c757d; }
+    .toolbar label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-secondary); }
     .toolbar .inline-check { flex-direction: row; align-items: center; gap: 8px; padding-bottom: 8px; }
-    .toolbar select, .toolbar input { padding: 8px 10px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 13px; color: #212529; background: #fff; }
+    .toolbar select, .toolbar input { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--input-border); font-size: 13px; color: var(--text-primary); background: var(--card-bg); }
     .toolbar-actions { display: flex; gap: 8px; margin-left: auto; align-items: end; }
-    .btn-action { padding: 8px 14px; border-radius: 6px; border: 1px solid #d0d7de; background: #fff; font-size: 13px; cursor: pointer; }
-    .btn-action:hover { background: #f8f9fa; }
+    .btn-action { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--card-bg); font-size: 13px; cursor: pointer; color: var(--text-primary); }
+    .btn-action:hover { background: var(--hover-bg); }
     .dropdown-wrapper { position: relative; }
-    .dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 4px; background: white; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 180px; z-index: 100; }
-    .dropdown-item { display: block; width: 100%; padding: 10px 14px; border: none; background: none; text-align: left; cursor: pointer; font-size: 13px; }
-    .dropdown-item:hover { background: #f8f9fa; }
+    .dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 180px; z-index: 100; }
+    .dropdown-item { display: block; width: 100%; padding: 10px 14px; border: none; background: none; text-align: left; cursor: pointer; font-size: 13px; color: var(--text-primary); }
+    .dropdown-item:hover { background: var(--hover-bg); }
   `],
 })
 export class AnalysisToolbarComponent {
@@ -197,7 +197,8 @@ export class AnalysisToolbarComponent {
       reader.onload = () => {
         try {
           const result = this.localStore.importSessionsJson(reader.result as string);
-          this.alertImportResult(result);
+          alert(`Imported ${result.sessions} sessions and ${result.solves} solves`);
+          window.location.reload();
         } catch (err) {
           alert(this.t('error') + ': ' + (err as Error).message);
         }
@@ -218,7 +219,8 @@ export class AnalysisToolbarComponent {
       reader.onload = async () => {
         try {
           const result = await this.localStore.importCstimerJson(reader.result as string);
-          this.alertImportResult(result);
+          alert(`Imported ${result.sessions} sessions and ${result.solves} solves`);
+          window.location.reload();
         } catch (err) {
           alert(this.t('error') + ': ' + (err as Error).message);
         }
@@ -226,9 +228,5 @@ export class AnalysisToolbarComponent {
       reader.readAsText(file);
     };
     input.click();
-  }
-
-  private alertImportResult(result: { sessions: number; solves: number }): void {
-    alert(`Imported ${result.sessions} sessions and ${result.solves} solves`);
   }
 }

@@ -49,6 +49,11 @@ export class CubeCallbackService {
   private solvedStateResolve: ((isSolved: boolean) => void) | null = null;
   private solvedStateModalRegistrar: ((resolve: (confirmed: boolean) => void, facelets: string) => void) | null = null;
 
+  constructor() {
+    // Register as global singleton for drivers (fallback when not using DI)
+    (window as any).cubeCallbackService = this;
+  }
+
   /**
    * Register a MAC modal component with this service.
    * The modal should call the provided callback with the MAC address or null.
@@ -185,6 +190,12 @@ export class CubeCallbackService {
  * Get the CubeCallbackService singleton instance for use in drivers
  */
 export function getCubeCallbackService(): CubeCallbackService {
+  // First check window for pre-Angular or non-DI context fallback
+  const windowInstance = (window as any).cubeCallbackService;
+  if (windowInstance) {
+    return windowInstance;
+  }
+  // Use module-level singleton
   if (!cubeCallbackServiceInstance) {
     cubeCallbackServiceInstance = new CubeCallbackService();
   }
