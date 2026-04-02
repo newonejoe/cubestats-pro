@@ -36,7 +36,7 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     // Apply initial theme on app load
-    const initialTheme = this.state.settings().theme || 'default';
+    const initialTheme = this.state.settings().theme || 'black';
     applyTheme(initialTheme);
   }
 }

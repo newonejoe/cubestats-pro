@@ -170,7 +170,7 @@ export class StateService {
   readonly settings: WritableSignal<Settings> = signal<Settings>({
     inspectionTime: 15,
     sound: true,
-    theme: 'default'
+    theme: 'black'
   });
 
   // Theme helper (computed from settings)
