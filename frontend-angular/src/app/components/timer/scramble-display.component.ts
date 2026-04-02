@@ -148,6 +148,15 @@ interface ScrambleSnapshot {
       line-height: 1.5;
     }
     .scramble-text.with-progress { color: var(--text-secondary); }
+
+    /* Responsive font sizing */
+    @media (max-width: 600px) {
+      .scramble-text { font-size: 18px; }
+    }
+    @media (max-width: 400px) {
+      .scramble-text { font-size: 16px; }
+    }
+
     :host ::ng-deep .scrm-seg { display: inline-block; margin-right: 0.35em; }
     :host ::ng-deep .scrm-done { color: var(--text-muted); font-weight: 500; }
     :host ::ng-deep .scrm-todo { color: var(--text-primary); }

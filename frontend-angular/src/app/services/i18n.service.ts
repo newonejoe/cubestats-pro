@@ -66,6 +66,9 @@ export class I18nService {
 
   setLanguage(lang: Language): void {
     this.currentLanguage.set(lang);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('language', lang);
+    }
   }
 
   t(key: string): string {

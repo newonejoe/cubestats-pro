@@ -128,7 +128,7 @@ export interface SessionStats {
   plus2Count: number;
 }
 
-function finalMillis(solve: Solve): number | null {
+export function finalMillis(solve: Solve): number | null {
   if (solve.dnf || solve.finalTime === null) {
     return null;
   }

@@ -4,8 +4,6 @@ import { RouterLink, Router } from '@angular/router';
 import { StateService } from '../../services/state.service';
 import { I18nService, Language } from '../../services/i18n.service';
 import { BluetoothService } from '../../services/bluetooth.service';
-import { AppModalComponent } from '../shared/app-modal.component';
-import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
 
 @Component({
   selector: 'app-header',
@@ -13,7 +11,7 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
   host: {
     '(document:click)': 'onDocumentClick($event)'
   },
-  imports: [CommonModule, RouterLink, AppModalComponent, KeyboardMappingComponent],
+  imports: [CommonModule, RouterLink],
   template: `
     <header class="header">
       <div class="header-left">
@@ -26,25 +24,9 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
               <a routerLink="/" class="menu-item" (click)="menuOpen.set(false)">{{ t('home') }}</a>
               <a routerLink="/analysis" class="menu-item" (click)="menuOpen.set(false)">{{ t('statistics') }}</a>
               <a routerLink="/scramble-test" class="menu-item" (click)="menuOpen.set(false)">{{ t('scrambleTest') }}</a>
-              <button type="button" class="menu-item" (click)="openKeyboardMapping(); menuOpen.set(false)">{{ t('keyboardMapping') }}</button>
+              <button type="button" class="menu-item" (click)="openKeyboardMappingClicked(); menuOpen.set(false)">{{ t('keyboardMapping') }}</button>
               <div class="menu-divider"></div>
               <button type="button" class="menu-item" (click)="openSettingsClicked(); menuOpen.set(false)">{{ t('settings') }}</button>
-              <div class="menu-divider"></div>
-              <div class="menu-item lang-select-wrap">
-                <span>{{ t('language') }}</span>
-                <select class="lang-select" [value]="currentLanguage()" (change)="onLanguageChange($event); menuOpen.set(false)">
-                  @for (lang of availableLanguages; track lang.code) {
-                    <option [value]="lang.code">{{ lang.name }}</option>
-                  }
-                </select>
-              </div>
-              <div class="menu-item user-select-wrap">
-                <span>{{ t('role') }}</span>
-                <select class="user-select" [value]="currentUserId()" (change)="onUserChange($event); menuOpen.set(false)">
-                  <option value="1">{{ t('coach') }}</option>
-                  <option value="2">{{ t('user') }}</option>
-                </select>
-              </div>
             </div>
           }
         </div>
@@ -52,7 +34,7 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
       <div class="header-right">
         <div class="connection-status">
           @if (isKeyboardSimulator()) {
-            <button class="btn-keyboard" (click)="openKeyboardMapping()">⌨️</button>
+            <button class="btn-keyboard" (click)="openKeyboardMappingClicked()">⌨️</button>
           }
           @if (isScanning()) {
             <div class="scanning-indicator">
@@ -67,14 +49,6 @@ import { KeyboardMappingComponent } from '../keyboard-mapping/keyboard-mapping';
         </div>
       </div>
     </header>
-
-    <app-modal
-      [isVisible]="showKeyboardMapping()"
-      [title]="t('keyboardMapping')"
-      (closed)="closeKeyboardMapping()"
-      maxWidth="500px">
-      <app-keyboard-mapping></app-keyboard-mapping>
-    </app-modal>
   `,
   styles: [`
     .header {
@@ -260,6 +234,7 @@ export class HeaderComponent {
   readonly router = inject(Router);
 
   readonly openSettings = output<void>();
+  readonly openKeyboardMapping = output<void>();
 
   currentLanguage: Signal<Language> = computed(() => this.i18n.currentLanguage());
   currentUserId: Signal<number> = computed(() => this.state.currentUserId());
@@ -267,7 +242,6 @@ export class HeaderComponent {
   isScanning: Signal<boolean> = computed(() => this.bluetooth.isScanning());
   isKeyboardSimulator: Signal<boolean> = computed(() => this.bluetooth.currentDeviceName() === 'Keyboard Simulator');
 
-  showKeyboardMapping: WritableSignal<boolean> = signal(false);
   menuOpen: WritableSignal<boolean> = signal(false);
 
   onDocumentClick(event: Event): void {
@@ -295,13 +269,9 @@ export class HeaderComponent {
     this.state.currentUserId.set(userId);
   }
 
-  openKeyboardMapping(): void {
+  openKeyboardMappingClicked(): void {
     this.menuOpen.set(false);
-    this.showKeyboardMapping.set(true);
-  }
-
-  closeKeyboardMapping(): void {
-    this.showKeyboardMapping.set(false);
+    this.openKeyboardMapping.emit();
   }
 
   openSettingsClicked(): void {

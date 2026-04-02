@@ -1,6 +1,7 @@
-import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy, PLATFORM_ID } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { isPlatformBrowser } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { StateService } from '../../services/state.service';
 import { BluetoothService } from '../../services/bluetooth.service';
@@ -161,6 +162,7 @@ export class AnalysisPageComponent {
   private readonly state = inject(StateService);
   private readonly bluetooth = inject(BluetoothService);
   private readonly i18n = inject(I18nService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly selectedFeature = signal<AnalysisFeature>('training');
   readonly selectedSessionId = signal<number | 'all'>('all');
@@ -198,6 +200,9 @@ export class AnalysisPageComponent {
   });
 
   constructor() {
+    // Load saved session from localStorage on init
+    this.loadSavedSession();
+
     effect(() => {
       const feat = this.selectedFeature();
       if (feat !== 'session' && feat !== 'trend') {
@@ -211,6 +216,27 @@ export class AnalysisPageComponent {
         this.selectedSessionId.set(list[0]!.id);
       }
     });
+
+    // Save session to localStorage whenever it changes
+    effect(() => {
+      const sid = this.selectedSessionId();
+      if (isPlatformBrowser(this.platformId)) {
+        localStorage.setItem('cubestats_selected_session', sid === 'all' ? 'all' : String(sid));
+      }
+    });
+  }
+
+  private loadSavedSession(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const saved = localStorage.getItem('cubestats_selected_session');
+    if (saved === 'all') {
+      this.selectedSessionId.set('all');
+    } else if (saved) {
+      const id = parseInt(saved, 10);
+      if (!isNaN(id)) {
+        this.selectedSessionId.set(id);
+      }
+    }
   }
 
   onToolbarFeature(v: AnalysisFeature): void {

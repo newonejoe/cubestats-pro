@@ -540,3 +540,22 @@ app-analysis-training-statistics .training-head label,
 .page-info {
   color: var(--text-secondary);
 }
+
+/* Responsive font sizing for mobile */
+@media (max-width: 600px) {
+  html, body {
+    font-size: 14px;
+  }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
+}
+
+@media (max-width: 400px) {
+  html, body {
+    font-size: 13px;
+  }
+  h1 { font-size: 1.35rem; }
+  h2 { font-size: 1.15rem; }
+  h3 { font-size: 1rem; }
+}

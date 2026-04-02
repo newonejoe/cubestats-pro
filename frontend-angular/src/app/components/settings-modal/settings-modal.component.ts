@@ -1,6 +1,7 @@
-import { Component, inject, computed, input, output, type Signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, computed, input, output, type Signal, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService } from '../../services/state.service';
+import { I18nService, Language } from '../../services/i18n.service';
 import { ThemeKey, THEMES, THEME_KEYS } from '../../data/themes';
 import { AppModalComponent } from '../shared/app-modal.component';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
@@ -37,6 +38,21 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
         <select class="setting-input" (change)="onSoundChange($event)">
           <option value="on" [selected]="soundEnabled()">On</option>
           <option value="off" [selected]="!soundEnabled()">Off</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label class="setting-label">{{ t('language') }}</label>
+        <select class="setting-input" (change)="onLanguageChange($event)">
+          @for (lang of availableLanguages; track lang.code) {
+            <option [value]="lang.code" [selected]="lang.code === currentLanguage()">{{ lang.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="setting-group">
+        <label class="setting-label">{{ t('role') }}</label>
+        <select class="setting-input" (change)="onUserChange($event)">
+          <option value="1" [selected]="currentUserId() === 1">{{ t('coach') }}</option>
+          <option value="2" [selected]="currentUserId() === 2">{{ t('user') }}</option>
         </select>
       </div>
       <button class="btn btn-primary" (click)="saveSettings()" style="width: 100%;">Save</button>
@@ -93,6 +109,8 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
 export class SettingsModalComponent implements OnInit {
   private state = inject(StateService);
   private localStore = inject(LocalSolveStoreService);
+  private i18n = inject(I18nService);
+  private cdr = inject(ChangeDetectorRef);
 
   readonly isVisible = input(false);
   readonly isVisibleChange = output<boolean>();
@@ -100,7 +118,14 @@ export class SettingsModalComponent implements OnInit {
   inspectionTime: Signal<number> = computed(() => this.state.settings().inspectionTime);
   soundEnabled: Signal<boolean> = computed(() => this.state.settings().sound);
   currentTheme: Signal<ThemeKey> = computed(() => this.state.settings().theme);
+  currentLanguage: Signal<Language> = computed(() => this.i18n.currentLanguage());
+  currentUserId: Signal<number> = computed(() => this.state.currentUserId());
   themeKeys = THEME_KEYS;
+  availableLanguages = this.i18n.getAvailableLanguages();
+
+  t(key: string): string {
+    return this.i18n.t(key);
+  }
 
   getThemeName(key: ThemeKey): string {
     return THEMES[key]?.name || key;
@@ -145,6 +170,16 @@ export class SettingsModalComponent implements OnInit {
   onSoundChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
     this.state.settings.update(s => ({ ...s, sound: select.value === 'on' }));
+  }
+
+  onLanguageChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.i18n.setLanguage(select.value as Language);
+  }
+
+  onUserChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.state.currentUserId.set(parseInt(select.value, 10));
   }
 
   saveSettings(): void {

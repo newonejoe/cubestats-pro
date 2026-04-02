@@ -148,6 +148,18 @@ import { I18nService } from '../../services/i18n.service';
     }
     .timer-value.running { color: var(--success-color); }
     .timer-value.inspection { color: var(--warning-color); }
+
+    /* Mobile responsive */
+    @media (max-width: 600px) {
+      .timer-value {
+        font-size: 48px;
+      }
+    }
+    @media (max-width: 400px) {
+      .timer-value {
+        font-size: 36px;
+      }
+    }
   `]
 })
 export class MultiphaseDisplayComponent {

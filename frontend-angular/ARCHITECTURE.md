@@ -23,6 +23,9 @@ frontend-angular/
 │   │   │   ├── statistics/
 │   │   │   ├── history/
 │   │   │   ├── analysis/             # Advanced statistics and solve details
+│   │   │   │   ├── analysis-session-statistics.component.ts
+│   │   │   │   ├── compact-stats-table.component.ts  # Compact metric table with metric selector
+│   │   │   │   ├── analysis-toolbar.component.ts
 │   │   │   ├── bluetooth-manager/    # Bluetooth connection modal & device caching
 │   │   │   ├── mac-modal/            # MAC address input modal
 │   │   │   ├── solved-state-modal/   # Solved state confirmation modal

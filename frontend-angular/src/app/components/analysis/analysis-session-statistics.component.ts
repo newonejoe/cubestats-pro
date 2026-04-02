@@ -11,6 +11,7 @@ import {
   type PrimaryMetric,
 } from '../../lib/analysis-selectors';
 import { METRIC_OPTIONS } from './analysis-metric-options';
+import { CompactStatsTableComponent } from './compact-stats-table.component';
 import {
   finalSolveMs,
   formatMinuteSecondCentis,
@@ -23,39 +24,14 @@ import type { Solve } from '../../services/state.service';
 @Component({
   selector: 'app-analysis-session-statistics',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [CommonModule, CompactStatsTableComponent],
   template: `
     @if (mode() === 'compact') {
       <!-- Compact sidebar mode -->
-      <div class="compact-stats">
-        <div class="cards-compact">
-          <div class="card-c"><span class="val">{{ fm(sessionStats().current) }}</span><span class="lbl">{{ translateMetricLabel('current') }}</span></div>
-          <div class="card-c"><span class="val">{{ fm(sessionStats().best) }}</span><span class="lbl">{{ translateMetricLabel('best') }}</span></div>
-          <div class="card-c"><span class="val">{{ sessionStats().solveCount }}</span><span class="lbl">{{ translateMetricLabel('solveCount') }}</span></div>
-          <div class="card-c"><span class="val">{{ fm(sessionStats().ao5) }}</span><span class="lbl">{{ translateMetricLabel('ao5') }}</span></div>
-          <div class="card-c"><span class="val">{{ fm(sessionStats().ao12) }}</span><span class="lbl">{{ translateMetricLabel('ao12') }}</span></div>
-          <div class="card-c"><span class="val">{{ fm(sessionStats().ao100) }}</span><span class="lbl">{{ translateMetricLabel('ao100') }}</span></div>
-        </div>
-        @if (sortedSessionSolves().length > 0) {
-          <div class="compact-list-wrap">
-            <table class="compact-tbl">
-              <thead><tr><th>#</th><th>Time</th><th>Ao5</th><th>Ao12</th></tr></thead>
-              <tbody>
-                @for (solve of sortedSessionSolves(); track solve.id ?? $index; let idx = $index) {
-                  <tr class="solve-row" (click)="solveOpen.emit(solve)">
-                    <td class="lbl">{{ idx + 1 }}</td>
-                    <td class="mono">{{ fm(finalSolveMs(solve)) }}</td>
-                    <td class="mono ao-cell">{{ rollingAo5Cell(solve) }}</td>
-                    <td class="mono ao-cell">{{ rollingAo12Cell(solve) }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        } @else {
-          <p class="empty">No solves yet.</p>
-        }
-      </div>
+      <app-compact-stats-table
+        [solves]="sessionDetailSolves()"
+        (solveOpen)="solveOpen.emit($event)">
+      </app-compact-stats-table>
     } @else {
       <!-- Full analysis mode -->
       <h2>Session Statistics</h2>

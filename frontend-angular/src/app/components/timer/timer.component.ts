@@ -130,7 +130,7 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
         padding: 8px 8px 0;
       }
       .cube-bg {
-        top: 0;
+        top: 80px;
         right: 0;
       }
       .right-panel {
@@ -138,7 +138,7 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
         top: auto;
         right: auto;
         width: 100%;
-        max-height: 200px;
+        max-height: 40vh;
         padding: 8px;
       }
     }
@@ -146,6 +146,23 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
     @media (max-width: 480px) {
       .right-panel {
         display: none;
+      }
+    }
+
+    /* Landscape mobile: short viewport */
+    @media (orientation: landscape) and (max-height: 450px) {
+      .right-panel {
+        width: 25%;
+        min-width: 180px;
+        max-width: 220px;
+      }
+      .cube-bg {
+        right: 25%;
+        min-width: 180px;
+        max-width: 220px;
+      }
+      .scramble-bar ::ng-deep .scramble-text {
+        font-size: 18px;
       }
     }
   `]

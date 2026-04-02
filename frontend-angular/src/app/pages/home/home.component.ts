@@ -11,6 +11,8 @@ import { BluetoothManagerComponent } from '../../components/bluetooth-manager/bl
 import { AnalysisSessionStatisticsComponent } from '../../components/analysis/analysis-session-statistics.component';
 import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-solve-modal.component';
 import { SettingsModalComponent } from '../../components/settings-modal/settings-modal.component';
+import { KeyboardMappingComponent } from '../../components/keyboard-mapping/keyboard-mapping';
+import { AppModalComponent } from '../../components/shared/app-modal.component';
 
 import { StateService, type Solve } from '../../services/state.service';
 import { CubeService } from '../../services/cube.service';
@@ -31,6 +33,8 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
     AnalysisSessionStatisticsComponent,
     AnalysisSolveModalComponent,
     SettingsModalComponent,
+    KeyboardMappingComponent,
+    AppModalComponent,
   ],
   template: `
     <!-- Bluetooth Connection Modal -->
@@ -44,7 +48,7 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
       @if (cubeConnected()) {
         <!-- Left sidebar: session stats + solve list -->
         <aside class="sidebar">
-          <app-header (openSettings)="openSettings()"></app-header>
+          <app-header (openSettings)="openSettings()" (openKeyboardMapping)="showKeyboardMappingVisible = true"></app-header>
           <app-session-selector></app-session-selector>
           <app-analysis-session-statistics
             mode="compact"
@@ -62,6 +66,13 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
 
     @if (cubeConnected()) {
       <app-settings-modal [(isVisible)]="showSettingsVisible"></app-settings-modal>
+      <app-modal
+        [isVisible]="showKeyboardMappingVisible"
+        title="Keyboard Mapping"
+        maxWidth="500px"
+        (closed)="showKeyboardMappingVisible = false">
+        <app-keyboard-mapping></app-keyboard-mapping>
+      </app-modal>
     }
 
     <div class="toast" [class.visible]="toastMessage()">
@@ -189,17 +200,24 @@ import { LocalSolveStoreService } from '../../services/local-solve-store.service
         display: none;
       }
     }
+
+    /* Landscape mobile: reduce sidebar further */
+    @media (orientation: landscape) and (max-height: 450px) {
+      .layout {
+        grid-template-columns: 180px 1fr;
+      }
+    }
   `]
 })
 export class HomeComponent implements OnInit {
   private state = inject(StateService);
   private cube = inject(CubeService);
-  private bluetooth = inject(BluetoothService);
   private localStore = inject(LocalSolveStoreService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   showSettingsVisible = false;
+  showKeyboardMappingVisible = false;
   toastMessage: WritableSignal<string> = signal<string>('');
 
   cubeConnected: Signal<boolean> = computed(() => this.state.cubeConnected());
