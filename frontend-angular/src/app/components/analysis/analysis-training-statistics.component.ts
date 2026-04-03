@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, input, signal, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { I18nService } from '../../services/i18n.service';
@@ -6,6 +6,8 @@ import { computeTrainingSummary, filterBySession, formatMs, type CaseStatItem } 
 import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
 import { getOllFace21, pllVizFromCstimer, getZbllFace21 } from '../../lib/cstimer-ll-viz';
 import { CstimerScrambleService } from '../../services/cstimer-scramble.service';
+import { BestSolveService } from '../../services/best-solve.service';
+import { CaseType } from '../../data/best-solve-data';
 
 type SortColumn = 'count' | 'insp' | 'exec' | 'turns' | 'tps';
 type SortDirection = 'asc' | 'desc';
@@ -92,9 +94,18 @@ const DEFAULT_PAGE_SIZE = 10;
             <td class="num">{{ x.tps ?? '—' }}</td>
           </tr>
           @if (x.avgExecMs !== null) {
-            <tr class="scramble-row">
-              <td colspan="6" class="scramble-cell">
-                <span class="scramble-tag">{{ scrambleForCase()[x.key] }}</span>
+            <tr class="detail-row">
+              <td colspan="6" class="detail-cell">
+                <div class="detail-item">
+                  <span class="detail-label">{{ t('scramble') }}:</span>
+                  <span class="scramble-tag">{{ scrambleForCase()[x.key] }}</span>
+                </div>
+                @if (isOllOrPll(trainingCaseType())) {
+                  <div class="detail-item clickable" (dblclick)="onBestSolveDblClick(getCaseTypeForBestSolve(trainingCaseType()), parseCaseIndex(x.key))">
+                    <span class="detail-label">{{ t('solve') }}:</span>
+                    <span class="solve-text">{{ getSelectedAlgorithm(getCaseTypeForBestSolve(trainingCaseType()), parseCaseIndex(x.key)) }}</span>
+                  </div>
+                }
               </td>
             </tr>
           }
@@ -138,9 +149,14 @@ const DEFAULT_PAGE_SIZE = 10;
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { background: var(--hover-bg); }
     .sort-icon { margin-left: 4px; font-size: 10px; }
-    .scramble-row { background: var(--hover-bg); }
-    .scramble-cell { padding: 4px 8px 8px !important; }
-    .scramble-tag { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; background: var(--hover-bg); border-radius: 4px; font-size: 12px; font-family: monospace; color: var(--text-primary); }
+    .detail-row { background: var(--hover-bg); }
+    .detail-cell { padding: 4px 8px 8px !important; display: flex; gap: 24px; flex-wrap: wrap; }
+    .detail-item { display: flex; align-items: center; gap: 8px; }
+    .detail-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; min-width: 60px; }
+    .scramble-tag { display: inline-block; padding: 2px 8px; background: var(--hover-bg); border-radius: 4px; font-size: 12px; font-family: monospace; color: var(--text-primary); }
+    .solve-text { font-size: 12px; font-family: monospace; color: var(--text-primary); }
+    .detail-item.clickable { cursor: pointer; border-radius: 4px; padding: 2px 4px; }
+    .detail-item.clickable:hover { background: var(--input-bg); }
     .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 16px 0; }
     .btn-page { padding: 6px 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); border-radius: 4px; cursor: pointer; font-size: 13px; }
     .btn-page:hover:not(:disabled) { background: var(--hover-bg); }
@@ -152,6 +168,7 @@ export class AnalysisTrainingStatisticsComponent {
   private readonly store = inject(LocalSolveStoreService);
   private readonly cstimer = inject(CstimerScrambleService);
   private readonly i18n = inject(I18nService);
+  private readonly bestSolveService = inject(BestSolveService);
 
   readonly sessionId = input<number | 'all'>('all');
 
@@ -160,6 +177,8 @@ export class AnalysisTrainingStatisticsComponent {
   readonly sortDirection = signal<SortDirection>('desc');
   readonly pageSize = signal<number>(DEFAULT_PAGE_SIZE);
   readonly currentPage = signal<number>(1);
+
+  bestSolveDblClick = output<{ caseType: CaseType; caseIndex: number }>();
 
   t(key: string): string {
     return this.i18n.t(key);
@@ -302,6 +321,26 @@ export class AnalysisTrainingStatisticsComponent {
       return '';
     }
     return '';
+  }
+
+  isOllOrPll(type: string): boolean {
+    return type === 'oll' || type === 'pll';
+  }
+
+  getCaseTypeForBestSolve(type: string): 'oll' | 'pll' {
+    return type === 'oll' ? 'oll' : 'pll';
+  }
+
+  parseCaseIndex(key: string): number {
+    return parseInt(key, 10);
+  }
+
+  getSelectedAlgorithm(type: CaseType, index: number): string {
+    return this.bestSolveService.getSelectedAlgorithm(type, index) ?? '—';
+  }
+
+  onBestSolveDblClick(type: CaseType, index: number): void {
+    this.bestSolveDblClick.emit({ caseType: type, caseIndex: index });
   }
 
   onTrainingCaseTypeChange(event: Event): void {

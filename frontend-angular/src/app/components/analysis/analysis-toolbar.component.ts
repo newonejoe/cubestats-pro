@@ -71,6 +71,9 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
         }
       }
       <div class="toolbar-actions">
+        <button type="button" class="btn-action" (click)="onBestSolveClick()" title="{{ t('bestSolve') }}">
+          {{ t('best') }}
+        </button>
         <button type="button" class="btn-action" (click)="onExport()" title="{{ t('export') }}">
           {{ t('export') }}
         </button>
@@ -130,6 +133,7 @@ export class AnalysisToolbarComponent {
   readonly crossSessionFilterToggle = output<boolean>();
   readonly customFromChange = output<string>();
   readonly customToChange = output<string>();
+  readonly bestSolveClick = output<void>();
 
   sessionAllowsAll(): boolean {
     return this.selectedFeature() === 'training';
@@ -184,6 +188,11 @@ export class AnalysisToolbarComponent {
     a.download = `cubestats-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  onBestSolveClick(): void {
+    console.debug('button clicked');
+    this.bestSolveClick.emit();
   }
 
   onImportCubeStats(): void {

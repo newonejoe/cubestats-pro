@@ -14,6 +14,8 @@ import { AnalysisTimeTrendComponent } from '../../components/analysis/analysis-t
 import { AnalysisCrossSectionComponent } from '../../components/analysis/analysis-cross-section.component';
 import { AnalysisTrainingStatisticsComponent } from '../../components/analysis/analysis-training-statistics.component';
 import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-solve-modal.component';
+import { BestSolveSuggestionsComponent } from '../../components/analysis/best-solve-suggestions.component';
+import { CaseType } from '../../data/best-solve-data';
 
 @Component({
   selector: 'app-analysis-page',
@@ -27,6 +29,7 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
     AnalysisCrossSectionComponent,
     AnalysisTrainingStatisticsComponent,
     AnalysisSolveModalComponent,
+    BestSolveSuggestionsComponent,
   ],
   template: `
     <div class="analysis-page">
@@ -50,6 +53,7 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
           (crossSessionFilterToggle)="useSessionFilterInCross.set($event)"
           (customFromChange)="customFrom.set($event)"
           (customToChange)="customTo.set($event)"
+          (bestSolveClick)="bestSolveModalOpen.set(true)"
         />
       </section>
 
@@ -74,7 +78,10 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
             />
           }
           @case ('training') {
-            <app-analysis-training-statistics [sessionId]="selectedSessionId()" />
+            <app-analysis-training-statistics
+              [sessionId]="selectedSessionId()"
+              (bestSolveDblClick)="onBestSolveDblClick($event)"
+            />
           }
           @default {
             <p class="empty">No feature selected.</p>
@@ -90,6 +97,15 @@ import { AnalysisSolveModalComponent } from '../../components/analysis/analysis-
         [contextSessionId]="contextSessionIdForModal()"
         (closed)="closeSolveModal()"
         (deleted)="closeSolveModal()"
+      />
+    }
+
+    @if (bestSolveModalOpen()) {
+      <app-best-solve-suggestions
+        [isVisible]="bestSolveModalOpen()"
+        [initialCaseType]="selectedBestSolveCaseType()"
+        [initialCaseIndex]="selectedBestSolveCaseIndex()"
+        (closed)="bestSolveModalOpen.set(false)"
       />
     }
   `,
@@ -171,6 +187,9 @@ export class AnalysisPageComponent {
   readonly customFrom = signal<string>('');
   readonly customTo = signal<string>('');
   readonly modalSolve = signal<Solve | null>(null);
+  readonly bestSolveModalOpen = signal<boolean>(false);
+  readonly selectedBestSolveCaseType = signal<CaseType>('oll');
+  readonly selectedBestSolveCaseIndex = signal<number | null>(null);
 
   cubeConnected = computed(() => this.state.cubeConnected());
   isScanning = computed(() => this.bluetooth.isScanning());
@@ -257,5 +276,11 @@ export class AnalysisPageComponent {
 
   closeSolveModal(): void {
     this.modalSolve.set(null);
+  }
+
+  onBestSolveDblClick(event: { caseType: CaseType; caseIndex: number }): void {
+    this.selectedBestSolveCaseType.set(event.caseType);
+    this.selectedBestSolveCaseIndex.set(event.caseIndex);
+    this.bestSolveModalOpen.set(true);
   }
 }
