@@ -402,6 +402,7 @@
   "case": "案例",
   "caseStats": "案例统计",
   "caseType": "案例类型",
+  "caseIndex": "序号",
   "typeDistribution": "类型分布",
   "noRecordsInScope": "当前范围内无记录",
   "insp": "观察",
@@ -409,7 +410,8 @@
   "turns": "步数",
   "tps": "TPS",
   "zbll": "ZBLL",
-  "bestSolveSuggestions": "最佳解建议",
+  "bestSolveSuggestions": "最优解建议",
+  "bestSolve": "最优解",
   "selected": "已选",
   "target": "目标",
   "noRecords": "未找到记录",
@@ -516,5 +518,6 @@
   "to": "到",
   "applySessionFilter": "应用分组筛选",
   "feature": "功能",
-  "needMoreSolvesTrend": "需要至少2次还原才能绘制趋势图"
+  "needMoreSolvesTrend": "需要至少2次还原才能绘制趋势图",
+  "algorithms": "公式集"
 }

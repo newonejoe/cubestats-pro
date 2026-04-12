@@ -72,7 +72,7 @@ export type AnalysisFeature = 'session' | 'trend' | 'cross' | 'training';
       }
       <div class="toolbar-actions">
         <button type="button" class="btn-action" (click)="onBestSolveClick()" title="{{ t('bestSolve') }}">
-          {{ t('best') }}
+          {{ t('bestSolve') }}
         </button>
         <button type="button" class="btn-action" (click)="onExport()" title="{{ t('export') }}">
           {{ t('export') }}

@@ -24,7 +24,7 @@ interface TableRow {
     <app-modal
       [isVisible]="isVisible()"
       [title]="t('bestSolveSuggestions')"
-      [maxWidth]="'800px'"
+      [maxWidth]="'1200px'"
       (closed)="onClose()"
     >
       <div class="modal-filters">
@@ -47,7 +47,6 @@ interface TableRow {
               <th>{{ t('case') }}</th>
               <th>{{ t('caseIndex') }}</th>
               <th>{{ t('algorithms') }}</th>
-              <th>{{ t('selected') }}</th>
               <th>{{ t('target') }}</th>
               <th>{{ t('best') }}</th>
             </tr>
@@ -57,10 +56,11 @@ interface TableRow {
               <tr (dblclick)="onRowDoubleClick(row)">
                 <td>
                   @if (getCaseImgUrl(row.caseType, row.caseIndex); as imgUrl) {
-                    <img [src]="imgUrl" alt="Case" class="case-img" />
+                    <img [src]="imgUrl" alt="Case" class="case-img-lg" />
                   }
                 </td>
                 <td>{{ row.caseIndex }}</td>
+                <!--
                 <td>
                   <select class="alg-select" [value]="row.selectedSolve" (change)="onAlgorithmChange(row, $event)">
                     @for (alg of getAlgorithms(row.caseType, row.caseIndex); track $index) {
@@ -68,7 +68,21 @@ interface TableRow {
                     }
                   </select>
                 </td>
-                <td>{{ getAlgorithms(row.caseType, row.caseIndex)[row.selectedSolve] }}</td>
+                -->
+                <td>
+                  <table>
+                    @for (alg of getAlgorithms(row.caseType, row.caseIndex); track $index) {
+                      <tr>
+                        <td> <input type="checkbox" [checked]="$index === row.selectedSolve" (change)="onAlgorithmCheckboxChange(row, $index, $event.target.checked)" /> </td>
+                        <td>{{ $index + 1 }}</td>
+                        <td class="case-alg" [class.selected]="$index === row.selectedSolve" >{{ alg }}</td>
+                      </tr>
+                    }
+                  </table>
+                </td>
+                <!--
+                <td class="case-alg">{{ getAlgorithms(row.caseType, row.caseIndex)[row.selectedSolve] }}</td>
+                -->
                 <td>
                   <input type="number" class="target-input" [value]="row.execTarget ?? ''"
                     (change)="onExecTargetChange(row, $event)" placeholder="ms" />
@@ -94,6 +108,9 @@ interface TableRow {
     .tbl th, .tbl td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border-color); }
     .tbl th { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
     .case-img { width: 32px; height: 32px; object-fit: contain; }
+    .case-img-lg { width: 64px; height: 64px; object-fit: contain; }
+    .case-alg {font-size: large;}
+    .case-alg .selected { font-weight: bold; font-size: x-large; color: var(--primary-color); }
     .alg-select { padding: 4px; border-radius: 4px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-primary); font-size: 12px; max-width: 150px; }
     .target-input { padding: 4px; border-radius: 4px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-primary); font-size: 12px; width: 70px; }
     .empty { color: var(--text-muted); text-align: center; padding: 20px; }
@@ -106,6 +123,8 @@ export class BestSolveSuggestionsComponent {
   isVisible = input<boolean>(false);
   initialCaseType = input<CaseType>('oll');
   initialCaseIndex = input<number | null>(null);
+
+  closed = output<boolean>();
 
   filterCaseType = signal<CaseType>('oll');
   filterCaseIndex = signal<number | null>(null);
@@ -204,6 +223,12 @@ export class BestSolveSuggestionsComponent {
     this.bestSolveService.setSelectedSolve(row.caseType, row.caseIndex, value);
   }
 
+  onAlgorithmCheckboxChange(row: TableRow, algIndex: number, checked: boolean): void {
+    if (checked) {
+      this.bestSolveService.setSelectedSolve(row.caseType, row.caseIndex, algIndex);
+    }
+  }
+
   onExecTargetChange(row: TableRow, event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     const target = value ? parseInt(value, 10) : null;
@@ -216,5 +241,6 @@ export class BestSolveSuggestionsComponent {
 
   onClose(): void {
     // The parent will handle closing via the (closed) event
+    this.closed.emit(true);
   }
 }
