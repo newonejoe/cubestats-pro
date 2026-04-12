@@ -135,7 +135,7 @@ export class GanDriver extends CubeDriver {
         await this.characteristic?.startNotifications();
         console.log(`[${nowIso}] [gancube] v2init v2read start notifications`);
 
-        this.characteristic?.addEventListener('characteristicvaluechanged', this.onData.bind(this));
+        this.registerCharacteristicListener();
 
         if (this.writeCharacteristic) {
             setTimeout(() => this.sendInitialRequests(), 100);

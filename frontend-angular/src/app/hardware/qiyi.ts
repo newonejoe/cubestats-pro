@@ -179,7 +179,7 @@ export class QiyiDriver extends CubeDriver {
         this.characteristic = await service.getCharacteristic('0000fff6-0000-1000-8000-00805f9b34fb');
         nowIso = new Date().toISOString();
         console.log(`[${nowIso}] [qiyicube] find chrcts`, this.characteristic);
-        this.characteristic.addEventListener('characteristicvaluechanged', this.onData.bind(this));
+        this.registerCharacteristicListener();
         await this.characteristic.startNotifications();
         await this.sendHello(this.mac);
         return this;

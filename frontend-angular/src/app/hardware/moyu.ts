@@ -279,7 +279,7 @@ export class MoyuDriver extends CubeDriver {
         console.log('[Moyu] Using write characteristic:', this.writeCharacteristic?.uuid);
 
         await this.characteristic.startNotifications();
-        this.characteristic.addEventListener('characteristicvaluechanged', this.onData.bind(this));
+        this.registerCharacteristicListener();
 
         console.log('[Moyu] Sending requestCubeInfo...');
         await this.requestCubeInfo();

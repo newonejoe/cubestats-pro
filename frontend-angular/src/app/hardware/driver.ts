@@ -27,6 +27,9 @@ export abstract class CubeDriver {
     // Callback for move events
     onMoveCallback?: (moves: CubeMove[]) => void;
 
+    // Store bound event handler reference for proper removal
+    private onDataBound: ((event: Event) => void) | null = null;
+
     constructor() {}
 
     // Get driver name (handles both naming conventions)
@@ -83,9 +86,8 @@ export abstract class CubeDriver {
     }
 
     disconnect(): void {
-        if (this.characteristic) {
-            this.characteristic.removeEventListener('characteristicvaluechanged', this.onData.bind(this));
-        }
+        // Properly remove event listener using saved reference
+        this.unregisterCharacteristicListener();
         if (this.gattServer && this.gattServer.connected) {
             this.gattServer.disconnect();
         }
@@ -96,6 +98,22 @@ export abstract class CubeDriver {
         if (!target?.value) return;
         const bytes = new Uint8Array(target.value.buffer);
         this.parseData(bytes);
+    }
+
+    // Helper to register event listener with saved reference
+    protected registerCharacteristicListener(): void {
+        if (this.characteristic && !this.onDataBound) {
+            this.onDataBound = this.onData.bind(this);
+            this.characteristic.addEventListener('characteristicvaluechanged', this.onDataBound);
+        }
+    }
+
+    // Helper to unregister event listener
+    protected unregisterCharacteristicListener(): void {
+        if (this.characteristic && this.onDataBound) {
+            this.characteristic.removeEventListener('characteristicvaluechanged', this.onDataBound);
+            this.onDataBound = null;
+        }
     }
 }
 

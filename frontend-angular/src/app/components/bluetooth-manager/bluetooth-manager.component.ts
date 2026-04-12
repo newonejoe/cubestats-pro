@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, type WritableSignal, type Signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, type WritableSignal, type Signal, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { StateService } from '../../services/state.service';
@@ -452,7 +452,7 @@ type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected' 
     }
   `]
 })
-export class BluetoothManagerComponent implements OnInit {
+export class BluetoothManagerComponent implements OnInit, OnDestroy {
   private bluetooth = inject(BluetoothService);
   private state = inject(StateService);
   private i18n = inject(I18nService);
@@ -473,6 +473,7 @@ export class BluetoothManagerComponent implements OnInit {
 
   private readonly STORAGE_KEY = 'cubestats_bt_devices';
   private readonly MAX_CACHED_DEVICES = 5;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
 
   t(key: string): string {
     return this.i18n.t(key);
@@ -508,14 +509,18 @@ export class BluetoothManagerComponent implements OnInit {
     };
 
     // Poll for state changes
-    const interval = setInterval(() => {
+    this.intervalId = setInterval(() => {
       if (this.connectionState() !== 'disconnected' && this.connectionState() !== 'prompt') {
         this.updateConnectionState();
       }
     }, 500);
+  }
 
-    // Cleanup on destroy would be better but this is simple
-    (window as any).__bluetoothManagerInterval = interval;
+  ngOnDestroy(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 
   skipPrompt(): void {

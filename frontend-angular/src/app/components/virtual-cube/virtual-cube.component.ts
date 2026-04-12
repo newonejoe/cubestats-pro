@@ -72,6 +72,7 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
   private threeRenderer!: THREE.WebGLRenderer;
   private cubeGroup!: THREE.Group;
   private animationId: number = 0;
+  private refreshIntervalId: ReturnType<typeof setInterval> | null = null;
   private resizeObserver?: ResizeObserver;
 
   private lastBtState: string = '';
@@ -91,7 +92,7 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.buildThreeJsCube();
 
       // Check for state and theme changes
-      setInterval(() => {
+      this.refreshIntervalId = setInterval(() => {
         this.checkForStateChange();
         this.checkForThemeChange();
       }, 100);
@@ -120,12 +121,45 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Clear the refresh interval
+    if (this.refreshIntervalId) {
+      clearInterval(this.refreshIntervalId);
+      this.refreshIntervalId = null;
+    }
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
     }
     this.resizeObserver?.disconnect();
+    // Dispose Three.js resources to prevent GPU memory leak
+    this.clearThreeJsResources();
     if (this.threeRenderer) {
       this.threeRenderer.dispose();
+      this.threeRenderer.forceContextLoss();
+    }
+  }
+
+  private clearThreeJsResources(): void {
+    if (!this.cubeGroup) return;
+    // Properly dispose all geometries and materials
+    this.cubeGroup.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        obj.geometry?.dispose();
+        if (obj.material instanceof THREE.Material) {
+          obj.material.dispose();
+        } else if (Array.isArray(obj.material)) {
+          obj.material.forEach(m => m.dispose());
+        }
+      }
+      if (obj instanceof THREE.LineSegments) {
+        obj.geometry?.dispose();
+        if (obj.material instanceof THREE.Material) {
+          obj.material.dispose();
+        }
+      }
+    });
+    // Clear all children
+    while (this.cubeGroup.children.length > 0) {
+      this.cubeGroup.remove(this.cubeGroup.children[0]);
     }
   }
 
@@ -189,7 +223,23 @@ export class VirtualCubeComponent implements OnInit, AfterViewInit, OnDestroy {
   buildThreeJsCube(): void {
     if (!this.cubeGroup) return;
 
-    // Clear existing
+    // Clear existing and properly dispose resources
+    this.cubeGroup.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        obj.geometry?.dispose();
+        if (obj.material instanceof THREE.Material) {
+          obj.material.dispose();
+        } else if (Array.isArray(obj.material)) {
+          obj.material.forEach(m => m.dispose());
+        }
+      }
+      if (obj instanceof THREE.LineSegments) {
+        obj.geometry?.dispose();
+        if (obj.material instanceof THREE.Material) {
+          obj.material.dispose();
+        }
+      }
+    });
     while (this.cubeGroup.children.length > 0) {
       this.cubeGroup.remove(this.cubeGroup.children[0]);
     }

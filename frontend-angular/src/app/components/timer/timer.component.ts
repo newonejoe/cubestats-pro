@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed, type WritableSignal, type Signal, input, ChangeDetectionStrategy, HostListener } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, type WritableSignal, type Signal, input, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService, type Solve } from '../../services/state.service';
 import { TimerService } from '../../services/timer.service';
@@ -167,7 +167,7 @@ import { AppEmptyStateComponent } from '../shared/app-empty-state.component';
     }
   `]
 })
-export class TimerComponent implements OnInit {
+export class TimerComponent implements OnInit, OnDestroy {
   private state = inject(StateService);
   private timerService = inject(TimerService);
   private cubeService = inject(CubeService);
@@ -198,6 +198,7 @@ export class TimerComponent implements OnInit {
 
   inspectionTimeLeft: WritableSignal<string> = signal<string>('');
   showPenaltyBtns: WritableSignal<boolean> = signal<boolean>(false);
+  private intervalId: ReturnType<typeof setInterval> | null = null;
 
   formattedTime: Signal<string> = computed(() => {
     const time = this.state.timer();
@@ -207,7 +208,7 @@ export class TimerComponent implements OnInit {
   ngOnInit(): void {
     this.cubeService.generateScramble();
 
-    setInterval(() => {
+    this.intervalId = setInterval(() => {
       const status = this.state.status();
       switch (status) {
         case 'twisting':
@@ -240,6 +241,13 @@ export class TimerComponent implements OnInit {
           break;
       }
     }, 100);
+  }
+
+  ngOnDestroy(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 
   handleKeyDown(event: KeyboardEvent): void {

@@ -32,7 +32,7 @@ export class GoCubeDriver extends CubeDriver {
         this.characteristic = await service.getCharacteristic(charUUID);
 
         await this.characteristic!.startNotifications();
-        this.characteristic!.addEventListener('characteristicvaluechanged', this.onData.bind(this));
+        this.registerCharacteristicListener();
 
         return this;
     }
