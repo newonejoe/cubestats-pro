@@ -163,6 +163,8 @@ export class TimerService {
 
       case 'twisted':
         // Already matched scramble, waiting for inspection to start
+        // reset the move count once the cube is twisted correctly, so that only moves after this point are counted in the solve
+        this.currentMoveCount = 0;
         break;
 
       case 'inspecting':
@@ -339,6 +341,7 @@ export class TimerService {
       if (this.state.status() === 'inspecting') {
         const elapsed = Math.floor((Date.now() - this.inspectionStart) / 1000);
         const left = this.state.inspectionTime() - elapsed;
+        this.state.inspectionTimeLeft.set(left);
         if (left <= 0) {
           this.clearInspectionInterval();
           // Set status to ready - cube moves will start timer

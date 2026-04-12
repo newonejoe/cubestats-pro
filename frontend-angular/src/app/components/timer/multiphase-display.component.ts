@@ -15,7 +15,15 @@ import { I18nService } from '../../services/i18n.service';
     <div class="multiphase">
       <!-- Last solve summary -->
       <div class="section active-timer" [class.solving]="isSolving()" [class.inspecting]="isInspecting()">
-        @if (isSolving() || isInspecting()) {
+        @if (isInspecting() && inspectionTimeLeft() > 0) {
+          <!-- Inspection countdown display -->
+          <div class="inspection-countdown" [style.color]="inspectionColor()">
+            {{ inspectionTimeLeft() }}
+          </div>
+        } @else if (isReady()) {
+          <!-- GO! indicator -->
+          <div class="go-indicator" [style.color]="inspectionColor()">GO!</div>
+        } @else if (isSolving()) {
           <div class="last-time">
             {{ formattedTime() }}
           </div>
@@ -96,6 +104,18 @@ import { I18nService } from '../../services/i18n.service';
     .last-time.dnf { color: var(--danger-color); }
     .last-time.muted { color: var(--text-muted); }
 
+    .inspection-countdown {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .go-indicator {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
     .recons-line {
       display: flex;
       justify-content: center;
@@ -168,6 +188,28 @@ export class MultiphaseDisplayComponent {
   private localStore = inject(LocalSolveStoreService);
   private i18n = inject(I18nService);
 
+  // Inspection time left - reads from state.service signal
+  // Updated by timer.service's inspection interval (100ms)
+  inspectionTimeLeft = (): number => this.state.inspectionTimeLeft();
+
+  // Computed inspection color based on remaining time
+  readonly inspectionColor: Signal<string> = computed(() => {
+    const left = this.state.inspectionTimeLeft();
+    const status = this.state.status();
+
+    if (status === 'ready') {
+      return 'var(--success-color)';
+    }
+    if (status !== 'inspecting' || left === 0) {
+      return '';
+    }
+
+    // Color logic: >8s yellow, >3s orange, ≤3s red
+    if (left > 8) return 'var(--inspection-yellow)';
+    if (left > 3) return 'var(--inspection-orange)';
+    return 'var(--inspection-red)';
+  });
+
   readonly sessionId = input<number | 'all'>('all');
 
   t(key: string): string {
@@ -184,6 +226,7 @@ export class MultiphaseDisplayComponent {
 
   isSolving: Signal<boolean> = computed(() => this.state.isSolving());
   isInspecting: Signal<boolean> = computed(() => this.state.isInspecting());
+  isReady: Signal<boolean> = computed(() => this.state.isReady());
 
   formattedTime: Signal<string> = computed(() => {
     const time = this.state.timer();

@@ -86,6 +86,8 @@ export class StateService {
   readonly timer: WritableSignal<number> = signal<number>(0);
   readonly status: WritableSignal<TimerStatus> = signal<TimerStatus>('idle');
   readonly inspectionTime: WritableSignal<number> = signal<number>(15);
+  /** Remaining inspection time in seconds - updated by timer.service's inspection interval */
+  readonly inspectionTimeLeft: WritableSignal<number> = signal<number>(0);
 
   // Scramble state
   /**
