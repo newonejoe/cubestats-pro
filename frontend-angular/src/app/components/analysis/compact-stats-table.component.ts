@@ -97,9 +97,9 @@ export interface SolveRowData {
               </tr>
             </thead>
             <tbody>
-              @for (row of solveRows(); track row.solve.id) {
+              @for (row of solveRows(); track $index;) {
                 <tr class="solve-row" (click)="solveOpen.emit(row.solve)">
-                  <td class="lbl">{{ row.solve.id }}</td>
+                  <td class="lbl">{{ $count - $index }}</td>
                   <td class="mono" [class.current-best]="row.valueCurrentBest">{{ formatValue(row.value) }}</td>
                   <td class="mono ao-cell" [class.current-best]="row.ao5CurrentBest">{{ formatValue(row.ao5) }}</td>
                   <td class="mono ao-cell" [class.current-best]="row.ao12CurrentBest">{{ formatValue(row.ao12) }}</td>
