@@ -1,15 +1,9 @@
 import { Component, computed, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { I18nService } from '../../services/i18n.service';
-import {
-  computeRollingAoBySolve,
-  computeSessionStats,
-  filterBySession,
-  primaryMetricValue,
-  sortSolvesByMetric,
-  type PrimaryMetric,
-} from '../../lib/analysis-selectors';
+import { StatisticsService } from '../../services/statistics.service';
+import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { primaryMetricValue, type PrimaryMetric } from '../../lib/analysis-selectors';
 import { METRIC_OPTIONS } from './analysis-metric-options';
 import { CompactStatsTableComponent } from './compact-stats-table.component';
 import {
@@ -182,6 +176,7 @@ export class AnalysisSessionStatisticsComponent {
   readonly finalSolveMs = finalSolveMs;
 
   private readonly store = inject(LocalSolveStoreService);
+  private readonly stats = inject(StatisticsService);
   private readonly i18n = inject(I18nService);
 
   readonly sessionId = input<number | 'all'>('all');
@@ -206,15 +201,15 @@ export class AnalysisSessionStatisticsComponent {
   readonly sessionDetailSolves = computed(() => {
     const sid = this.sessionId();
     if (sid === 'all') return [];
-    return filterBySession(this.solves(), sid);
+    return this.stats.solvesBySession(sid);
   });
 
-  readonly sessionStats = computed(() => computeSessionStats(this.sessionDetailSolves()));
+  readonly sessionStats = computed(() => this.stats.sessionStats(this.sessionId()));
 
-  readonly rollingAoBySolve = computed(() => computeRollingAoBySolve(this.sessionDetailSolves()));
+  readonly rollingAoBySolve = computed(() => this.stats.rollingAo(this.sessionId()));
 
   readonly sortedSessionSolves = computed(() =>
-    sortSolvesByMetric(this.sessionDetailSolves(), this.primaryMetric()),
+    this.stats.sortedSolves(this.sessionId(), this.primaryMetric()),
   );
 
   readonly primaryMetricLabel = computed(() => {

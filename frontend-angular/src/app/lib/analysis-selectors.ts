@@ -368,7 +368,8 @@ function summarizeCases(
 }
 
 export function computeTrainingSummary(solves: Solve[]): TrainingSummary {
-  _reconsCaseCache.clear();
+  // Note: Don't clear _reconsCaseCache here - it's a persistent memoization cache
+  // that should survive across calls to improve performance
   return {
     byType: summarizeBy(solves, (s) => s.scrambleType ?? null),
     ollCases: summarizeCases(solves, (s) => deriveCaseForSolve(s, 'OLL')),

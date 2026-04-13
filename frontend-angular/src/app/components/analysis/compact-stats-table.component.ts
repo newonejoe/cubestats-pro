@@ -1,12 +1,8 @@
 import { Component, computed, inject, input, output, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService } from '../../services/i18n.service';
-import {
-  finalMillis,
-  solveTimestamp,
-} from '../../lib/analysis-selectors';
-import { estimateCfopFromMoveTrace } from '../../lib/move-trace-cfop';
-import { runCstimerCf4opRecons, cstimerReconsEngineReady } from '../../lib/cstimer-recons';
+import { StatisticsService } from '../../services/statistics.service';
+import { solveTimestamp } from '../../lib/analysis-selectors';
 import type { Solve } from '../../services/state.service';
 
 export type CompactMetric = 'time' | 'cross' | 'f2l' | 'oll' | 'pll' | 'cfopInsp' | 'cfopExec' | 'htm' | 'fps' | 'fmc';
@@ -183,6 +179,7 @@ export class CompactStatsTableComponent {
   readonly metricOptions = COMPACT_METRIC_OPTIONS;
 
   private readonly i18n = inject(I18nService);
+  private readonly stats = inject(StatisticsService);
 
   readonly solves = input.required<Solve[]>();
   readonly solveOpen = output<Solve>();
@@ -204,101 +201,38 @@ export class CompactStatsTableComponent {
   }
 
   private getMetricValue(solve: Solve, metric: CompactMetric): number | null {
+    const solveId = solve.id;
+    if (solveId === undefined || solveId === null) {
+      return null;
+    }
+    const metrics = this.stats.getSolveMetrics(solveId);
+    if (!metrics) {
+      return null;
+    }
+
     switch (metric) {
       case 'time':
-        return finalMillis(solve);
+        return metrics.time;
       case 'cross':
+        return metrics.crossTime;
       case 'f2l':
+        return metrics.f2lTime;
       case 'oll':
+        return metrics.ollTime;
       case 'pll':
-        if (metric === 'cross') {
-          if (solve.crossTime != null) return solve.crossTime;
-          return this.derivePhaseFromTrace(solve, 'cross');
-        }
-        if (metric === 'f2l') {
-          if (solve.f2lTime != null) return solve.f2lTime;
-          return this.derivePhaseFromTrace(solve, 'f2l');
-        }
-        if (metric === 'oll') {
-          if (solve.ollTime != null) return solve.ollTime;
-          return this.derivePhaseFromTrace(solve, 'oll');
-        }
-        if (metric === 'pll') {
-          if (solve.PLLTime != null) return solve.PLLTime;
-          return this.derivePhaseFromTrace(solve, 'pll');
-        }
-        return null;
-      case 'cfopInsp': {
-        // Get inspection times from cstimer recons (recognition time = pause before each phase)
-        if (cstimerReconsEngineReady()) {
-          const r = runCstimerCf4opRecons(solve);
-          if (r) {
-            const crossInsp = r.cross?.recognitionMs ?? 0;
-            const f2lInsp = r.f2l?.recognitionMs ?? 0;
-            const ollInsp = r.oll?.recognitionMs ?? 0;
-            const pllInsp = r.pll?.recognitionMs ?? 0;
-            const total = crossInsp + f2lInsp + ollInsp + pllInsp;
-            return total > 0 ? total : null;
-          }
-        }
-        // Fallback: use inspectionTime setting (WCA default 15s)
-        return solve.inspectionTime != null ? solve.inspectionTime * 1000 : null;
-      }
-      case 'cfopExec': {
-        const cross = solve.crossTime ?? this.derivePhaseFromTrace(solve, 'cross') ?? 0;
-        const f2l = solve.f2lTime ?? this.derivePhaseFromTrace(solve, 'f2l') ?? 0;
-        const oll = solve.ollTime ?? this.derivePhaseFromTrace(solve, 'oll') ?? 0;
-        const pll = solve.PLLTime ?? this.derivePhaseFromTrace(solve, 'pll') ?? 0;
-        const exec = cross + f2l + oll + pll;
-        return exec > 0 ? exec : null;
-      }
+        return metrics.pllTime;
+      case 'cfopInsp':
+        return metrics.cfopInsp;
+      case 'cfopExec':
+        return metrics.cfopExec;
       case 'htm':
-        return solve.moveCount ?? null;
-      case 'fps': {
-        const moves = solve.moveCount ?? 0;
-        const cross = solve.crossTime ?? this.derivePhaseFromTrace(solve, 'cross') ?? 0;
-        const f2l = solve.f2lTime ?? this.derivePhaseFromTrace(solve, 'f2l') ?? 0;
-        const oll = solve.ollTime ?? this.derivePhaseFromTrace(solve, 'oll') ?? 0;
-        const pll = solve.PLLTime ?? this.derivePhaseFromTrace(solve, 'pll') ?? 0;
-        const exec = cross + f2l + oll + pll;
-        if (moves > 0 && exec > 0) {
-          return moves / (exec / 1000);
-        }
-        return null;
-      }
-      case 'fmc': {
-        const moves = solve.moveCount ?? 0;
-        const total = finalMillis(solve);
-        if (moves > 0 && total != null && total > 0) {
-          return moves / (total / 60000);
-        }
-        return null;
-      }
+        return metrics.htm;
+      case 'fps':
+        return metrics.fps;
+      case 'fmc':
+        return metrics.fmc;
       default:
         return null;
-    }
-  }
-
-  private derivePhaseFromTrace(solve: Solve, phase: 'cross' | 'f2l' | 'oll' | 'pll'): number | null {
-    if (cstimerReconsEngineReady()) {
-      const r = runCstimerCf4opRecons(solve);
-      if (r) {
-        switch (phase) {
-          case 'cross': return r.cross?.executionMs ?? null;
-          case 'f2l': return r.f2l?.executionMs ?? null;
-          case 'oll': return r.oll?.executionMs ?? null;
-          case 'pll': return r.pll?.executionMs ?? null;
-        }
-      }
-    }
-    const est = estimateCfopFromMoveTrace(solve.moveTrace);
-    if (!est) return null;
-    switch (phase) {
-      case 'cross': return est.cross?.executionMs ?? null;
-      case 'f2l': return est.f2l?.executionMs ?? null;
-      case 'oll': return est.oll?.executionMs ?? null;
-      case 'pll': return est.pll?.executionMs ?? null;
-      default: return null;
     }
   }
 

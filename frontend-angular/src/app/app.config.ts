@@ -5,6 +5,7 @@ import { provideHttpClient, HttpClient } from '@angular/common/http';
 import { routes } from './app.routes';
 import { LocalSolveStoreService } from './services/local-solve-store.service';
 import { preloadTranslations } from './services/i18n.service';
+import { StatisticsService } from './services/statistics.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -22,6 +23,12 @@ export const appConfig: ApplicationConfig = {
       multi: true,
       deps: [HttpClient],
       useFactory: preloadTranslations,
+    },
+    {
+      provide: APP_INITIALIZER,
+      multi: true,
+      deps: [StatisticsService],
+      useFactory: (stats: StatisticsService) => () => stats.verifySelectedSession(),
     },
   ]
 };

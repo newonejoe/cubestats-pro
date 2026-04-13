@@ -2,6 +2,7 @@ import { Component, computed, inject, input, signal, ChangeDetectionStrategy } f
 import { CommonModule } from '@angular/common';
 import type { Solve } from '../../services/state.service';
 import { I18nService } from '../../services/i18n.service';
+import { StatisticsService } from '../../services/statistics.service';
 import { parseMoveTrace } from '../../lib/cstimer-storage';
 import {
   allocatePhaseTurnCounts,
@@ -16,7 +17,6 @@ import {
   cf4opPhaseRowParsedMoves,
   reconsChronoOllIndex,
   reconsChronoPllIndex,
-  runCstimerCf4opRecons,
   type Cf4opMacroPhase,
   type CstimerCf4opRecons,
 } from '../../lib/cstimer-recons';
@@ -173,6 +173,7 @@ export class CfopReconstructionComponent {
   readonly formatCfopPhaseMs = formatMinuteSecondCentis;
 
   private readonly i18n = inject(I18nService);
+  private readonly stats = inject(StatisticsService);
 
   readonly solve = input.required<Solve>();
   readonly caseStatScope = input<Solve[]>([]);
@@ -185,7 +186,15 @@ export class CfopReconstructionComponent {
   readonly ollStatExpanded = signal(false);
   readonly pllStatExpanded = signal(false);
 
-  readonly reconsCf4op = computed(() => runCstimerCf4opRecons(this.solve()));
+  readonly reconsCf4op = computed(() => {
+    const solve = this.solve();
+    const solveId = solve.id;
+    if (solveId === undefined || solveId === null) {
+      return null;
+    }
+    const analysis = this.stats.getSolveAnalysis(solveId);
+    return analysis?.reconstruction ?? null;
+  });
   readonly traceEst = computed(() => estimateCfopFromMoveTrace(this.solve().moveTrace));
 
   readonly f2lDetailRows = computed(() => {

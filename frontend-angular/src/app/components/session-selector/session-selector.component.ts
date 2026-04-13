@@ -1,7 +1,8 @@
-import { Component, inject, signal, ChangeDetectionStrategy, HostListener } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StateService, type Session } from '../../services/state.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { StatisticsService } from '../../services/statistics.service';
 import { I18nService } from '../../services/i18n.service';
 
 @Component({
@@ -140,16 +141,42 @@ import { I18nService } from '../../services/i18n.service';
     }
   `]
 })
-export class SessionSelectorComponent {
+export class SessionSelectorComponent implements OnInit {
   private state = inject(StateService);
   private localStore = inject(LocalSolveStoreService);
+  private stats = inject(StatisticsService);
   private i18n = inject(I18nService);
 
   dropdownOpen = signal(false);
 
-  sessions = signal<Session[]>(this.localStore.getSessions());
-  currentSessionId = signal<number | undefined>(this.state.currentSession()?.id);
-  currentSessionName = signal<string>(this.state.currentSession()?.name ?? '');
+  sessions = signal<Session[]>([]);
+
+  // Use StatisticsService as the single source of truth for current session
+  readonly currentSession = computed(() => this.state.currentSession());
+
+  readonly currentSessionId = computed(() => this.currentSession()?.id);
+
+  readonly currentSessionName = computed(() => this.currentSession()?.name ?? '');
+
+  ngOnInit(): void {
+    // Load sessions from store
+    this.sessions.set(this.localStore.getSessions());
+
+    // Initialize current session from persisted selection
+    const selectedId = this.stats.selectedSessionId;
+    const sessions = this.localStore.getSessions();
+
+    if (selectedId !== 'all' && selectedId !== null) {
+      const session = sessions.find(s => s.id === selectedId);
+      if (session) {
+        this.state.currentSession.set(session);
+      } else if (sessions.length > 0) {
+        this.state.currentSession.set(sessions[0]!);
+      }
+    } else if (sessions.length > 0) {
+      this.state.currentSession.set(sessions[0]!);
+    }
+  }
 
   onDocumentClick(event: Event): void {
     const target = event.target as HTMLElement;
@@ -176,16 +203,14 @@ export class SessionSelectorComponent {
 
     const newSession = this.localStore.createSession(sessionName);
     this.state.currentSession.set(newSession);
+    this.stats.setSelectedSession(newSession.id);
     this.sessions.set(this.localStore.getSessions());
-    this.currentSessionId.set(newSession.id);
-    this.currentSessionName.set(newSession.name);
     this.dropdownOpen.set(false);
   }
 
   selectSession(session: Session): void {
     this.state.currentSession.set(session);
-    this.currentSessionId.set(session.id);
-    this.currentSessionName.set(session.name);
+    this.stats.setSelectedSession(session.id);
     this.dropdownOpen.set(false);
   }
 
@@ -199,8 +224,7 @@ export class SessionSelectorComponent {
       const remaining = this.localStore.getSessions();
       if (remaining.length > 0) {
         this.state.currentSession.set(remaining[0]);
-        this.currentSessionId.set(remaining[0].id);
-        this.currentSessionName.set(remaining[0].name);
+        this.stats.setSelectedSession(remaining[0]!.id);
       }
     }
 

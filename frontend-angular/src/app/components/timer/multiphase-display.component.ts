@@ -2,8 +2,7 @@ import { Component, inject, computed, input, type Signal, ChangeDetectionStrateg
 import { CommonModule } from '@angular/common';
 import { StateService, type Solve } from '../../services/state.service';
 import { TimerService } from '../../services/timer.service';
-import { LocalSolveStoreService } from '../../services/local-solve-store.service';
-import { computeSessionStats, type SessionStats } from '../../lib/analysis-selectors';
+import { StatisticsService } from '../../services/statistics.service';
 import { parseMoveTrace } from '../../lib/cstimer-storage';
 import { I18nService } from '../../services/i18n.service';
 
@@ -47,29 +46,29 @@ import { I18nService } from '../../services/i18n.service';
       <div class="section avg-section">
         <div class="avg-row">
           <span class="avg-label">{{ t('bestStat') }}</span>
-          <span class="avg-value best">{{ formatStat(stats().best) }}</span>
+          <span class="avg-value best">{{ formatStat(sessionStats().best) }}</span>
         </div>
         <div class="avg-row">
           <span class="avg-label">{{ t('ao5') }}</span>
-          <span class="avg-value">{{ formatStat(stats().ao5) }}</span>
+          <span class="avg-value">{{ formatStat(sessionStats().ao5) }}</span>
         </div>
         <div class="avg-row">
           <span class="avg-label">{{ t('ao12') }}</span>
-          <span class="avg-value">{{ formatStat(stats().ao12) }}</span>
+          <span class="avg-value">{{ formatStat(sessionStats().ao12) }}</span>
         </div>
         <div class="avg-row">
           <span class="avg-label">{{ t('ao100') }}</span>
-          <span class="avg-value">{{ formatStat(stats().ao100) }}</span>
+          <span class="avg-value">{{ formatStat(sessionStats().ao100) }}</span>
         </div>
         <div class="avg-row">
           <span class="avg-label">{{ t('mean') }}</span>
-          <span class="avg-value">{{ formatStat(stats().mean) }}</span>
+          <span class="avg-value">{{ formatStat(sessionStats().mean) }}</span>
         </div>
       </div>
 
       <!-- Solve count -->
       <div class="section count-section">
-        <span class="count-label">{{ stats().solveCount }}/{{ stats().dnfCount }} {{ t('dnf') }}</span>
+        <span class="count-label">{{ sessionStats().solveCount }}/{{ sessionStats().dnfCount }} {{ t('dnf') }}</span>
       </div>
     </div>
   `,
@@ -185,7 +184,7 @@ import { I18nService } from '../../services/i18n.service';
 export class MultiphaseDisplayComponent {
   private state = inject(StateService);
   private timerService = inject(TimerService);
-  private localStore = inject(LocalSolveStoreService);
+  private stats = inject(StatisticsService);
   private i18n = inject(I18nService);
 
   // Inspection time left - reads from state.service signal
@@ -216,13 +215,11 @@ export class MultiphaseDisplayComponent {
     return this.i18n.t(key);
   }
 
-  private readonly sessionSolves: Signal<Solve[]> = computed(() => {
-    this.localStore.storeRevision();
-    const sid = this.sessionId();
-    return this.localStore.getSolves().filter(s => sid === 'all' || s.sessionId === sid);
+  private readonly sessionSolves = computed(() => {
+    return this.stats.solvesBySession(this.sessionId());
   });
 
-  readonly stats: Signal<SessionStats> = computed(() => computeSessionStats(this.sessionSolves()));
+  readonly sessionStats = computed(() => this.stats.sessionStats(this.sessionId()));
 
   isSolving: Signal<boolean> = computed(() => this.state.isSolving());
   isInspecting: Signal<boolean> = computed(() => this.state.isInspecting());

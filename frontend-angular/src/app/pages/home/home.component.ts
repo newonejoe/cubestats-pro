@@ -18,6 +18,7 @@ import { StateService, type Solve } from '../../services/state.service';
 import { CubeService } from '../../services/cube.service';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { StatisticsService } from '../../services/statistics.service';
 
 @Component({
   selector: 'app-home',
@@ -213,6 +214,7 @@ export class HomeComponent implements OnInit {
   private state = inject(StateService);
   private cube = inject(CubeService);
   private localStore = inject(LocalSolveStoreService);
+  private stats = inject(StatisticsService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -254,10 +256,6 @@ export class HomeComponent implements OnInit {
   readonly modalSolve = signal<Solve | null>(null);
 
   ngOnInit(): void {
-    const sessions = this.localStore.getSessions();
-    if (sessions.length > 0) {
-      this.state.currentSession.set(sessions[0]!);
-    }
     this.state.solves.set(this.localStore.getSolves());
 
     const q = this.route.snapshot.queryParamMap;

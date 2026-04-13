@@ -1,9 +1,9 @@
-import { Component, computed, effect, inject, signal, ChangeDetectionStrategy, PLATFORM_ID } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { isPlatformBrowser } from '@angular/common';
 import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { StateService } from '../../services/state.service';
+import { StatisticsService } from '../../services/statistics.service';
 import { BluetoothService } from '../../services/bluetooth.service';
 import { I18nService } from '../../services/i18n.service';
 import { filterBySession, type TimeWindow } from '../../lib/analysis-selectors';
@@ -41,14 +41,14 @@ import { CaseType } from '../../data/best-solve-data';
       <section class="panel">
         <app-analysis-toolbar
           [selectedFeature]="selectedFeature()"
-          [selectedSessionId]="selectedSessionId()"
+          [selectedSessionId]="stats.selectedSessionIdSignal()"
           [sessions]="sessions()"
           [selectedTimeWindow]="selectedTimeWindow()"
           [useSessionFilterInCross]="useSessionFilterInCross()"
           [customFrom]="customFrom()"
           [customTo]="customTo()"
           (featureChange)="onToolbarFeature($event)"
-          (sessionChange)="selectedSessionId.set($event)"
+          (sessionChange)="onSessionChange($event)"
           (timeWindowChange)="selectedTimeWindow.set($event)"
           (crossSessionFilterToggle)="useSessionFilterInCross.set($event)"
           (customFromChange)="customFrom.set($event)"
@@ -61,12 +61,12 @@ import { CaseType } from '../../data/best-solve-data';
         @switch (selectedFeature()) {
           @case ('session') {
             <app-analysis-session-statistics
-              [sessionId]="selectedSessionId()"
+              [sessionId]="stats.selectedSessionIdSignal()"
               (solveOpen)="openSolveModal($event)"
             />
           }
           @case ('trend') {
-            <app-analysis-time-trend [sessionId]="selectedSessionId()" />
+            <app-analysis-time-trend [sessionId]="stats.selectedSessionIdSignal()" />
           }
           @case ('cross') {
             <app-analysis-cross-section
@@ -74,12 +74,12 @@ import { CaseType } from '../../data/best-solve-data';
               [customFrom]="customFrom()"
               [customTo]="customTo()"
               [useSessionFilter]="useSessionFilterInCross()"
-              [sessionFilterId]="selectedSessionId()"
+              [sessionFilterId]="stats.selectedSessionIdSignal()"
             />
           }
           @case ('training') {
             <app-analysis-training-statistics
-              [sessionId]="selectedSessionId()"
+              [sessionId]="stats.selectedSessionIdSignal()"
               (bestSolveDblClick)="onBestSolveDblClick($event)"
             />
           }
@@ -178,10 +178,9 @@ export class AnalysisPageComponent {
   private readonly state = inject(StateService);
   private readonly bluetooth = inject(BluetoothService);
   private readonly i18n = inject(I18nService);
-  private readonly platformId = inject(PLATFORM_ID);
+  readonly stats = inject(StatisticsService);
 
   readonly selectedFeature = signal<AnalysisFeature>('training');
-  readonly selectedSessionId = signal<number | 'all'>('all');
   readonly selectedTimeWindow = signal<TimeWindow>('7d');
   readonly useSessionFilterInCross = signal<boolean>(false);
   readonly customFrom = signal<string>('');
@@ -209,62 +208,43 @@ export class AnalysisPageComponent {
   });
 
   readonly modalCaseStatScope = computed(() => {
-    const sid = this.selectedSessionId();
+    const sid = this.stats.selectedSessionIdSignal();
     return filterBySession(this.solves(), sid);
   });
 
   readonly contextSessionIdForModal = computed((): number | undefined => {
-    const sid = this.selectedSessionId();
+    const sid = this.stats.selectedSessionIdSignal();
     return sid === 'all' ? undefined : sid;
   });
 
   constructor() {
-    // Load saved session from localStorage on init
-    this.loadSavedSession();
-
+    // When feature changes to session/trend, ensure we have a valid session selected
     effect(() => {
       const feat = this.selectedFeature();
       if (feat !== 'session' && feat !== 'trend') {
         return;
       }
-      if (this.selectedSessionId() !== 'all') {
+      if (this.stats.selectedSessionIdSignal() !== 'all') {
         return;
       }
       const list = this.sessions();
       if (list.length > 0) {
-        this.selectedSessionId.set(list[0]!.id);
-      }
-    });
-
-    // Save session to localStorage whenever it changes
-    effect(() => {
-      const sid = this.selectedSessionId();
-      if (isPlatformBrowser(this.platformId)) {
-        localStorage.setItem('cubestats_selected_session', sid === 'all' ? 'all' : String(sid));
+        this.stats.setSelectedSession(list[0]!.id);
       }
     });
   }
 
-  private loadSavedSession(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    const saved = localStorage.getItem('cubestats_selected_session');
-    if (saved === 'all') {
-      this.selectedSessionId.set('all');
-    } else if (saved) {
-      const id = parseInt(saved, 10);
-      if (!isNaN(id)) {
-        this.selectedSessionId.set(id);
-      }
-    }
+  onSessionChange(sessionId: number | 'all'): void {
+    this.stats.setSelectedSession(sessionId);
   }
 
   onToolbarFeature(v: AnalysisFeature): void {
     this.selectedFeature.set(v);
     if (v === 'session' || v === 'trend') {
-      if (this.selectedSessionId() === 'all') {
+      if (this.stats.selectedSessionIdSignal() === 'all') {
         const s = this.sessions();
         if (s.length > 0) {
-          this.selectedSessionId.set(s[0]!.id);
+          this.stats.setSelectedSession(s[0]!.id);
         }
       }
     }

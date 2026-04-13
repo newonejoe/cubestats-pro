@@ -1,8 +1,9 @@
 import { Component, computed, inject, input, signal, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LocalSolveStoreService } from '../../services/local-solve-store.service';
 import { I18nService } from '../../services/i18n.service';
-import { computeTrainingSummary, filterBySession, formatMs, type CaseStatItem } from '../../lib/analysis-selectors';
+import { StatisticsService } from '../../services/statistics.service';
+import { LocalSolveStoreService } from '../../services/local-solve-store.service';
+import { formatMs, type CaseStatItem } from '../../lib/analysis-selectors';
 import { buildLlImageDataUrl } from '../../lib/ll-image-data-url';
 import { getOllFace21, pllVizFromCstimer, getZbllFace21 } from '../../lib/cstimer-ll-viz';
 import { CstimerScrambleService } from '../../services/cstimer-scramble.service';
@@ -166,6 +167,7 @@ const DEFAULT_PAGE_SIZE = 10;
 })
 export class AnalysisTrainingStatisticsComponent {
   private readonly store = inject(LocalSolveStoreService);
+  private readonly stats = inject(StatisticsService);
   private readonly cstimer = inject(CstimerScrambleService);
   private readonly i18n = inject(I18nService);
   private readonly bestSolveService = inject(BestSolveService);
@@ -189,9 +191,9 @@ export class AnalysisTrainingStatisticsComponent {
     return this.store.getSolves();
   });
 
-  readonly sessionSolves = computed(() => filterBySession(this.solves(), this.sessionId()));
+  readonly sessionSolves = computed(() => this.stats.solvesBySession(this.sessionId()));
 
-  readonly training = computed(() => computeTrainingSummary(this.sessionSolves()));
+  readonly training = computed(() => this.stats.trainingSummary());
 
   readonly trainingCaseRows = computed(() => {
     const type = this.trainingCaseType();
