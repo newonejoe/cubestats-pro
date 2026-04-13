@@ -164,6 +164,9 @@ export class StatisticsService {
   // Cache for session-filtered solves
   private solvesBySessionCache = new Map<number | 'all', Solve[]>();
 
+  // Cache for session-filtered training summaries
+  private trainingSummaryCache = new Map<number | 'all', TrainingSummary>();
+
   /**
    * Get solves filtered by session ID.
    * Results are cached per session - recomputes only when that session changes.
@@ -179,6 +182,21 @@ export class StatisticsService {
 
     this.solvesBySessionCache.set(sessionId, solves);
     return solves;
+  }
+
+  /**
+   * Get training summary for a specific session.
+   * Results are cached per session.
+   */
+  trainingSummaryBySession(sessionId: number | 'all'): TrainingSummary {
+    if (this.trainingSummaryCache.has(sessionId)) {
+      return this.trainingSummaryCache.get(sessionId)!;
+    }
+
+    const solves = this.solvesBySession(sessionId);
+    const summary = computeTrainingSummary(solves);
+    this.trainingSummaryCache.set(sessionId, summary);
+    return summary;
   }
 
   /**

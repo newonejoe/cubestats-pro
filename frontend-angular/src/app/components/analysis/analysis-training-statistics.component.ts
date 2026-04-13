@@ -193,7 +193,7 @@ export class AnalysisTrainingStatisticsComponent {
 
   readonly sessionSolves = computed(() => this.stats.solvesBySession(this.sessionId()));
 
-  readonly training = computed(() => this.stats.trainingSummary());
+  readonly training = computed(() => this.stats.trainingSummaryBySession(this.sessionId()));
 
   readonly trainingCaseRows = computed(() => {
     const type = this.trainingCaseType();
