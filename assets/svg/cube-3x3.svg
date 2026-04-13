@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 32 32"
+     width="32" height="32"
+     fill="currentColor">
+  <!--
+    Carbon Design System style — 32x32 grid, 1px stroke weight,
+    filled paths, currentColor. Isometric 3x3 Rubik's cube.
+  -->
+
+  <!-- TOP FACE -->
+  <!-- Outer top face polygon: apex(16,2) right(28,9) center(16,16) left(4,9) -->
+  <polygon points="16,2 28,9 16,16 4,9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- top face grid — left-leaning lines -->
+  <line x1="12" y1="4.5"  x2="24" y2="11.5" stroke="currentColor" stroke-width="1"/>
+  <line x1="8"  y1="7"    x2="20" y2="14"   stroke="currentColor" stroke-width="1"/>
+  <!-- top face grid — right-leaning lines -->
+  <line x1="20" y1="4.5"  x2="8"  y2="11.5" stroke="currentColor" stroke-width="1"/>
+  <line x1="24" y1="7"    x2="12" y2="14"   stroke="currentColor" stroke-width="1"/>
+
+  <!-- LEFT FACE -->
+  <!-- left(4,9) center(16,16) bottom-left(16,30) far-left(4,23) -->
+  <polygon points="4,9 16,16 16,30 4,23" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- left face grid — vertical columns -->
+  <line x1="8"  y1="11.5" x2="8"  y2="25.5" stroke="currentColor" stroke-width="1"/>
+  <line x1="12" y1="14"   x2="12" y2="28"   stroke="currentColor" stroke-width="1"/>
+  <!-- left face grid — horizontal rows -->
+  <line x1="4"  y1="14.3" x2="16" y2="21.3" stroke="currentColor" stroke-width="1"/>
+  <line x1="4"  y1="18.7" x2="16" y2="25.7" stroke="currentColor" stroke-width="1"/>
+
+  <!-- RIGHT FACE -->
+  <!-- center(16,16) right(28,9) far-right(28,23) bottom-right(16,30) -->
+  <polygon points="16,16 28,9 28,23 16,30" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- right face grid — vertical columns -->
+  <line x1="20" y1="14"   x2="20" y2="28"   stroke="currentColor" stroke-width="1"/>
+  <line x1="24" y1="11.5" x2="24" y2="25.5" stroke="currentColor" stroke-width="1"/>
+  <!-- right face grid — horizontal rows -->
+  <line x1="16" y1="21.3" x2="28" y2="14.3" stroke="currentColor" stroke-width="1"/>
+  <line x1="16" y1="25.7" x2="28" y2="18.7" stroke="currentColor" stroke-width="1"/>
+
+</svg>
